@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* @theme {
+  --color-bg-light:       #F2F0EB;
+  --color-bg-light2:      #E8E5DE;
+  --color-ink:      #1C1C1A;
+  --color-ink2:     #3A3A37;
+  --color-ink3:     #6B6B66;
+  --color-card-bg:  #ECEAE4;
+  --color-border:   rgba(28, 28, 26, 0.12);
+  --color-glow:     rgba(28, 28, 26, 0.06);
+  --color-tag-bg:   rgba(28, 28, 26, 0.08);
+}
+
+@theme {
+  --color-bg-dark:       #141412;
+  --color-bg-dark2:      #1E1E1B;
+  --color-ink-dark:      #F2F0EB;
+  --color-ink-dark2:     #D4D1C9;
+  --color-ink-dark3:     #7A7A72;
+  --color-card-bg-dark:  #1E1E1B;
+  --color-border-dark:   rgba(242, 240, 235, 0.1);
+  --color-glow-dark:     rgba(242, 240, 235, 0.04);
+  --color-tag-bg-dark:   rgba(242, 240, 235, 0.08);
+} */

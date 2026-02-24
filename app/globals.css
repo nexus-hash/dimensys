@@ -1,26 +1,101 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300&family=DM+Serif+Display:ital@0;1&display=swap');
+@import 'tailwindcss';
+@import './css/theme.css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@tailwind utilities;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+*, *::before, *::after { box-sizing: border-box; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html { scroll-behavior: smooth; 
+  background-color: var(--bg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'JetBrains Mono', monospace;
+  background-color: var(--bg);
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg:       #F2F0EB;
+  --bg2:      #E8E5DE;
+  --ink:      #1C1C1A;
+  --ink2:     #3A3A37;
+  --ink3:     #6B6B66;
+  --card-bg:  #ECEAE4;
+  --border:   rgba(28, 28, 26, 0.12);
+  --glow:     rgba(28, 28, 26, 0.06);
+  --tag-bg:   rgba(28, 28, 26, 0.08);
+}
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:       #141412;
+  --bg2:      #1E1E1B;
+  --ink:      #F2F0EB;
+  --ink2:     #D4D1C9;
+  --ink3:     #7A7A72;
+  --card-bg:  #1E1E1B;
+  --border:   rgba(242, 240, 235, 0.1);
+  --glow:     rgba(242, 240, 235, 0.04);
+  --tag-bg:   rgba(242, 240, 235, 0.08);
+}
+
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scrollPulse {
+  0%, 100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleX(1.5);
+    opacity: 0.5;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ─── SCROLL REVEAL ─── */
+@layer utilities {
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s, transform 0.6s;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
 }
