@@ -1,0 +1,49 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dimensys
+        uses: actions/checkout@v4
+
+      - name: Checkout dms-engine (private)
+        uses: actions/checkout@v4
+        with:
+          repository: your-org/dms-engine
+          token: ${{ secrets.DMS_ENGINE_PAT }}
+          path: dms-engine-checkout
+
+      - name: Position dms-engine
+        run: mv dms-engine-checkout ../dms-engine
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build dms-engine
+        run: |
+          cd ../dms-engine
+          npm ci
+          npm run build
+
+      - name: Sync engine output to dimensys
+        run: node scripts/sync-engine.js
+
+      - name: Install dimensys dependencies
+        run: npm ci
+
+      - name: Build dimensys
+        run: npm run build
+        env:
+          SKIP_PREBUILD: true
+
+      # Add your deployment step here
+      # - name: Deploy
+      #   run: ...

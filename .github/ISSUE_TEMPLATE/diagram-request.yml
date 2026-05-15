@@ -1,0 +1,81 @@
+name: "📐 Diagram Request"
+description: "Request a new system design diagram or changes to an existing one"
+title: "[Diagram] "
+labels: ["diagram-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to Dimensys! Fill out this form to request a new interactive system design diagram or suggest changes to an existing one.
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request Type
+      options:
+        - New Diagram
+        - Update Existing Diagram
+    validations:
+      required: true
+
+  - type: input
+    id: system-name
+    attributes:
+      label: System Name
+      description: "e.g., URL Shortener, Uber System Design, Netflix CDN"
+      placeholder: "URL Shortener"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: System Description
+      description: "Brief description of the system architecture"
+    validations:
+      required: true
+
+  - type: textarea
+    id: components
+    attributes:
+      label: Key Components
+      description: "List the main components (nodes) in the system"
+      placeholder: |
+        - Client (Web Browser)
+        - Load Balancer (NGINX)
+        - API Server (Node.js)
+        - Database (PostgreSQL)
+        - Cache (Redis)
+    validations:
+      required: true
+
+  - type: textarea
+    id: connections
+    attributes:
+      label: Connections / Data Flow
+      description: "Describe how components connect to each other"
+      placeholder: |
+        - Client → Load Balancer (HTTP, sync)
+        - Load Balancer → API Server (HTTP, sync)
+        - API Server → Cache (sync, bidirectional)
+        - API Server → Database (sync)
+
+  - type: textarea
+    id: scenarios
+    attributes:
+      label: Interactive Scenarios (optional)
+      description: "Describe scenarios to visualize (e.g., cache hit, failure mode)"
+      placeholder: |
+        1. Normal Read Path (cache hit)
+        2. Cache Miss → DB fallback
+        3. Database failure scenario
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: System Requirements (optional)
+      description: "Non-functional requirements, scale targets, etc."
+      placeholder: |
+        - 100K requests/sec
+        - 99.99% uptime
+        - < 50ms p99 latency

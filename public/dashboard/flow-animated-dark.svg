@@ -1,0 +1,295 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+
+  
+  <!-- Connections -->
+  <g stroke="#374151" stroke-width="2" fill="none">
+    <!-- Entrances to Middles -->
+    <path d="M 70 110 H 150 Q 160 110, 160 120 V 200 Q 160 210, 170 210 H 250" />
+    <path d="M 100 310 H 165 Q 175 310, 175 300 V 210 Q 175 200, 185 200 H 250" />
+    <path d="M 100 310 H 130 Q 140 310, 140 320 V 430 Q 140 440, 150 440 H 180" />
+    <path d="M 80 510 H 120 Q 130 510, 130 500 V 470 Q 130 460, 140 460 H 180" />
+    <path d="M 70 110 H 215 Q 225 110, 225 100 V 100 Q 225 90, 235 90 H 380" />
+    
+    <!-- Middles to Middles -->
+    <path d="M 340 210 H 350 Q 360 210, 360 200 V 115 Q 360 105, 370 105 H 380" />
+    <path d="M 340 230 H 370 Q 380 230, 380 240 V 340 Q 380 350, 390 350 H 420" />
+    <path d="M 250 440 H 325 Q 335 440, 335 430 V 390 Q 335 380, 345 380 H 420" />
+    <path d="M 250 460 H 390 Q 400 460, 400 470 Q 400 480, 410 480 H 550" />
+    
+    <!-- Middles to Finals -->
+    <path d="M 490 105 H 560 Q 570 105, 570 115 V 175 Q 570 185, 580 185 H 650" />
+    <path d="M 490 95 H 510 Q 520 95, 520 105 V 450 Q 520 460, 530 460 H 550" />
+    <path d="M 500 350 H 565 Q 575 350, 575 340 V 215 Q 575 205, 585 205 H 650" />
+    <path d="M 500 380 H 592.5 Q 600 380, 600 387.5 Q 600 395, 607.5 395 H 700" />
+    <path d="M 650 480 H 665 Q 675 480, 675 470 V 425 Q 675 415, 685 415 H 700" />
+
+    <!-- Finals to Out -->
+    <path d="M 730 185 H 780" />
+    <path d="M 770 395 H 820" />
+
+    <!-- Top Entrances -->
+    <path d="M 400 20 V 60 Q 400 70, 410 70 H 425 Q 435 70, 435 80" />
+
+    <!-- Bottom Exits -->
+    <path d="M 600 510 V 550 Q 600 560, 610 560 H 630 Q 640 560, 640 570 V 580" />
+    <path d="M 215 480 V 520 Q 215 530, 225 530 H 240 Q 250 530, 250 540 V 550" />
+  </g>
+
+  <!-- Shapes -->
+  <g fill="none" stroke="#4b5563" stroke-width="2">
+    <!-- Middles -->
+    <rect x="250" y="180" width="90" height="60" rx="4" />
+    <rect x="180" y="400" width="70" height="80" rx="4" />
+    <rect x="380" y="80" width="110" height="50" rx="4" />
+    <rect x="420" y="320" width="80" height="100" rx="4" />
+
+    <!-- Finals -->
+    <rect x="650" y="150" width="80" height="70" rx="4" />
+    <rect x="550" y="450" width="100" height="60" rx="4" />
+    <rect x="700" y="350" width="70" height="90" rx="4" />
+  </g>
+
+  <!-- Animated Dot -->
+  <defs>
+    <filter id="smoothGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blurOuter" />
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blurInner" />
+      <feMerge result="mergedBlur">
+        <feMergeNode in="blurOuter" />
+        <feMergeNode in="blurInner" />
+      </feMerge>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="2.5" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+    <g opacity="0">
+      <set attributeName="opacity" to="1" begin="0s" fill="freeze" />
+      <!-- Smooth Glow Shadow -->
+      <path 
+        d="M 70 110 H 150 Q 160 110, 160 120 V 200 Q 160 210, 170 210 H 250 V 184 Q 250 180, 254 180 H 336 Q 340 180, 340 184 V 210 H 350 Q 360 210, 360 200 V 115 Q 360 105, 370 105 H 380 V 84 Q 380 80, 384 80 H 486 Q 490 80, 490 84 V 105 H 560 Q 570 105, 570 115 V 175 Q 570 185, 580 185 H 650 V 154 Q 650 150, 654 150 H 726 Q 730 150, 730 154 V 185 H 780" 
+        stroke="#FF5F15" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100" 
+        filter="url(#smoothGlow)" 
+        opacity="0.8"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="15.32s" 
+          begin="0s"
+          repeatCount="indefinite" 
+        />
+      </path>
+      <!-- Core Dot -->
+      <path 
+        d="M 70 110 H 150 Q 160 110, 160 120 V 200 Q 160 210, 170 210 H 250 V 184 Q 250 180, 254 180 H 336 Q 340 180, 340 184 V 210 H 350 Q 360 210, 360 200 V 115 Q 360 105, 370 105 H 380 V 84 Q 380 80, 384 80 H 486 Q 490 80, 490 84 V 105 H 560 Q 570 105, 570 115 V 175 Q 570 185, 580 185 H 650 V 154 Q 650 150, 654 150 H 726 Q 730 150, 730 154 V 185 H 780" 
+        stroke="#ffcca0" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="15.32s" 
+          begin="0s"
+          repeatCount="indefinite" 
+        />
+      </path>
+    </g>
+
+    <g opacity="0">
+      <set attributeName="opacity" to="1" begin="2.1s" fill="freeze" />
+      <!-- Smooth Glow Shadow -->
+      <path 
+        d="M 100 310 H 165 Q 175 310, 175 300 V 210 Q 175 200, 185 200 H 250 V 184 Q 250 180, 254 180 H 336 Q 340 180, 340 184 V 210 H 350 Q 360 210, 360 200 V 115 Q 360 105, 370 105 H 380 V 84 Q 380 80, 384 80 H 486 Q 490 80, 490 84 V 95 H 510 Q 520 95, 520 105 V 450 Q 520 460, 530 460 H 550 V 454 Q 550 450, 554 450 H 646 Q 650 450, 650 454 V 480 H 665 Q 675 480, 675 470 V 425 Q 675 415, 685 415 H 700 V 354 Q 700 350, 704 350 H 766 Q 770 350, 770 354 V 395 H 820" 
+        stroke="#FF5F15" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100" 
+        filter="url(#smoothGlow)" 
+        opacity="0.8"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="20.97s" 
+          begin="2.1s"
+          repeatCount="indefinite" 
+        />
+      </path>
+      <!-- Core Dot -->
+      <path 
+        d="M 100 310 H 165 Q 175 310, 175 300 V 210 Q 175 200, 185 200 H 250 V 184 Q 250 180, 254 180 H 336 Q 340 180, 340 184 V 210 H 350 Q 360 210, 360 200 V 115 Q 360 105, 370 105 H 380 V 84 Q 380 80, 384 80 H 486 Q 490 80, 490 84 V 95 H 510 Q 520 95, 520 105 V 450 Q 520 460, 530 460 H 550 V 454 Q 550 450, 554 450 H 646 Q 650 450, 650 454 V 480 H 665 Q 675 480, 675 470 V 425 Q 675 415, 685 415 H 700 V 354 Q 700 350, 704 350 H 766 Q 770 350, 770 354 V 395 H 820" 
+        stroke="#ffcca0" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="20.97s" 
+          begin="2.1s"
+          repeatCount="indefinite" 
+        />
+      </path>
+    </g>
+
+    <g opacity="0">
+      <set attributeName="opacity" to="1" begin="4.5s" fill="freeze" />
+      <!-- Smooth Glow Shadow -->
+      <path 
+        d="M 100 310 H 130 Q 140 310, 140 320 V 430 Q 140 440, 150 440 H 180 V 476 Q 180 480, 184 480 H 246 Q 250 480, 250 476 V 440 H 325 Q 335 440, 335 430 V 390 Q 335 380, 345 380 H 420 V 324 Q 420 320, 424 320 H 496 Q 500 320, 500 324 V 350 H 565 Q 575 350, 575 340 V 215 Q 575 205, 585 205 H 650 V 216 Q 650 220, 654 220 H 726 Q 730 220, 730 216 V 185 H 780" 
+        stroke="#FF5F15" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100" 
+        filter="url(#smoothGlow)" 
+        opacity="0.8"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="16.17s" 
+          begin="4.5s"
+          repeatCount="indefinite" 
+        />
+      </path>
+      <!-- Core Dot -->
+      <path 
+        d="M 100 310 H 130 Q 140 310, 140 320 V 430 Q 140 440, 150 440 H 180 V 476 Q 180 480, 184 480 H 246 Q 250 480, 250 476 V 440 H 325 Q 335 440, 335 430 V 390 Q 335 380, 345 380 H 420 V 324 Q 420 320, 424 320 H 496 Q 500 320, 500 324 V 350 H 565 Q 575 350, 575 340 V 215 Q 575 205, 585 205 H 650 V 216 Q 650 220, 654 220 H 726 Q 730 220, 730 216 V 185 H 780" 
+        stroke="#ffcca0" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="16.17s" 
+          begin="4.5s"
+          repeatCount="indefinite" 
+        />
+      </path>
+    </g>
+
+    <g opacity="0">
+      <set attributeName="opacity" to="1" begin="7.2s" fill="freeze" />
+      <!-- Smooth Glow Shadow -->
+      <path 
+        d="M 80 510 H 120 Q 130 510, 130 500 V 470 Q 130 460, 140 460 H 180 V 476 Q 180 480, 184 480 H 246 Q 250 480, 250 476 V 460 H 390 Q 400 460, 400 470 Q 400 480, 410 480 H 550 V 506 Q 550 510, 554 510 H 600 V 550 Q 600 560, 610 560 H 630 Q 640 560, 640 570 V 580" 
+        stroke="#FF5F15" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100" 
+        filter="url(#smoothGlow)" 
+        opacity="0.8"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="9.65s" 
+          begin="7.2s"
+          repeatCount="indefinite" 
+        />
+      </path>
+      <!-- Core Dot -->
+      <path 
+        d="M 80 510 H 120 Q 130 510, 130 500 V 470 Q 130 460, 140 460 H 180 V 476 Q 180 480, 184 480 H 246 Q 250 480, 250 476 V 460 H 390 Q 400 460, 400 470 Q 400 480, 410 480 H 550 V 506 Q 550 510, 554 510 H 600 V 550 Q 600 560, 610 560 H 630 Q 640 560, 640 570 V 580" 
+        stroke="#ffcca0" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="9.65s" 
+          begin="7.2s"
+          repeatCount="indefinite" 
+        />
+      </path>
+    </g>
+
+    <g opacity="0">
+      <set attributeName="opacity" to="1" begin="10.1s" fill="freeze" />
+      <!-- Smooth Glow Shadow -->
+      <path 
+        d="M 400 20 V 60 Q 400 70, 410 70 H 425 Q 435 70, 435 80 H 486 Q 490 80, 490 84 V 95 H 510 Q 520 95, 520 105 V 450 Q 520 460, 530 460 H 550 V 454 Q 550 450, 554 450 H 646 Q 650 450, 650 454 V 480 H 665 Q 675 480, 675 470 V 425 Q 675 415, 685 415 H 700 V 354 Q 700 350, 704 350 H 766 Q 770 350, 770 354 V 395 H 820" 
+        stroke="#FF5F15" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100" 
+        filter="url(#smoothGlow)" 
+        opacity="0.8"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="13.93s" 
+          begin="10.1s"
+          repeatCount="indefinite" 
+        />
+      </path>
+      <!-- Core Dot -->
+      <path 
+        d="M 400 20 V 60 Q 400 70, 410 70 H 425 Q 435 70, 435 80 H 486 Q 490 80, 490 84 V 95 H 510 Q 520 95, 520 105 V 450 Q 520 460, 530 460 H 550 V 454 Q 550 450, 554 450 H 646 Q 650 450, 650 454 V 480 H 665 Q 675 480, 675 470 V 425 Q 675 415, 685 415 H 700 V 354 Q 700 350, 704 350 H 766 Q 770 350, 770 354 V 395 H 820" 
+        stroke="#ffcca0" 
+        stroke-width="2" 
+        stroke-linecap="round" 
+        fill="none" 
+        pathLength="100" 
+        stroke-dasharray="0 100" 
+        stroke-dashoffset="100"
+      >
+        <animate 
+          attributeName="stroke-dashoffset" 
+          from="100" 
+          to="0" 
+          dur="13.93s" 
+          begin="10.1s"
+          repeatCount="indefinite" 
+        />
+      </path>
+    </g>
+</svg>

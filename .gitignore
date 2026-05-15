@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# dms-engine generated output (synced at build time)
+/app/solutions/
+/public/engine/
