@@ -15,7 +15,7 @@ jobs:
       - name: Checkout dms-engine (private)
         uses: actions/checkout@v5
         with:
-          repository: nexus/dms-engine
+          repository: ${{ secrets.DMS_ENGINE_REPO }}
           ref: "main"
           token: ${{ secrets.DMS_ENGINE_PAT }}
 
