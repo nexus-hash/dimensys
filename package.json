@@ -8,7 +8,7 @@
     "dev": "concurrently --names engine,next --prefix-colors magenta,green \"npm run dev:engine\" \"npm run dev:next\"",
     "prebuild": "./scripts/prebuild.sh",
     "build": "npm run prebuild && next build",
-    "start": "next start",
+    "start": "next start", 
     "lint": "eslint"
   },
   "dependencies": {
