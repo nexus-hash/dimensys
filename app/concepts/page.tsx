@@ -19,6 +19,32 @@ export default function ConceptsPage() {
   const [visibleModulesCount, setVisibleModulesCount] = useState(2);
   const observerTarget = useRef(null);
 
+  // Drag-to-scroll state for tags
+  const tagsScrollRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [dragged, setDragged] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!tagsScrollRef.current) return;
+    setIsDragging(true);
+    setDragged(false);
+    setStartY(e.pageY - tagsScrollRef.current.offsetTop);
+    setScrollTop(tagsScrollRef.current.scrollTop);
+  };
+
+  const handleMouseLeave = () => setIsDragging(false);
+  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !tagsScrollRef.current) return;
+    e.preventDefault();
+    setDragged(true);
+    const y = e.pageY - tagsScrollRef.current.offsetTop;
+    const walk = (y - startY) * 2;
+    tagsScrollRef.current.scrollTop = scrollTop - walk;
+  };
+
   useEffect(() => {
     fetch('/engine/data/concepts/index.json?t=' + Date.now())
       .then(res => res.json())
@@ -68,7 +94,7 @@ export default function ConceptsPage() {
     }
 
     return () => observer.disconnect();
-  }, [observerTarget]);
+  }, [visibleModulesCount, modules.length]);
 
   const toggleTag = (tag: string) => {
     setActiveTags(prev => 
@@ -95,7 +121,7 @@ export default function ConceptsPage() {
             </p>
           </div>
 
-          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CategoryFilter 
               categories={categories.map((c: any) => c.title)} 
               activeCategory={activeCategory === 'All' ? 'All' : categories.find((c:any) => c.id === activeCategory)?.title || 'All'} 
@@ -105,41 +131,54 @@ export default function ConceptsPage() {
               }} 
             />
 
-            {allTags.length > 0 && (
-              <div className="pb-4">
-                <button 
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center justify-center gap-2 px-6 h-[38px] rounded-full text-sm font-medium border transition-all ${
-                    showFilters || activeTags.length > 0 
-                      ? 'border-orange-500 text-orange-500 bg-orange-500/10 shadow-[0_0_15px_rgba(255,102,0,0.2)]' 
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border-white/10'
-                  }`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                  Filters {activeTags.length > 0 && `(${activeTags.length})`}
-                </button>
-              </div>
-            )}
+            <div className="pb-4 py-3">
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center justify-center gap-2 px-6 h-[38px] rounded-full text-sm font-medium border transition-all ${
+                  showFilters || activeTags.length > 0 
+                    ? 'border-orange-500 text-orange-500 bg-orange-500/10 shadow-[0_0_15px_rgba(255,102,0,0.2)]' 
+                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border-white/10'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                Filters {activeTags.length > 0 && `(${activeTags.length})`}
+              </button>
+            </div>
           </div>
 
-          {allTags.length > 0 && showFilters && (
+          {showFilters && (
             <div className="mb-8 p-6 rounded-2xl bg-white/50 dark:bg-[#161616] border border-gray-200 dark:border-white/10 shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Filter by Tags</h3>
-              <div className="flex flex-wrap gap-2">
-                {allTags.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                      activeTags.includes(tag) 
-                        ? 'bg-orange-500 text-white border border-orange-500' 
-                        : 'bg-transparent text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/20 hover:border-orange-500 hover:text-orange-500'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
+              {allTags.length > 0 ? (
+                <div 
+                  ref={tagsScrollRef}
+                  className={`flex flex-wrap gap-2 overflow-y-auto max-h-32 no-scrollbar pb-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                  onMouseDown={handleMouseDown}
+                  onMouseLeave={handleMouseLeave}
+                  onMouseUp={handleMouseUp}
+                  onMouseMove={handleMouseMove}
+                >
+                  {allTags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => {
+                        if (!dragged) toggleTag(tag);
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors whitespace-nowrap select-none ${
+                        activeTags.includes(tag) 
+                          ? 'bg-orange-500 text-white border border-orange-500' 
+                          : 'bg-transparent text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-white/20 hover:border-orange-500 hover:text-orange-500'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm italic">
+                  No tags available for this category yet.
+                </div>
+              )}
             </div>
           )}
 

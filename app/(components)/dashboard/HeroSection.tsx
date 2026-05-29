@@ -1,34 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import FloatingShapes from './FloatingShapes';
-
 export default function HeroSection() {
-  const shapesRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!shapesRef.current) return;
-      const scrollY = window.scrollY;
-      shapesRef.current.style.transform = `translateY(${scrollY * 0.3}px)`;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <section
       id="hero"
       className="relative flex flex-col items-center justify-center w-full min-h-screen overflow-hidden"
     >
-      {/* Grid Background */}
-      <div className="absolute inset-0 grid-bg" />
 
-      {/* Floating Shapes with parallax */}
-      <div ref={shapesRef} className="absolute inset-0 will-change-transform">
-        <FloatingShapes count={20} opacity={0.1} />
-      </div>
 
       {/* Radial gradient overlay for depth */}
       <div

@@ -2,10 +2,12 @@ import Navbar from "./(components)/navbar/Navbar";
 import Dashboard from "./(components)/dashboard/Dashboard";
 import HeroSection from "./(components)/dashboard/HeroSection";
 import Footer from "./(components)/footer/Footer";
+import CircuitBackground from "./(components)/problems/CircuitBackground";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-between bg-light-primary dark:bg-dark-primary font-sans relative"> 
+    <div className="flex min-h-screen flex-col items-center justify-between bg-light-primary dark:bg-dark-primary font-sans relative overflow-x-hidden"> 
+      <CircuitBackground />
       <Navbar />
       <main className="w-full flex flex-col items-center">
         <HeroSection />

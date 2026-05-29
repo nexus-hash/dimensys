@@ -44,7 +44,7 @@ export default function LearningPath() {
   }));
 
   return (
-    <section ref={sectionRef} id="learning-path" className="relative w-full px-6 py-24 sm:py-32 overflow-hidden">
+    <section ref={sectionRef} id="learning-path" className="relative w-full px-6 py-24 sm:py-32 overflow-hidden bg-light-primary dark:bg-dark-primary z-10">
       {/* Particles */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         {particles.map((p, i) => (

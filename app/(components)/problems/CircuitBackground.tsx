@@ -52,7 +52,7 @@ export default function CircuitBackground() {
   useEffect(() => {
     // Generate a pseudo-random scattering of circuits to avoid a repeating pattern
     const newNodes: NodeInstance[] = [];
-    const count = 25; // Number of circuits scattered across the background
+    const count = 15; // Number of circuits scattered across the background
 
     for (let i = 0; i < count; i++) {
       const CType = CIRCUITS[Math.floor(Math.random() * CIRCUITS.length)];
@@ -70,7 +70,7 @@ export default function CircuitBackground() {
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 opacity-10 dark:opacity-20 text-orange-500">
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 opacity-10 dark:opacity-20 text-orange-500">
       <style>{`
         .circuit-path-1 {
           stroke-dasharray: 500;
@@ -90,7 +90,7 @@ export default function CircuitBackground() {
       `}</style>
       
       {/* Container for fixed positioning since absolute inset-0 is relative to parent container */}
-      <div className="relative w-full h-[200vh]"> 
+      <div className="relative w-full h-full"> 
         {nodes.map((node) => {
           const Comp = node.Component;
           return (
