@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: nexus/dms-engine
+          ref: "main"
           token: ${{ secrets.DMS_ENGINE_PAT }}
 
       - name: Setup Node.js
