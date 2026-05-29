@@ -16,9 +16,14 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: ${{ secrets.DMS_ENGINE_REPO }}
-          ref: "main"
+          ref: ${{ secrets.DMS_ENGINE_REF }}
           token: ${{ secrets.DMS_ENGINE_PAT }}
-
+          path: dms-engine-checkout
+      
+      - name: move dms-engine
+        run: |
+          mv dms-engine-checkout ../dms-engine
+          
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
