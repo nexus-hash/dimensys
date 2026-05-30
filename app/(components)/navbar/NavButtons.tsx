@@ -20,7 +20,7 @@ export default function NavButtons({ isMobile = false, onClick }: NavButtonsProp
   const navLinks = [
     { name: 'Concepts', path: '/concepts' },
     { name: 'Problems', path: '/problems' },
-    { name: 'Patterns', path: '/data-structures-algorithms' },
+    { name: 'AI', path: '/artificial-intelligence' },
     { name: 'About', path: '/about' },
   ];
 

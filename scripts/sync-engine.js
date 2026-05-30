@@ -29,6 +29,9 @@ const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
 console.log(`📋 Syncing dms-engine v${manifest.version} (built ${manifest.generatedAt})`);
 
 // --- 2. Sync pages → app/solutions/ ---
+// NOTE: We do in-place updates (overwrite files, remove stale ones)
+// instead of deleting the directory. Deleting breaks Next.js hot reload
+// because the file watcher loses the route registration.
 console.log('\n📄 Syncing pages...');
 for (const page of manifest.pages) {
   const src = path.join(ENGINE_DIST, page.source);
@@ -39,16 +42,22 @@ for (const page of manifest.pages) {
     continue;
   }
 
-  // Clean destination
-  fs.rmSync(dest, { recursive: true, force: true });
   fs.mkdirSync(dest, { recursive: true });
 
-  // Copy all files
-  const files = fs.readdirSync(src);
-  for (const file of files) {
+  // Overwrite all source files into destination
+  const srcFiles = fs.readdirSync(src);
+  for (const file of srcFiles) {
     fs.copyFileSync(path.join(src, file), path.join(dest, file));
   }
-  console.log(`   ✅ ${page.name} → app/${page.route}/ (${files.length} files)`);
+
+  // Remove stale files that no longer exist in source
+  const destFiles = fs.readdirSync(dest);
+  for (const file of destFiles) {
+    if (!srcFiles.includes(file)) {
+      fs.rmSync(path.join(dest, file), { force: true });
+    }
+  }
+  console.log(`   ✅ ${page.name} → app/${page.route}/ (${srcFiles.length} files)`);
 }
 
 // --- 3. Sync static assets → public/ ---
@@ -62,16 +71,15 @@ for (const asset of manifest.staticAssets) {
     continue;
   }
 
-  fs.rmSync(dest, { recursive: true, force: true });
   fs.mkdirSync(dest, { recursive: true });
 
   const copyRecursive = (srcDir, destDir) => {
+    fs.mkdirSync(destDir, { recursive: true });
     const entries = fs.readdirSync(srcDir, { withFileTypes: true });
     for (const entry of entries) {
       const srcPath = path.join(srcDir, entry.name);
       const destPath = path.join(destDir, entry.name);
       if (entry.isDirectory()) {
-        fs.mkdirSync(destPath, { recursive: true });
         copyRecursive(srcPath, destPath);
       } else {
         fs.copyFileSync(srcPath, destPath);
@@ -81,6 +89,36 @@ for (const asset of manifest.staticAssets) {
 
   copyRecursive(src, dest);
   console.log(`   ✅ ${asset.source} → ${asset.target}`);
+}
+
+// --- 3b. Sync shared components → app/(components)/ ---
+if (manifest.sharedComponents && manifest.sharedComponents.length > 0) {
+  console.log('\n🧩 Syncing shared components...');
+  for (const comp of manifest.sharedComponents) {
+    const src = path.join(ENGINE_DIST, comp.source);
+    const dest = path.join(DIMENSYS_ROOT, comp.target);
+
+    if (!fs.existsSync(src)) {
+      console.log(`   ⚠️  Source not found: ${src}`);
+      continue;
+    }
+
+    fs.mkdirSync(dest, { recursive: true });
+
+    const srcFiles = fs.readdirSync(src);
+    for (const file of srcFiles) {
+      fs.copyFileSync(path.join(src, file), path.join(dest, file));
+    }
+
+    // Remove stale files
+    const destFiles = fs.readdirSync(dest);
+    for (const file of destFiles) {
+      if (!srcFiles.includes(file)) {
+        fs.rmSync(path.join(dest, file), { force: true });
+      }
+    }
+    console.log(`   ✅ ${comp.source} → ${comp.target} (${srcFiles.length} files)`);
+  }
 }
 
 // --- 4. Check & sync peer dependencies ---
