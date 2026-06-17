@@ -76,9 +76,11 @@ export async function fetchAllProblems(): Promise<Problem[]> {
       const categoryResponse = await fetch(`/engine/data/${category.file}?t=` + Date.now());
       const categoryData = await categoryResponse.json();
 
-      if (categoryData.problems && Array.isArray(categoryData.problems)) {
+      const problemsList = Array.isArray(categoryData) ? categoryData : (categoryData.problems || []);
+
+      if (Array.isArray(problemsList)) {
         allProblems = allProblems.concat(
-          categoryData.problems.map((problem: any) => ({
+          problemsList.map((problem: any) => ({
             id: problem.id,
             title: problem.title,
             type: problem.type,
@@ -98,12 +100,18 @@ export async function fetchAllProblems(): Promise<Problem[]> {
 }
 
 // Search function to filter concepts and problems
-function matchesQuery(query: string, items: Array<{ title: string; tags: string[] }>): Array<{ title: string; tags: string[] }> {
+function matchesQuery(query: string, items: Array<any>): Array<any> {
   const lowerQuery = query.toLowerCase();
   return items.filter(item => {
-    const titleMatch = item.title.toLowerCase().includes(lowerQuery);
-    const tagsMatch = item.tags.some(tag => tag.toLowerCase().includes(lowerQuery));
-    return titleMatch || tagsMatch;
+    const titleMatch = item.title && item.title.toLowerCase().includes(lowerQuery);
+    const tagsMatch = item.tags && item.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery));
+    const moduleTitleMatch = item.moduleTitle && item.moduleTitle.toLowerCase().includes(lowerQuery);
+    const categoryMatch = item.category && item.category.toLowerCase().includes(lowerQuery);
+    const typeMatch = item.type && item.type.toLowerCase().includes(lowerQuery);
+    const difficultyMatch = item.difficulty && item.difficulty.toLowerCase().includes(lowerQuery);
+    const idMatch = item.id && item.id.toLowerCase().includes(lowerQuery);
+
+    return !!(titleMatch || tagsMatch || moduleTitleMatch || categoryMatch || typeMatch || difficultyMatch || idMatch);
   });
 }
 
