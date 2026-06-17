@@ -1,0 +1,100 @@
+name: Deploy to Hostinger (Manual Release)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Select version bump'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - minor
+          - major
+          - patch
+
+jobs:
+  release-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dimensys
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # Fetch all history for branching/pushing
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump Version
+        id: bump_version
+        run: |
+          # Bump version in package.json and read the new version (e.g., v1.1.0)
+          NEW_VER=$(npm version ${{ github.event.inputs.version_bump }} --no-git-tag-version)
+          echo "new_version=$NEW_VER" >> $GITHUB_OUTPUT
+          echo "Bumped version to $NEW_VER"
+
+      - name: Checkout dms-engine (private)
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ secrets.DMS_ENGINE_REPO }}
+          ref: ${{ secrets.DMS_ENGINE_REF }}
+          token: ${{ secrets.DMS_ENGINE_PAT }}
+          path: dms-engine-checkout
+      
+      - name: move dms-engine
+        run: |
+          mv dms-engine-checkout ../dms-engine
+          
+      - name: Build dms-engine
+        run: |
+          cd ../dms-engine
+          npm ci
+          npm run build
+
+      - name: Sync engine output to dimensys
+        run: node scripts/sync-engine.js
+
+      - name: Install dimensys dependencies
+        run: npm ci
+
+      - name: Build dimensys
+        run: npm run build
+        env:
+          SKIP_PREBUILD: true
+
+      - name: Commit version bump and push release branch
+        run: |
+          git checkout -b release/${{ steps.bump_version.outputs.new_version }}
+          git add package.json package-lock.json
+          git commit -m "chore(release): bump version to ${{ steps.bump_version.outputs.new_version }}"
+          git push origin release/${{ steps.bump_version.outputs.new_version }}
+
+      - name: Setup SSH
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+
+      - name: Deploy built files to Hostinger VPS
+        run: |
+          rsync -avz --delete \
+            --exclude='node_modules' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='dms-engine-checkout' \
+            ./ ${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}:${{ secrets.HOSTINGER_DEPLOY_PATH }}
+
+      - name: Install Production Dependencies and Restart App via PM2
+        run: |
+          ssh ${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }} "
+            cd ${{ secrets.HOSTINGER_DEPLOY_PATH }} &&
+            npm install --omit=dev &&
+            pm2 restart all || pm2 start npm --name 'dimensys' -- start
+          "
