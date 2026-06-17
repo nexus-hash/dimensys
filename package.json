@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev:engine": "./scripts/dev-engine.sh",
-    "dev:next": "next dev",
+    "dev:next": "next dev --turbo",
     "dev": "concurrently --names engine,next --prefix-colors magenta,green \"npm run dev:engine\" \"npm run dev:next\"",
     "prebuild": "./scripts/prebuild.sh",
     "build": "npm run prebuild && next build",
