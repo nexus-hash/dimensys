@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source "./solutions/**/*.tsx";
+@source "./(components)/diagram-assets/**/*.tsx";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
