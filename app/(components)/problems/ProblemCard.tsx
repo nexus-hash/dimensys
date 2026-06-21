@@ -57,7 +57,7 @@ export default function ProblemCard({ problem, showType = true }: { problem: Pro
             </span>
           )}
         </div>
-        <Link href={`/problems/${problem.id}`} className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium rounded-lg transition-colors">
+        <Link href={`/solutions/${problem.id}`} className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium rounded-lg transition-colors">
           View Solution
         </Link>
       </div>

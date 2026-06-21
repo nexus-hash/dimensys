@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function SearchBar() {
   const [expanded, setExpanded] = useState(false);
   const [shortcutKey, setShortcutKey] = useState('⌘K');
+  const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     // Detect OS for shortcut key display
@@ -26,10 +29,21 @@ export default function SearchBar() {
         setExpanded(false);
         inputRef.current?.blur();
       }
+      if (e.key === 'Enter' && query.trim().length >= 2) {
+        handleSearch();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [query]);
+
+  const handleSearch = () => {
+    if (query.trim().length >= 2) {
+      router.push(`/search?q=${encodeURIComponent(query)}`);
+      setQuery('');
+      setExpanded(false);
+    }
+  };
 
   return (
     <div className="relative flex items-center justify-end">
@@ -56,24 +70,41 @@ export default function SearchBar() {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search..."
+          placeholder="Search concepts & problems..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && query.trim().length >= 2) {
+              handleSearch();
+            }
+          }}
           className={`bg-transparent outline-none text-sm text-light-secondary dark:text-dark-secondary placeholder-light-secondary/40 dark:placeholder-dark-secondary/40 transition-opacity duration-200 ${
             expanded ? 'opacity-100 w-full pr-14' : 'opacity-0 w-0 hidden'
           }`}
           onBlur={() => {
-            if (inputRef.current?.value === '') {
+            if (query === '') {
               setExpanded(false);
             }
           }}
         />
-        {/* Shortcut Badge */}
-        <div
-          className={`flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-mono border border-light-secondary/20 dark:border-dark-secondary/20 text-light-secondary/50 dark:text-dark-secondary/50 pointer-events-none transition-opacity duration-200 whitespace-nowrap ${
-            expanded ? 'opacity-0 sm:opacity-100' : 'opacity-100'
-          }`}
-        >
-          {shortcutKey}
-        </div>
+        {/* Search Button or Shortcut Badge */}
+        {expanded && query.trim().length >= 2 ? (
+          <button
+            onClick={handleSearch}
+            className="flex-shrink-0 px-2 py-1 mr-1 text-xs font-medium bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-500 rounded transition-colors"
+            aria-label="Search"
+          >
+            Search
+          </button>
+        ) : (
+          <div
+            className={`flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-mono border border-light-secondary/20 dark:border-dark-secondary/20 text-light-secondary/50 dark:text-dark-secondary/50 pointer-events-none transition-opacity duration-200 whitespace-nowrap ${
+              expanded ? 'opacity-0 sm:opacity-100' : 'opacity-100'
+            }`}
+          >
+            {shortcutKey}
+          </div>
+        )}
       </div>
     </div>
   );
