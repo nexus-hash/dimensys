@@ -2,6 +2,7 @@
   "name": "dimensys",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev:engine": "./scripts/dev-engine.sh",
     "dev:next": "next dev --turbo",
@@ -11,7 +12,10 @@
     "start": "next start",
     "lint": "eslint",
     "lint:colors": "node scripts/check-no-hex.mjs",
-    "lint:contrast": "node scripts/check-contrast.mjs"
+    "lint:contrast": "node scripts/check-contrast.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -30,15 +34,21 @@
     "three": "^0.184.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.184.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }
