@@ -6,8 +6,6 @@ export default function HeroSection() {
       id="hero"
       className="relative flex flex-col items-center justify-center w-full min-h-screen overflow-hidden"
     >
-
-
       {/* Radial gradient overlay for depth */}
       <div
         className="absolute inset-0 pointer-events-none"

@@ -1,4 +1,5 @@
 import React from 'react';
+import Logo3D from '../logo/Logo3D';
 
 export default function Footer() {
   return (
@@ -10,20 +11,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
           {/* Column 1: Brand */}
           <div className="flex flex-col items-start">
-            <svg
-              className="w-10 h-10 text-orange-500 mb-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {/* Isometric Cube Wireframe */}
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
+            <div className="flex items-center mb-4 select-none">
+              <Logo3D size={48} />
+            </div>
             <p className="text-sm text-light-secondary/60 dark:text-dark-secondary/60 mb-6">
               Master the architecture of software
             </p>

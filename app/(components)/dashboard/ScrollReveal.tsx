@@ -37,7 +37,24 @@ export default function ScrollReveal({
     );
 
     observer.observe(element);
-    return () => observer.disconnect();
+
+    // Fallback: If after 400ms (to let page layout and routing transition settle) the observer 
+    // has not fired, check manually if the element is within or above the viewport scroll bounds.
+    const fallbackTimeout = setTimeout(() => {
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        const isInOrAboveViewport = rect.top < (window.innerHeight || document.documentElement.clientHeight);
+        if (isInOrAboveViewport) {
+          setIsVisible(true);
+          observer.unobserve(element);
+        }
+      }
+    }, 400);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallbackTimeout);
+    };
   }, [threshold]);
 
   const animationClass = isVisible ? `scroll-visible-${direction}` : 'scroll-hidden';

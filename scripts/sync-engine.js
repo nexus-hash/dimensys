@@ -103,21 +103,37 @@ if (manifest.sharedComponents && manifest.sharedComponents.length > 0) {
       continue;
     }
 
-    fs.mkdirSync(dest, { recursive: true });
-
-    const srcFiles = fs.readdirSync(src);
-    for (const file of srcFiles) {
-      fs.copyFileSync(path.join(src, file), path.join(dest, file));
-    }
-
-    // Remove stale files
-    const destFiles = fs.readdirSync(dest);
-    for (const file of destFiles) {
-      if (!srcFiles.includes(file)) {
-        fs.rmSync(path.join(dest, file), { force: true });
+    const copyRecursive = (srcDir, destDir) => {
+      fs.mkdirSync(destDir, { recursive: true });
+      const entries = fs.readdirSync(srcDir, { withFileTypes: true });
+      for (const entry of entries) {
+        const srcPath = path.join(srcDir, entry.name);
+        const destPath = path.join(destDir, entry.name);
+        if (entry.isDirectory()) {
+          copyRecursive(srcPath, destPath);
+        } else {
+          fs.copyFileSync(srcPath, destPath);
+        }
       }
-    }
-    console.log(`   ✅ ${comp.source} → ${comp.target} (${srcFiles.length} files)`);
+    };
+
+    const cleanRecursive = (srcDir, destDir) => {
+      if (!fs.existsSync(destDir)) return;
+      const destEntries = fs.readdirSync(destDir, { withFileTypes: true });
+      for (const entry of destEntries) {
+        const srcPath = path.join(srcDir, entry.name);
+        const destPath = path.join(destDir, entry.name);
+        if (!fs.existsSync(srcPath)) {
+          fs.rmSync(destPath, { recursive: true, force: true });
+        } else if (entry.isDirectory()) {
+          cleanRecursive(srcPath, destPath);
+        }
+      }
+    };
+
+    copyRecursive(src, dest);
+    cleanRecursive(src, dest);
+    console.log(`   ✅ ${comp.source} → ${comp.target} (recursively synced)`);
   }
 }
 

@@ -6,6 +6,8 @@ import Avatar from './Avatar';
 import SearchBar from './SearchBar';
 import NavButtons from './NavButtons';
 
+import Logo3D from '../logo/Logo3D';
+
 export default function NavbarElements() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -14,22 +16,9 @@ export default function NavbarElements() {
       <div className="flex items-center justify-between h-full w-full">
         {/* Left: Brand / Logo */}
         <div className="flex items-center justify-start flex-1 md:flex-none">
-          <a href="/" className="flex items-center group" aria-label="Home">
-            <svg
-              className="w-7 h-7 text-orange-500 group-hover:text-orange-400 transition-colors duration-200"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {/* Isometric Cube Wireframe */}
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
-          </a>
+          <div className="flex items-center group" aria-label="Home">
+            <Logo3D size={36} />
+          </div>
         </div>
 
         {/* Center: Desktop Navigation Links */}
