@@ -29,7 +29,7 @@ const TOKENS = {
     'surface-canvas': '#fcfcfb',
     'ink-primary': '#121212',
     'ink-secondary': 'rgba(18, 18, 18, 0.64)',
-    'ink-muted': 'rgba(18, 18, 18, 0.48)',
+    'ink-muted': 'rgba(18, 18, 18, 0.60)',
   },
   dark: {
     'surface-page': '#121212',
@@ -37,7 +37,7 @@ const TOKENS = {
     'surface-canvas': '#101010',
     'ink-primary': '#f0f0f0',
     'ink-secondary': 'rgba(240, 240, 240, 0.64)',
-    'ink-muted': 'rgba(240, 240, 240, 0.44)',
+    'ink-muted': 'rgba(240, 240, 240, 0.52)',
   },
 };
 
@@ -133,7 +133,7 @@ function main() {
     const inks = [
       ['ink-primary', TEXT_MIN, 'text'],
       ['ink-secondary', TEXT_MIN, 'text'],
-      ['ink-muted', GRAPHIC_MIN, 'caption/metadata text'],
+      ['ink-muted', TEXT_MIN, 'caption/metadata text (WCAG AA small text)'],
     ];
     for (const surface of surfaces) {
       for (const [inkName, min, purpose] of inks) {

@@ -147,7 +147,7 @@
     /* Ink & lines (§3.1, light) */
     --ink-primary: #121212;
     --ink-secondary: rgba(18, 18, 18, 0.64);
-    --ink-muted: rgba(18, 18, 18, 0.48);
+    --ink-muted: rgba(18, 18, 18, 0.60);
     --line-hairline: rgba(0, 0, 0, 0.08);
     --line-strong: rgba(0, 0, 0, 0.16);
     --grid-dot: rgba(0, 0, 0, 0.06);
@@ -225,7 +225,7 @@
     /* Ink & lines (§3.1, dark) */
     --ink-primary: #f0f0f0;
     --ink-secondary: rgba(240, 240, 240, 0.64);
-    --ink-muted: rgba(240, 240, 240, 0.44);
+    --ink-muted: rgba(240, 240, 240, 0.52);
     --line-hairline: rgba(255, 255, 255, 0.08);
     --line-strong: rgba(255, 255, 255, 0.16);
     --grid-dot: rgba(255, 255, 255, 0.04);
