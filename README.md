@@ -32,20 +32,20 @@ Dimensys is an open-source Next.js application designed to showcase complex syst
 ### Local Development
 
 1. **Clone the repository:**
-   \`\`\`bash
+   ```bash
    git clone https://github.com/your-org/dimensys.git
    cd dimensys
-   \`\`\`
+   ```
 
 2. **Install dependencies:**
-   \`\`\`bash
+   ```bash
    npm install
-   \`\`\`
+   ```
 
 3. **Run the development server:**
-   \`\`\`bash
+   ```bash
    npm run dev:next
-   \`\`\`
+   ```
    
    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
@@ -84,5 +84,8 @@ Dimensys separates the complex logic of layout calculation from the client rende
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
-*(Note: The diagram generation engine, `dms-engine`, is proprietary and not included in this license).*
+This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0) — see the [LICENSE](./LICENSE) file for details.
+
+For licensing exceptions and information about generated content, see [LICENSE-EXCEPTIONS.md](./LICENSE-EXCEPTIONS.md).
+
+*(Note: The diagram generation engine, `dms-engine`, is proprietary and not included in this repository).*

@@ -2,6 +2,7 @@
   "name": "dimensys",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev:engine": "./scripts/dev-engine.sh",
     "dev:next": "next dev --turbo",
