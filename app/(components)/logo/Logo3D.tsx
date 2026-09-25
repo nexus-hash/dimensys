@@ -10,6 +10,15 @@ const H  = 0.72;        // half-size of cube
 const FS = H * 2;       // face size (= 1.44)
 const EO = H + 0.004;   // face panel / edge offset
 
+// ── Resolve a design token from app/globals.css at runtime ────────────────────
+// Canvas2D and Three.js need real color strings (not CSS `var()`), so tokens
+// are read from the computed style instead of being hardcoded here.
+function token(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
 // ── Paint the CPU-die circuit onto a canvas → Three.js texture ───────────────
 function makeCPUTexture(): THREE.CanvasTexture {
   const N = 512;
@@ -24,7 +33,7 @@ function makeCPUTexture(): THREE.CanvasTexture {
 
   // ── bus lines (5 H + 5 V) ──
   const busPos = [N * 0.38, N * 0.44, N * 0.50, N * 0.56, N * 0.62];
-  g.strokeStyle = '#ffaa00';
+  g.strokeStyle = token('--logo-amber', 'orange');
   g.lineWidth = 2.5;
   g.globalAlpha = 0.78;
   busPos.forEach(p => {
@@ -48,18 +57,18 @@ function makeCPUTexture(): THREE.CanvasTexture {
 
     // block fill
     g.globalAlpha = 0.28;
-    g.fillStyle = '#ff5500';
+    g.fillStyle = token('--logo-face-right', 'orangered');
     g.fillRect(bx, by, BSZ, BSZ);
 
     // block outline
     g.globalAlpha = 1.0;
-    g.strokeStyle = '#ff6600';
+    g.strokeStyle = token('--brand', 'darkorange');
     g.lineWidth = 3.5;
     g.strokeRect(bx + 1, by + 1, BSZ - 2, BSZ - 2);
 
     // register-array lines (8 horizontal lines)
     g.globalAlpha = 0.62;
-    g.strokeStyle = '#ffbb00';
+    g.strokeStyle = token('--logo-amber-light', 'orange');
     g.lineWidth = 2.0;
     const margin = BSZ * 0.10;
     for (let i = 0; i < 8; i++) {
@@ -75,7 +84,7 @@ function makeCPUTexture(): THREE.CanvasTexture {
     // hotspot glow
     g.globalAlpha = 1.0;
     const grad = g.createRadialGradient(cx, cy, 0, cx, cy, BSZ * 0.20);
-    grad.addColorStop(0.00, '#ffffff');
+    grad.addColorStop(0.00, token('--logo-hotspot', 'white'));
     grad.addColorStop(0.30, 'rgba(255,200,80,0.90)');
     grad.addColorStop(0.70, 'rgba(255,80, 0, 0.30)');
     grad.addColorStop(1.00, 'rgba(255,80, 0, 0.00)');
@@ -85,14 +94,14 @@ function makeCPUTexture(): THREE.CanvasTexture {
     g.fill();
 
     // solid white core dot
-    g.fillStyle = '#ffffff';
+    g.fillStyle = token('--logo-hotspot', 'white');
     g.beginPath();
     g.arc(cx, cy, 7, 0, Math.PI * 2);
     g.fill();
   });
 
   // ── bus-crossing nodes (3×3 grid) ──
-  g.fillStyle = '#ffcc00';
+  g.fillStyle = token('--logo-amber-bright', 'gold');
   g.globalAlpha = 0.88;
   [N * 0.38, N * 0.50, N * 0.62].forEach(x =>
     [N * 0.38, N * 0.50, N * 0.62].forEach(y => {
@@ -154,7 +163,7 @@ function CubeEdges() {
       {edges.map((e, i) => (
         <mesh key={i} position={e.p}>
           <boxGeometry args={e.s} />
-          <meshBasicMaterial color="#ff6600" />
+          <meshBasicMaterial color={token('--brand', 'darkorange')} />
         </mesh>
       ))}
     </>
@@ -178,8 +187,8 @@ function CubeScene() {
       <mesh>
         <boxGeometry args={[FS, FS, FS]} />
         <meshStandardMaterial
-          color="#ff4400"
-          emissive="#ff2000"
+          color={token('--logo-body', 'orangered')}
+          emissive={token('--logo-emissive', 'red')}
           emissiveIntensity={0.40}
           transparent
           opacity={0.60}
@@ -197,7 +206,7 @@ function CubeScene() {
       <FacePanels tex={tex} />
 
       {/* Warm inner glow */}
-      <pointLight color="#ff6600" intensity={1.5} distance={3.5} decay={2} />
+      <pointLight color={token('--brand', 'darkorange')} intensity={1.5} distance={3.5} decay={2} />
     </group>
   );
 }

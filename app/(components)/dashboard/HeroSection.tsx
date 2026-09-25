@@ -22,8 +22,7 @@ export default function HeroSection() {
           <span
             className="bg-clip-text text-transparent"
             style={{
-              backgroundImage:
-                'linear-gradient(135deg, #ff6600 0%, #FF5F15 50%, #ff8c42 100%)',
+              backgroundImage: 'var(--brand-gradient)',
             }}
           >
             Architecture
@@ -41,10 +40,10 @@ export default function HeroSection() {
         <button
           className="mt-10 px-8 py-3.5 rounded-lg font-semibold text-white text-lg
                      transition-all duration-300 ease-out
-                     hover:scale-105 hover:shadow-[0_0_30px_rgba(255,102,0,0.4)]
+                     hover:scale-105 hover:shadow-brand-glow
                      active:scale-95"
           style={{
-            backgroundImage: 'linear-gradient(135deg, #ff6600, #FF5F15)',
+            backgroundImage: 'var(--brand-gradient)',
           }}
         >
           Start Learning

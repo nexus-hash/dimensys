@@ -29,10 +29,10 @@ export default function ConceptAccordion({ mod, categoryId, activeTags }: { mod:
   if (filteredConcepts.length === 0) return null;
 
   return (
-    <div className="mb-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] overflow-hidden shadow-sm hover:shadow-md transition-shadow group/accordion">
-      <button 
+    <div className="mb-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-surface-raised overflow-hidden shadow-sm hover:shadow-md transition-shadow group/accordion">
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-white dark:from-[#1a1a1a] dark:to-[#141414] hover:from-gray-100 dark:hover:from-[#222] transition-all relative"
+        className="w-full flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-white dark:from-surface-raised dark:to-surface-raised hover:from-gray-100 dark:hover:from-surface-overlay transition-all relative"
       >
         <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors duration-300 ${isOpen ? 'bg-orange-500' : 'bg-transparent group-hover/accordion:bg-orange-500/50'}`}></div>
         
@@ -44,7 +44,7 @@ export default function ConceptAccordion({ mod, categoryId, activeTags }: { mod:
       </button>
 
       <div className={`transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-        <div className="p-4 md:p-6 space-y-4 bg-white dark:bg-[#121212]">
+        <div className="p-4 md:p-6 space-y-4 bg-white dark:bg-surface-page">
           {filteredConcepts.map(concept => (
             <ConceptItem key={concept.id} concept={concept} categoryId={categoryId} />
           ))}
@@ -59,7 +59,7 @@ function ConceptItem({ concept, categoryId }: { concept: Concept; categoryId: st
 
   return (
     <Link href={`/concepts/${categoryId.toLowerCase()}/${concept.id}`} className="block">
-      <div className="p-5 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#1a1a1a] hover:-translate-y-1 hover:border-orange-500/50 hover:shadow-[0_8px_30px_rgba(255,102,0,0.12)] transition-all cursor-pointer relative overflow-hidden group">
+      <div className="p-5 rounded-xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-surface-raised hover:-translate-y-1 hover:border-orange-500/50 hover:shadow-[0_8px_30px_rgba(255,102,0,0.12)] transition-all cursor-pointer relative overflow-hidden group">
         <div className="flex justify-between items-center mb-3">
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-orange-500 transition-colors">{concept.title}</h4>
           <span className="text-sm text-gray-500 bg-gray-200 dark:bg-white/10 px-3 py-1 rounded-full">{concept.readTime}</span>

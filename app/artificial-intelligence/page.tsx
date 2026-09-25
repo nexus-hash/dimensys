@@ -50,7 +50,7 @@ export default function AiConceptsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayedTopics.map((topic) => (
               <Link key={topic.id} href={`/artificial-intelligence/${topic.id}`}>
-                <div className="h-full rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-[#151515]/80 backdrop-blur-md p-6 hover:border-orange-500/50 dark:hover:border-orange-500/50 transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(255,102,0,0.2)] group cursor-pointer flex flex-col">
+                <div className="h-full rounded-2xl border border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-surface-raised/80 backdrop-blur-md p-6 hover:border-orange-500/50 dark:hover:border-orange-500/50 transition-all duration-300 hover:shadow-[0_0_30px_-5px_rgba(255,102,0,0.2)] group cursor-pointer flex flex-col">
                   <div className="flex-1">
                     <div className="w-full h-40 mb-4 rounded-xl overflow-hidden relative group-hover:scale-[1.02] transition-transform">
                       <Image 

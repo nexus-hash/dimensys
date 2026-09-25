@@ -41,10 +41,10 @@ export default function LogoSVG({ size = 48, className = '' }: LogoSVGProps) {
   // Left face:  (0,0)→l(38,51)     (1,0)→f(100,87)  (0,1)→bl(38,121)
   const mLeft  = 'matrix(62,36,0,70,38,51)';
 
-  // ── Design tokens ────────────────────────────────────────────────────────────
-  const OC = '#ff6600';   // orange
-  const OL = '#ffaa00';   // amber
-  const OW = '#ffffff';   // white hotspot
+  // ── Design tokens (app/globals.css) ─────────────────────────────────────────
+  const OC = 'var(--brand)';        // orange
+  const OL = 'var(--logo-amber)';   // amber
+  const OW = 'var(--logo-hotspot)'; // white hotspot
 
   // Block centres in [0,1]² (SVG y-down)
   const BLK = [
@@ -157,9 +157,9 @@ export default function LogoSVG({ size = 48, className = '' }: LogoSVGProps) {
       </defs>
 
       {/* ── Face base fills (transparent glass tones) ── */}
-      <polygon points={topPts} fill={OC}     fillOpacity="0.16" />
-      <polygon points={rPts}   fill="#ff5500" fillOpacity="0.21" />
-      <polygon points={lPts}   fill="#cc4400" fillOpacity="0.16" />
+      <polygon points={topPts} fill={OC} fillOpacity="0.16" />
+      <polygon points={rPts}   fill="var(--logo-face-right)" fillOpacity="0.21" />
+      <polygon points={lPts}   fill="var(--logo-face-left)" fillOpacity="0.16" />
 
       {/* ── CPU die patterns (clipped & glowing) ── */}
       <g clipPath={`url(#cp_top_${id})`} transform={mTop}   filter={`url(#glow_${id})`}>

@@ -6,25 +6,252 @@
 
 
 @theme {
-  --font-body: Inter, sans-serif;
+  /* ── Legacy aliases — kept working so nothing existing breaks ──────────── */
+  --font-body: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --color-dark-primary: #121212;
   --color-dark-secondary: #f0f0f0;
   --color-light-primary: #ffffff;
   --color-light-secondary: #121212;
   --color-orange-500: #ff6600;
   --color-orange-400: #FF5F15;
+
+  /* ── Fonts (§3.2) — Geist Sans for UI/prose, Geist Mono for machine text ── */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* ── Surfaces (§3.1) ────────────────────────────────────────────────────── */
+  --color-surface-page: var(--surface-page);
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-glass: var(--surface-glass);
+
+  /* ── Ink & lines (§3.1) ─────────────────────────────────────────────────── */
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-line-hairline: var(--line-hairline);
+  --color-line-strong: var(--line-strong);
+  --color-grid-dot: var(--grid-dot);
+
+  /* ── Brand — chrome only, never the canvas (§3.1 / §3.4) ───────────────── */
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-tertiary: var(--brand-tertiary);
+  --color-brand-subtle: var(--brand-subtle);
+
+  /* ── Signal (§3.1) ──────────────────────────────────────────────────────── */
+  --color-signal-ok: var(--signal-ok);
+  --color-signal-warn: var(--signal-warn);
+  --color-signal-critical: var(--signal-critical);
+  --color-signal-flow: var(--signal-flow);
+  --color-signal-retry: var(--signal-retry);
+
+  /* ── Logo accent shades — tokens instead of literals in components ─────── */
+  --color-logo-amber: var(--logo-amber);
+  --color-logo-amber-light: var(--logo-amber-light);
+  --color-logo-amber-bright: var(--logo-amber-bright);
+  --color-logo-face-right: var(--logo-face-right);
+  --color-logo-face-left: var(--logo-face-left);
+  --color-logo-hotspot: var(--logo-hotspot);
+  --color-logo-body: var(--logo-body);
+  --color-logo-emissive: var(--logo-emissive);
+
+  /* ── Type scale (§3.2) ──────────────────────────────────────────────────── */
+  --text-display-xl: 6rem;
+  --text-display-xl--line-height: 1;
+  --text-display-xl--letter-spacing: -0.03em;
+  --text-display-xl--font-weight: 700;
+
+  --text-display: 3rem;
+  --text-display--line-height: 1.05;
+  --text-display--font-weight: 700;
+
+  --text-title-1: 2rem;
+  --text-title-1--line-height: 1.15;
+  --text-title-1--font-weight: 600;
+
+  --text-title-2: 1.5rem;
+  --text-title-2--line-height: 1.2;
+  --text-title-2--font-weight: 600;
+
+  --text-title-3: 1.25rem;
+  --text-title-3--line-height: 1.3;
+  --text-title-3--font-weight: 600;
+
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.6;
+
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.55;
+
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 500;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--font-weight: 500;
+
+  --text-mono-sm: 0.75rem;
+  --text-mono-sm--line-height: 1.4;
+  --text-mono-sm--font-weight: 500;
+
+  --text-mono-metric: 1.25rem;
+  --text-mono-metric--line-height: 1.2;
+  --text-mono-metric--font-weight: 600;
+
+  /* ── Radii (§3.3) ───────────────────────────────────────────────────────── */
+  --radius-control: 6px;
+  --radius-node: 10px;
+  --radius-card: 16px;
+  --radius-pill: 9999px;
+
+  /* ── Elevation (§3.3) ───────────────────────────────────────────────────── */
+  --shadow-elevation-1: var(--elevation-1);
+  --shadow-elevation-2: var(--elevation-2);
+  --shadow-brand-glow: var(--brand-glow);
+
+  /* ── Z-layers (§3.3) — z-canvas, z-rail, z-chrome, z-sheet, z-dialog, … ──── */
+  --z-index-canvas: 0;
+  --z-index-canvas-overlay: 10;
+  --z-index-rail: 20;
+  --z-index-chrome: 30;
+  --z-index-sheet: 40;
+  --z-index-dialog: 50;
+  --z-index-toast: 60;
+  --z-index-palette: 70;
+
+  /* ── Motion (§3.5) ──────────────────────────────────────────────────────── */
+  --transition-duration-micro: 120ms;
+  --transition-duration-small: 200ms;
+  --transition-duration-panel: 320ms;
+  --transition-duration-scene: 600ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.3, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
 @layer base {
   :root {
     --background: var(--color-light-primary);
     --foreground: var(--color-light-secondary);
+
+    /* Surfaces (§3.1, light) */
+    --surface-page: #ffffff;
+    --surface-canvas: #fcfcfb;
+    --surface-raised: #fafafa;
+    --surface-overlay: #ffffff;
+    --surface-glass: rgba(0, 0, 0, 0.03);
+
+    /* Ink & lines (§3.1, light) */
+    --ink-primary: #121212;
+    --ink-secondary: rgba(18, 18, 18, 0.64);
+    --ink-muted: rgba(18, 18, 18, 0.48);
+    --line-hairline: rgba(0, 0, 0, 0.08);
+    --line-strong: rgba(0, 0, 0, 0.16);
+    --grid-dot: rgba(0, 0, 0, 0.06);
+
+    /* Elevation (§3.3, light — soft shadows) */
+    --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --elevation-2: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+    /* Brand — chrome only, same in both themes (§3.1 / §3.4) */
+    --brand: #ff6600;
+    --brand-strong: #ff5f15;
+    --brand-tertiary: #ff8c42;
+    --brand-gradient: linear-gradient(135deg, #ff6600 0%, #ff5f15 50%, #ff8c42 100%);
+    --brand-subtle: rgba(255, 102, 0, 0.1);
+    --brand-glow: 0 0 30px rgba(255, 102, 0, 0.4);
+
+    /* Signal — validated against #121212 and #ffffff (§3.1). §3.1 lists a single
+       flat value per signal, but --signal-warn (#fab219) only clears ~1.8:1
+       against a white/light surface (needs the §9 "UI graphics" ≥3:1 floor).
+       It is kept exactly as specified for the dark theme (~10:1 there, see the
+       [data-theme="dark"] override below) and given a same-hue, darker
+       light-theme value here so both themes pass; every other signal color
+       already clears the floor as one flat value and is unchanged.
+       See DS2 report / SPEC GAPS. */
+    --signal-ok: #0ca30c;
+    --signal-warn: #b45309;
+    --signal-critical: #e11d48;
+    --signal-flow: #38bdf8;
+    --signal-retry: #e11d48;
+
+    /* Logo accent shades — kept as tokens so component files hold no literal hex */
+    --logo-amber: #ffaa00;
+    --logo-amber-light: #ffbb00;
+    --logo-amber-bright: #ffcc00;
+    --logo-face-right: #ff5500;
+    --logo-face-left: #cc4400;
+    --logo-hotspot: #ffffff;
+    --logo-body: #ff4400;
+    --logo-emissive: #ff2000;
+
+    /* Motion spring configs (§3.5) — consumed by JS (motion libs), not CSS */
+    --spring-camera-stiffness: 170;
+    --spring-camera-damping: 26;
+    --spring-ui-stiffness: 400;
+    --spring-ui-damping: 32;
+
+    /* Mermaid concept-diagram palette (light) — relocated out of components */
+    --mermaid-primary: #f3f4f6;
+    --mermaid-primary-text: #111827;
+    --mermaid-border: #ea580c;
+    --mermaid-line: #f97316;
+    --mermaid-secondary: #e5e7eb;
+    --mermaid-tertiary: #ffffff;
+    --mermaid-node-text: #111827;
+    --mermaid-cluster-bg: #ffffff;
+    --mermaid-cluster-border: #d1d5db;
+    --mermaid-edge-label-bg: #ffffff;
+    --mermaid-actor-bg: #f3f4f6;
+    --mermaid-signal-text: #4b5563;
+    --mermaid-note-bg: #e5e7eb;
   }
 
   /* 3. Match the selector exactly to what next-themes applies */
   [data-theme="dark"] {
     --background: var(--color-dark-primary);
     --foreground: var(--color-dark-secondary);
+
+    /* Surfaces (§3.1, dark) */
+    --surface-page: #121212;
+    --surface-canvas: #101010;
+    --surface-raised: #1a1a1a;
+    --surface-overlay: #1f1f1f;
+    --surface-glass: rgba(255, 255, 255, 0.04);
+
+    /* Ink & lines (§3.1, dark) */
+    --ink-primary: #f0f0f0;
+    --ink-secondary: rgba(240, 240, 240, 0.64);
+    --ink-muted: rgba(240, 240, 240, 0.44);
+    --line-hairline: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.16);
+    --grid-dot: rgba(255, 255, 255, 0.04);
+
+    /* Elevation (§3.3, dark — hairline + inset highlight, not shadow) */
+    --elevation-1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --elevation-2: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+    /* Signal — the exact §3.1 value; passes ≥3:1 comfortably on this theme's
+       surfaces (see the light-theme note above). */
+    --signal-warn: #fab219;
+
+    /* Mermaid concept-diagram palette (dark) */
+    --mermaid-primary: #171717;
+    --mermaid-primary-text: #f9fafb;
+    --mermaid-border: #f97316;
+    --mermaid-line: #fb923c;
+    --mermaid-secondary: #262626;
+    --mermaid-tertiary: #0a0a0a;
+    --mermaid-node-text: #f9fafb;
+    --mermaid-cluster-bg: transparent;
+    --mermaid-cluster-border: #333333;
+    --mermaid-edge-label-bg: #171717;
+    --mermaid-actor-bg: #171717;
+    --mermaid-signal-text: #d1d5db;
+    --mermaid-note-bg: #262626;
   }
 
   body {

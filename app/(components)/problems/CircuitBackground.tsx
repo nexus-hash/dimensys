@@ -1,6 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+
+// Small seeded PRNG (mulberry32) — deterministic across server and client
+// renders, so the circuit layout never differs between SSR and hydration
+// and never "pops in" after mount.
+function mulberry32(seed: number) {
+  let a = seed;
+  return function random() {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 const Circuit1 = ({ className }: { className?: string }) => (
   <svg className={className} width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="currentColor">
@@ -46,27 +60,29 @@ interface NodeInstance {
   rotate: number;
 }
 
-export default function CircuitBackground() {
-  const [nodes, setNodes] = useState<NodeInstance[]>([]);
+// Fixed seed: same scattering every render, on the server and on the client,
+// so there is no hydration mismatch and no layout pop after mount.
+const SEED = 1337;
 
-  useEffect(() => {
-    // Generate a pseudo-random scattering of circuits to avoid a repeating pattern
-    const newNodes: NodeInstance[] = [];
+export default function CircuitBackground() {
+  const nodes = useMemo<NodeInstance[]>(() => {
+    const random = mulberry32(SEED);
     const count = 15; // Number of circuits scattered across the background
+    const newNodes: NodeInstance[] = [];
 
     for (let i = 0; i < count; i++) {
-      const CType = CIRCUITS[Math.floor(Math.random() * CIRCUITS.length)];
+      const CType = CIRCUITS[Math.floor(random() * CIRCUITS.length)];
       newNodes.push({
         id: i,
         Component: CType,
-        top: Math.random() * 100, // percentage
-        left: Math.random() * 100, // percentage
-        opacity: 0.3 + Math.random() * 0.7, // 0.3 to 1.0 opacity multiplier (relative to container)
-        scale: 0.8 + Math.random() * 0.7, // 0.8 to 1.5 scale
-        rotate: Math.floor(Math.random() * 4) * 90, // Randomly rotate by 0, 90, 180, or 270 degrees
+        top: random() * 100, // percentage
+        left: random() * 100, // percentage
+        opacity: 0.3 + random() * 0.7, // 0.3 to 1.0 opacity multiplier (relative to container)
+        scale: 0.8 + random() * 0.7, // 0.8 to 1.5 scale
+        rotate: Math.floor(random() * 4) * 90, // Rotate by 0, 90, 180, or 270 degrees
       });
     }
-    setNodes(newNodes);
+    return newNodes;
   }, []);
 
   return (

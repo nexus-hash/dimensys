@@ -9,7 +9,9 @@
     "prebuild": "./scripts/prebuild.sh",
     "build": "npm run prebuild && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:colors": "node scripts/check-no-hex.mjs",
+    "lint:contrast": "node scripts/check-contrast.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

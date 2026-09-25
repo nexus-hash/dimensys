@@ -147,7 +147,7 @@ export default function ConceptsPage() {
           </div>
 
           {showFilters && (
-            <div className="mb-8 p-6 rounded-2xl bg-white/50 dark:bg-[#161616] border border-gray-200 dark:border-white/10 shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="mb-8 p-6 rounded-2xl bg-white/50 dark:bg-surface-raised border border-gray-200 dark:border-white/10 shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Filter by Tags</h3>
               {allTags.length > 0 ? (
                 <div 

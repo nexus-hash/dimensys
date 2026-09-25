@@ -35,8 +35,8 @@ export default function MarkdownRenderer({ content }: { content: string }) {
             }
 
             return !inline ? (
-              <div className="my-6 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#161616]">
-                <div className="px-4 py-2 bg-gray-200 dark:bg-[#202020] text-xs font-mono text-gray-500 dark:text-gray-400 border-b border-gray-300 dark:border-white/10">
+              <div className="my-6 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-surface-raised">
+                <div className="px-4 py-2 bg-gray-200 dark:bg-surface-overlay text-xs font-mono text-gray-500 dark:text-gray-400 border-b border-gray-300 dark:border-white/10">
                   {lang || 'code'}
                 </div>
                 <pre className="p-4 overflow-x-auto text-sm font-mono text-gray-800 dark:text-gray-200">

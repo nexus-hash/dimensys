@@ -88,9 +88,9 @@ export default function LearningPath() {
           >
             <defs>
               <linearGradient id="pathGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#ff6600" />
-                <stop offset="50%" stopColor="#FF5F15" />
-                <stop offset="100%" stopColor="#ff8c42" />
+                <stop offset="0%" stopColor="var(--brand)" />
+                <stop offset="50%" stopColor="var(--brand-strong)" />
+                <stop offset="100%" stopColor="var(--brand-tertiary)" />
               </linearGradient>
               <filter id="dotGlow" x="-100%" y="-100%" width="300%" height="300%">
                 <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
@@ -134,7 +134,7 @@ export default function LearningPath() {
                   cx={node.cx}
                   cy={node.cy}
                   r="12"
-                  fill="#ff6600"
+                  fill="var(--brand)"
                   opacity={drawn ? 0.3 : 0}
                   filter="url(#dotGlow)"
                   style={{ transition: 'opacity 0.5s ease-out', transitionDelay: `${i * 0.6}s` }}
@@ -154,7 +154,7 @@ export default function LearningPath() {
                   cx={node.cx}
                   cy={node.cy}
                   r="8"
-                  fill="#ff6600"
+                  fill="var(--brand)"
                   opacity={drawn ? 1 : 0}
                   style={{ transition: 'opacity 0.5s ease-out', transitionDelay: `${i * 0.6}s` }}
                 />
@@ -166,7 +166,7 @@ export default function LearningPath() {
                   fontSize="18"
                   fontWeight="700"
                   letterSpacing="0.1em"
-                  fill="#ff6600"
+                  fill="var(--brand)"
                   opacity={drawn ? 1 : 0}
                   style={{ transition: 'opacity 0.5s ease-out', transitionDelay: `${i * 0.6 + 0.3}s` }}
                 >

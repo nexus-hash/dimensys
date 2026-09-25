@@ -76,7 +76,7 @@ export default function ConceptDetailPage({ params }: { params: Promise<{ catego
       <Navbar />
 
       <div className="flex flex-1 pt-16 overflow-hidden w-full max-w-7xl mx-auto">
-        <aside className="w-64 border-r border-gray-200 dark:border-white/10 bg-gray-50/80 dark:bg-[#121212]/80 backdrop-blur-md relative z-10 overflow-y-auto hidden md:block [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <aside className="w-64 border-r border-gray-200 dark:border-white/10 bg-gray-50/80 dark:bg-surface-page/80 backdrop-blur-md relative z-10 overflow-y-auto hidden md:block [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="p-6">
             <h2 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6">Curriculum</h2>
             <div className="space-y-6">

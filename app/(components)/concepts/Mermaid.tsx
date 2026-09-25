@@ -9,29 +9,37 @@ export default function Mermaid({ chart }: { chart: string }) {
   const { theme } = useTheme();
 
   useEffect(() => {
+    // Mermaid's theme engine needs resolved color strings (it derives shades
+    // from them internally), so the palette is read from the CSS tokens in
+    // globals.css rather than hardcoded here. Those tokens are already
+    // theme-aware via [data-theme], so no ternary is needed here — `theme`
+    // stays a dependency purely to re-run this after a theme switch.
+    const style = getComputedStyle(document.documentElement);
+    const cssVar = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
+
     mermaid.initialize({
       startOnLoad: false,
       theme: 'base',
       themeVariables: {
-        primaryColor: theme === 'dark' ? '#171717' : '#f3f4f6',
-        primaryTextColor: theme === 'dark' ? '#f9fafb' : '#111827',
-        primaryBorderColor: theme === 'dark' ? '#f97316' : '#ea580c', // Orange accents
-        lineColor: theme === 'dark' ? '#fb923c' : '#f97316',
-        secondaryColor: theme === 'dark' ? '#262626' : '#e5e7eb',
-        tertiaryColor: theme === 'dark' ? '#0a0a0a' : '#ffffff',
-        nodeTextColor: theme === 'dark' ? '#f9fafb' : '#111827',
-        mainBkg: theme === 'dark' ? '#171717' : '#f3f4f6',
-        clusterBkg: theme === 'dark' ? 'transparent' : '#ffffff',
-        clusterBorder: theme === 'dark' ? '#333333' : '#d1d5db',
-        edgeLabelBackground: theme === 'dark' ? '#171717' : '#ffffff',
-        actorBkg: theme === 'dark' ? '#171717' : '#f3f4f6',
-        actorBorder: theme === 'dark' ? '#f97316' : '#ea580c',
-        actorTextColor: theme === 'dark' ? '#f9fafb' : '#111827',
-        signalColor: theme === 'dark' ? '#fb923c' : '#f97316',
-        signalTextColor: theme === 'dark' ? '#d1d5db' : '#4b5563',
-        noteBkgColor: theme === 'dark' ? '#262626' : '#e5e7eb',
-        noteTextColor: theme === 'dark' ? '#f9fafb' : '#111827',
-        noteBorderColor: theme === 'dark' ? '#f97316' : '#ea580c',
+        primaryColor: cssVar('--mermaid-primary', 'transparent'),
+        primaryTextColor: cssVar('--mermaid-primary-text', 'inherit'),
+        primaryBorderColor: cssVar('--mermaid-border', 'currentColor'), // Orange accents
+        lineColor: cssVar('--mermaid-line', 'currentColor'),
+        secondaryColor: cssVar('--mermaid-secondary', 'transparent'),
+        tertiaryColor: cssVar('--mermaid-tertiary', 'transparent'),
+        nodeTextColor: cssVar('--mermaid-node-text', 'inherit'),
+        mainBkg: cssVar('--mermaid-primary', 'transparent'),
+        clusterBkg: cssVar('--mermaid-cluster-bg', 'transparent'),
+        clusterBorder: cssVar('--mermaid-cluster-border', 'currentColor'),
+        edgeLabelBackground: cssVar('--mermaid-edge-label-bg', 'transparent'),
+        actorBkg: cssVar('--mermaid-actor-bg', 'transparent'),
+        actorBorder: cssVar('--mermaid-border', 'currentColor'),
+        actorTextColor: cssVar('--mermaid-primary-text', 'inherit'),
+        signalColor: cssVar('--mermaid-line', 'currentColor'),
+        signalTextColor: cssVar('--mermaid-signal-text', 'inherit'),
+        noteBkgColor: cssVar('--mermaid-note-bg', 'transparent'),
+        noteTextColor: cssVar('--mermaid-primary-text', 'inherit'),
+        noteBorderColor: cssVar('--mermaid-border', 'currentColor'),
       },
       securityLevel: 'loose',
     });
