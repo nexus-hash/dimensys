@@ -13,6 +13,15 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // package.json has no "type": "module", and this file is invoked directly
+    // as `node scripts/sync-engine.js` from prebuild.sh, dev-engine.sh and the
+    // CI workflows, so it must stay CommonJS — `require` here isn't a mistake.
+    files: ["scripts/sync-engine.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
