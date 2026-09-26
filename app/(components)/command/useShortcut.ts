@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useSyncExternalStore, useId } from 'react';
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore, useId } from 'react';
 import { shortcutRegistry, sortGroups } from './registry';
 import type { ShortcutDef, ShortcutRegistration } from './types';
 
@@ -13,7 +13,9 @@ export function useShortcut(def: ShortcutRegistration, handler: (event: Keyboard
   const autoId = useId();
   const id = def.id ?? autoId;
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  });
 
   const { keys, label, group, when, allowWhileTyping, hidden } = def;
 
@@ -29,7 +31,6 @@ export function useShortcut(def: ShortcutRegistration, handler: (event: Keyboard
       handler: (event) => handlerRef.current(event),
     };
     return shortcutRegistry.register(entry);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, keys, label, group, when, allowWhileTyping, hidden]);
 }
 

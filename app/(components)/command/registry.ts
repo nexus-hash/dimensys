@@ -39,7 +39,6 @@ class ShortcutRegistry {
       if (existing.id === def.id) continue;
       const existingScope = existing.when ?? GLOBAL_SCOPE;
       if (existing.keys === def.keys && existingScope === scope) {
-        // eslint-disable-next-line no-console
         console.warn(
           `[shortcuts] "${def.keys}" is bound to both "${existing.id}" and "${def.id}" in scope "${scope}". ` +
             'The most recently registered handler wins.',
