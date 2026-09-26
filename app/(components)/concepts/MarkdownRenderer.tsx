@@ -1,8 +1,11 @@
 'use client';
 
-import ReactMarkdown from 'react-markdown';
+import type { ComponentPropsWithoutRef } from 'react';
+import ReactMarkdown, { type ExtraProps } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Mermaid from './Mermaid';
+
+type CodeProps = ComponentPropsWithoutRef<'code'> & ExtraProps & { inline?: boolean };
 
 export default function MarkdownRenderer({ content }: { content: string }) {
   return (
@@ -10,23 +13,23 @@ export default function MarkdownRenderer({ content }: { content: string }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
-          h1: ({node, ...props}) => <h1 className="text-4xl font-bold text-orange-600 dark:text-orange-500 mt-12 mb-6" {...props} />,
-          h2: ({node, ...props}) => <h2 className="text-2xl font-semibold text-orange-500 dark:text-orange-400 mt-10 mb-4 border-b border-orange-200 dark:border-orange-500/20 pb-2" {...props} />,
-          h3: ({node, ...props}) => <h3 className="text-xl font-medium text-orange-500/90 dark:text-orange-400/90 mt-8 mb-3" {...props} />,
-          p: ({node, ...props}) => <p className="mb-4 text-base" {...props} />,
-          ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
-          ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
-          li: ({node, ...props}) => <li className="" {...props} />,
-          a: ({node, ...props}) => <a className="text-orange-500 hover:underline" {...props} />,
-          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-orange-500 pl-4 italic text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/5 py-2 rounded-r" {...props} />,
-          table: ({node, ...props}) => (
+          h1: ({...props}) => <h1 className="text-4xl font-bold text-orange-600 dark:text-orange-500 mt-12 mb-6" {...props} />,
+          h2: ({...props}) => <h2 className="text-2xl font-semibold text-orange-500 dark:text-orange-400 mt-10 mb-4 border-b border-orange-200 dark:border-orange-500/20 pb-2" {...props} />,
+          h3: ({...props}) => <h3 className="text-xl font-medium text-orange-500/90 dark:text-orange-400/90 mt-8 mb-3" {...props} />,
+          p: ({...props}) => <p className="mb-4 text-base" {...props} />,
+          ul: ({...props}) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
+          ol: ({...props}) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
+          li: ({...props}) => <li className="" {...props} />,
+          a: ({...props}) => <a className="text-orange-500 hover:underline" {...props} />,
+          blockquote: ({...props}) => <blockquote className="border-l-4 border-orange-500 pl-4 italic text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/5 py-2 rounded-r" {...props} />,
+          table: ({...props}) => (
             <div className="overflow-x-auto my-6 rounded-lg border border-gray-200 dark:border-white/10">
               <table className="min-w-full text-sm text-left" {...props} />
             </div>
           ),
-          th: ({node, ...props}) => <th className="px-4 py-3 bg-gray-100 dark:bg-white/5 font-semibold text-gray-900 dark:text-white" {...props} />,
-          td: ({node, ...props}) => <td className="px-4 py-3 border-t border-gray-200 dark:border-white/10" {...props} />,
-          code: ({node, inline, className, children, ...props}: any) => {
+          th: ({...props}) => <th className="px-4 py-3 bg-gray-100 dark:bg-white/5 font-semibold text-gray-900 dark:text-white" {...props} />,
+          td: ({...props}) => <td className="px-4 py-3 border-t border-gray-200 dark:border-white/10" {...props} />,
+          code: ({inline, className, children, ...props}: CodeProps) => {
             const match = /language-(\w+)/.exec(className || '');
             const lang = match?.[1] || '';
             

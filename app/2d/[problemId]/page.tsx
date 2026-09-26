@@ -23,8 +23,8 @@ function getProblemMeta(problemId: string): ProblemMeta | null {
     const filePath = path.join(dataDir, file);
     if (fs.existsSync(filePath)) {
       try {
-        const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        const found = data.find((p: any) => p.id === problemId);
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as ProblemMeta[];
+        const found = data.find((p) => p.id === problemId);
         if (found) return found;
       } catch (e) {
         console.error(`Failed to parse ${file}`, e);

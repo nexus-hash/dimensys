@@ -4,14 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useConceptProgress } from '../../(hooks)/useConceptProgress';
 
-interface Concept {
+export interface Concept {
   id: string;
   title: string;
   readTime: string;
   tags: string[];
+  contentFile?: string;
 }
 
-interface Module {
+export interface Module {
   id: string;
   title: string;
   concepts: Concept[];

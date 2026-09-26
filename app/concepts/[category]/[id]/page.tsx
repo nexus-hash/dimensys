@@ -6,11 +6,12 @@ import Navbar from '../../../(components)/navbar/Navbar';
 import MarkdownRenderer from '../../../(components)/concepts/MarkdownRenderer';
 import CircuitBackground from '../../../(components)/problems/CircuitBackground';
 import { saveConceptProgress } from '../../../(hooks)/useConceptProgress';
+import type { Module } from '../../../(components)/concepts/ConceptAccordion';
 
 export default function ConceptDetailPage({ params }: { params: Promise<{ category: string, id: string }> }) {
   const { category, id } = use(params);
   const [content, setContent] = useState<string>('');
-  const [curriculum, setCurriculum] = useState<any[]>([]);
+  const [curriculum, setCurriculum] = useState<Module[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function ConceptDetailPage({ params }: { params: Promise<{ catego
     let fileName = `${id}.md`;
     if (curriculum.length > 0) {
        for (const mod of curriculum) {
-         const found = mod.concepts?.find((c: any) => c.id === id);
+         const found = mod.concepts?.find((c) => c.id === id);
          if (found && found.contentFile) {
            fileName = found.contentFile;
            break;
@@ -80,11 +81,11 @@ export default function ConceptDetailPage({ params }: { params: Promise<{ catego
           <div className="p-6">
             <h2 className="text-sm font-bold text-orange-500 uppercase tracking-widest mb-6">Curriculum</h2>
             <div className="space-y-6">
-              {curriculum.map((mod: any) => (
+              {curriculum.map((mod) => (
                 <div key={mod.id}>
                   <h3 className="text-gray-900 dark:text-white font-semibold mb-2">{mod.title}</h3>
                   <ul className="space-y-1">
-                    {mod.concepts?.map((c: any) => {
+                    {mod.concepts?.map((c) => {
                       const isActive = c.id === id;
                       return (
                         <li key={c.id}>
