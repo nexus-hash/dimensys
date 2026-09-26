@@ -649,4 +649,80 @@
 .cv-lld-name { font: 600 13px var(--font-sans); fill: var(--color-ink-primary); }
 .cv-lld-stereotype { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
 .cv-lld-member { font: 500 12px var(--font-mono); fill: var(--color-ink-secondary); }
+
+/* ── Shiki (DS8) ─────────────────────────────────────────────────────────
+   CodeBlock/AnnotatedCode highlight with `themes: { light, dark },
+   defaultColor: false`, so every token gets a `--shiki-light` /
+   `--shiki-dark` custom property (a computed value, not a literal — this
+   file is exempt from lint:colors, but nothing here is a hex literal
+   either) instead of a fixed `color`. These rules pick the right one for
+   the active theme, using the same `[data-theme]` switch as the rest of
+   the token system. */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+}
+
+[data-theme="dark"] .shiki,
+[data-theme="dark"] .shiki span {
+  color: var(--shiki-dark);
+}
+
+.shiki-container .shiki {
+  background: transparent;
+  margin: 0;
+}
+
+.shiki-container .line {
+  display: inline-block;
+  width: 100%;
+}
+
+/* Optional line numbers (CodeBlock/AnnotatedCode `showLineNumbers`) — a
+   `shiki-line-numbers` class on <code>, added by a Shiki transformer, turns
+   on a CSS-counter gutter instead of rendering a separate number per line
+   in JS. */
+.shiki-line-numbers {
+  counter-reset: shiki-line;
+}
+
+.shiki-line-numbers .line::before {
+  counter-increment: shiki-line;
+  content: counter(shiki-line);
+  display: inline-block;
+  width: 2.5rem;
+  margin-right: 1rem;
+  text-align: right;
+  color: var(--color-ink-muted);
+  user-select: none;
+}
+
+/* AnnotatedCode `highlightLines` — 2px left bar + subtle background, added
+   as a line class by createLineDecorationTransformer. */
+.shiki-line-highlight {
+  background-color: var(--color-brand-subtle);
+  box-shadow: inset 2px 0 0 0 var(--color-brand);
+}
+
+.shiki-line-annotated {
+  box-shadow: inset 2px 0 0 0 var(--color-brand-strong);
+}
+
+.shiki-line-highlight.shiki-line-annotated {
+  box-shadow: inset 2px 0 0 0 var(--color-brand);
+}
+
+/* AnnotatedCode annotation markers — real, visible note text appended to
+   the line by createLineDecorationTransformer, not just a title/tooltip. */
+.shiki-annotation-marker {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-brand-subtle);
+  color: var(--color-brand-ink);
+  font-style: normal;
+  font-size: 0.75em;
+  vertical-align: middle;
+}
 .cv-lld-rule { stroke: var(--color-line-hairline); }
