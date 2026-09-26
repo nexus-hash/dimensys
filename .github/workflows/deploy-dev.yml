@@ -166,6 +166,15 @@ jobs:
             exit 1
           fi
 
+          # The engine build's *.compiled.json files (full compiled documents,
+          # server-only) must never end up anywhere in the deployable output
+          # either, regardless of directory — same leak, different filename.
+          if find .vercel/output -name '*.compiled.json' | grep -q .; then
+            echo "::error::Found *.compiled.json file(s) inside .vercel/output:"
+            find .vercel/output -name '*.compiled.json'
+            exit 1
+          fi
+
           if [ -d .vercel/output/static ] && grep -rIl '"interview"' .vercel/output/static; then
             echo "::error::Found an \"interview\" key inside .vercel/output/static — server-only diagram data leaked into the public build."
             exit 1

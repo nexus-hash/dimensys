@@ -12,18 +12,18 @@ export interface DiagramPlayerProps {
 
 /** Static JSON route for the full view-data document (T3.13). */
 export function diagramJsonUrl(diagram: Pick<ViewData, 'id' | 'build'>): string {
-  return `/solutions/${encodeURIComponent(diagram.id)}/diagram.json?h=${encodeURIComponent(diagram.build.hash.replace(/^sha256:/, '').slice(0, 16))}`;
+  return `/solutions/${encodeURIComponent(diagram.id)}/diagram.json?h=${encodeURIComponent(diagram.build.replace(/^sha256:/, '').slice(0, 16))}`;
 }
 
 export function toBootstrap(diagram: ViewData, runtimeUrl: string | null): PlayerBootstrap {
   return {
     diagramId: diagram.id,
-    revision: diagram.metadata.revision ?? 1,
-    hash: diagram.build.hash,
+    revision: diagram.rev,
+    hash: diagram.build,
     diagramUrl: diagramJsonUrl(diagram),
     runtimeUrl,
-    hasSimulation: diagram.hasSimulation,
-    canvas: diagram.layouts.desktop.canvas,
+    hasSimulation: diagram.live,
+    canvas: diagram.board ? { w: diagram.board.size[0], h: diagram.board.size[1] } : { w: 0, h: 0 },
   };
 }
 
@@ -47,13 +47,13 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   }
 
   return (
-    <section data-player-variant={variant} aria-label={diagram.metadata.title} className="rounded-lg border border-line-hairline">
+    <section data-player-variant={variant} aria-label={diagram.head.title} className="rounded-lg border border-line-hairline">
       <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
         {/* TODO(T3.16): player shell (top bar, rails, inspector, timeline frame). */}
-        {/* TODO(T3.2): <StaticBlueprint layout={diagram.layouts.desktop} /> server-rendered here. */}
+        {/* TODO(T3.2): <StaticBlueprint board={diagram.board} /> server-rendered here. */}
         <div className="p-6 text-ink-secondary">
           <p role="status">
-            Player not implemented yet: <span className="text-ink-primary">{diagram.metadata.title}</span>
+            Player not implemented yet: <span className="text-ink-primary">{diagram.head.title}</span>
           </p>
         </div>
       </PlayerIsland>
