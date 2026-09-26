@@ -6,32 +6,19 @@ import * as crypto from 'crypto';
 import { spawnSync } from 'child_process';
 
 const SCRIPT_PATH = path.resolve(__dirname, '../sync-engine-v3.js');
+const RUNTIME_FORMAT = 1;
 
-// --- content hashing, mirroring how the engine hashes documents, used only
-// to build fixture files with a correct `compiled.hash`. ---------------------
-
-function sortKeysDeep(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sortKeysDeep);
-  if (value !== null && typeof value === 'object') {
-    const input = value as Record<string, unknown>;
-    const out: Record<string, unknown> = {};
-    for (const key of Object.keys(input).sort()) out[key] = sortKeysDeep(input[key]);
-    return out;
-  }
-  return value;
+function sha256Hex(buf: Buffer): string {
+  return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
-function contentHash(value: unknown): string {
-  const canonical = JSON.stringify(sortKeysDeep(value));
-  return `sha256:${crypto.createHash('sha256').update(canonical, 'utf-8').digest('hex')}`;
-}
-
-function writeJson(absPath: string, value: unknown): void {
+function writeBytes(absPath: string, bytes: Buffer): { path: string; hash: string; bytes: number } {
   fs.mkdirSync(path.dirname(absPath), { recursive: true });
-  fs.writeFileSync(absPath, JSON.stringify(value, null, 2));
+  fs.writeFileSync(absPath, bytes);
+  return { path: '', hash: `sha256:${sha256Hex(bytes)}`, bytes: bytes.length };
 }
 
-// --- fixture: a small but complete dist-v3 tree -----------------------------
+// --- fixture: a small dist-v3 tree with manifest 3.1's flat `files[]` ------
 
 interface Fixture {
   engineDir: string;
@@ -44,57 +31,48 @@ function makeTempDirs(): Fixture {
   return { engineDir, appDir };
 }
 
-/** Writes a diagram's public + server compiled files, sharing one `compiled` stamp, as compileAll.ts does. */
-function writeDiagram(engineDir: string, id: string, extra: Record<string, unknown> = {}) {
-  const source = { id, kind: 'diagram', title: `Diagram ${id}`, interview: { secret: 'do-not-ship' }, ...extra };
-  const compiled = { engineVersion: '3.0.0', hash: contentHash(source), builtAt: '2026-01-01T00:00:00.000Z' };
-  const { interview: _interview, ...publicBody } = source;
-  void _interview;
-
-  const compiledDiagram = { ...publicBody, compiled, layouts: { desktop: { canvas: { w: 1, h: 1 }, nodes: {}, links: {} } }, walkthroughStates: {} };
-  const serverDiagram = { compiled, source };
-
-  writeJson(path.join(engineDir, 'public', 'diagrams', `${id}.json`), compiledDiagram);
-  writeJson(path.join(engineDir, 'server', 'diagrams', `${id}.json`), serverDiagram);
-
-  return {
-    id,
-    route: `solutions/${id}`,
-    public: `public/diagrams/${id}.json`,
-    server: `server/diagrams/${id}.json`,
-  };
+/** Writes one file under `engineDir` at `relPath` and returns its manifest `files[]` entry. */
+function writeManifestFile(
+  engineDir: string,
+  relPath: string,
+  bytes: Buffer,
+  scope: 'public' | 'server',
+): { path: string; hash: string; bytes: number; scope: 'public' | 'server' } {
+  const entry = writeBytes(path.join(engineDir, relPath), bytes);
+  return { ...entry, path: relPath, scope };
 }
 
-/** Writes a `{...doc, compiled}` file (paths/libraries/puzzles shape). */
-function writeSelfHashed(engineDir: string, relDir: string, id: string, extra: Record<string, unknown> = {}) {
-  const doc = { id, title: `Doc ${id}`, ...extra };
-  const compiled = { engineVersion: '3.0.0', hash: contentHash(doc), builtAt: '2026-01-01T00:00:00.000Z' };
-  const relPath = path.join(relDir, `${id}.json`);
-  writeJson(path.join(engineDir, relPath), { ...doc, compiled });
-  return relPath.split(path.sep).join('/');
+function jsonBytes(value: unknown): Buffer {
+  return Buffer.from(`${JSON.stringify(value)}\n`, 'utf-8');
 }
 
 function buildManifestFixture(engineDir: string) {
-  const diagram = writeDiagram(engineDir, 'foo');
-  const pathPublic = writeSelfHashed(engineDir, 'public/paths', 'bar');
-  const libraryPublic = writeSelfHashed(engineDir, 'public/library', 'baz');
-  const puzzleServer = writeSelfHashed(engineDir, 'server/puzzles', 'qux', { publishOn: '2026-01-01', secret: { answer: 42 } });
-
-  writeJson(path.join(engineDir, 'catalog.json'), { version: '1', entries: [] });
+  const files = [
+    writeManifestFile(engineDir, 'public/diagrams/foo.view.json', jsonBytes({ id: 'foo', fmt: RUNTIME_FORMAT }), 'public'),
+    writeManifestFile(engineDir, 'public/diagrams/foo.sim.bin', Buffer.from([0xd5, 0x1a, 1, 0, 1, 2, 3, 4, 5, 6, 7]), 'public'),
+    writeManifestFile(engineDir, 'public/catalog.json', jsonBytes({ fmt: RUNTIME_FORMAT, cards: [] }), 'public'),
+    writeManifestFile(engineDir, 'public/paths/bar.view.json', jsonBytes({ id: 'bar', fmt: RUNTIME_FORMAT }), 'public'),
+    writeManifestFile(engineDir, 'server/diagrams/foo.json', jsonBytes({ source: { interview: 'do-not-ship' } }), 'server'),
+    writeManifestFile(engineDir, 'server/diagrams/foo.compiled.json', jsonBytes({ compiled: true }), 'server'),
+    writeManifestFile(engineDir, 'server/puzzles/qux.json', jsonBytes({ secret: 42 }), 'server'),
+  ];
 
   const manifest = {
-    version: '3.0.0',
+    version: '3.1.0',
+    runtimeFormat: RUNTIME_FORMAT,
+    engineVersion: '3.0.0',
     generatedAt: '2026-01-01T00:00:00.000Z',
-    catalog: 'catalog.json',
-    diagrams: [diagram],
-    paths: [{ id: 'bar', public: pathPublic }],
-    libraries: [{ id: 'baz', public: libraryPublic }],
-    puzzles: [{ id: 'qux', publishOn: '2026-01-01', server: puzzleServer }],
+    catalog: files[2],
+    diagrams: [{ id: 'foo', route: 'solutions/foo', build: 'sha256:' + '1'.repeat(64), view: files[0], sim: files[1], server: [files[4], files[5]] }],
+    paths: [{ id: 'bar', view: files[3], server: [] }],
+    libraries: [],
+    puzzles: [{ id: 'qux', publishOn: '2026-01-01', server: [files[6]] }],
+    files,
     staticAssets: [],
     sharedComponents: [],
     peerDependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' },
   };
-  writeJson(path.join(engineDir, 'manifest.json'), manifest);
+  fs.writeFileSync(path.join(engineDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
   return manifest;
 }
 
@@ -128,39 +106,43 @@ describe('sync-engine-v3.js', () => {
     buildManifestFixture(fixture.engineDir);
 
     const result = runSync(fixture);
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
 
     const dataEngine = path.join(fixture.appDir, 'data', 'engine');
     const serverDataEngine = path.join(fixture.appDir, 'server-data', 'engine');
 
-    expect(fs.existsSync(path.join(dataEngine, 'diagrams', 'foo.json'))).toBe(true);
-    expect(fs.existsSync(path.join(dataEngine, 'paths', 'bar.json'))).toBe(true);
-    expect(fs.existsSync(path.join(dataEngine, 'library', 'baz.json'))).toBe(true);
+    expect(fs.existsSync(path.join(dataEngine, 'diagrams', 'foo.view.json'))).toBe(true);
+    expect(fs.existsSync(path.join(dataEngine, 'diagrams', 'foo.sim.bin'))).toBe(true);
+    expect(fs.existsSync(path.join(dataEngine, 'paths', 'bar.view.json'))).toBe(true);
     expect(fs.existsSync(path.join(dataEngine, 'catalog.json'))).toBe(true);
     expect(fs.existsSync(path.join(dataEngine, 'manifest.json'))).toBe(true);
 
     expect(fs.existsSync(path.join(serverDataEngine, 'diagrams', 'foo.json'))).toBe(true);
+    expect(fs.existsSync(path.join(serverDataEngine, 'diagrams', 'foo.compiled.json'))).toBe(true);
     expect(fs.existsSync(path.join(serverDataEngine, 'puzzles', 'qux.json'))).toBe(true);
-
-    // Content round-trips correctly.
-    const copiedPublic = JSON.parse(fs.readFileSync(path.join(dataEngine, 'diagrams', 'foo.json'), 'utf-8'));
-    expect(copiedPublic.id).toBe('foo');
-    const copiedServer = JSON.parse(fs.readFileSync(path.join(serverDataEngine, 'diagrams', 'foo.json'), 'utf-8'));
-    expect(copiedServer.source.interview.secret).toBe('do-not-ship');
 
     // No "public" or "server" sub-prefix survives the copy.
     expect(fs.existsSync(path.join(dataEngine, 'public'))).toBe(false);
     expect(fs.existsSync(path.join(serverDataEngine, 'server'))).toBe(false);
+
+    // The binary payload is copied byte-for-byte.
+    const srcBin = fs.readFileSync(path.join(fixture.engineDir, 'public', 'diagrams', 'foo.sim.bin'));
+    const destBin = fs.readFileSync(path.join(dataEngine, 'diagrams', 'foo.sim.bin'));
+    expect(destBin.equals(srcBin)).toBe(true);
+
+    const copiedServer = JSON.parse(fs.readFileSync(path.join(serverDataEngine, 'diagrams', 'foo.json'), 'utf-8'));
+    expect(copiedServer.source.interview).toBe('do-not-ship');
   });
 
   it('never puts server data under public/ or data/engine/', () => {
     const fixture = track(makeTempDirs());
     buildManifestFixture(fixture.engineDir);
     // Simulate a pre-existing Next.js public/ directory with unrelated content.
-    writeJson(path.join(fixture.appDir, 'public', 'favicon.json'), { ok: true });
+    fs.mkdirSync(path.join(fixture.appDir, 'public'), { recursive: true });
+    fs.writeFileSync(path.join(fixture.appDir, 'public', 'favicon.json'), JSON.stringify({ ok: true }));
 
     const result = runSync(fixture);
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
 
     const walk = (dir: string): string[] => {
       if (!fs.existsSync(dir)) return [];
@@ -175,14 +157,14 @@ describe('sync-engine-v3.js', () => {
       expect(file).not.toContain('server-data');
       expect(file).not.toMatch(/diagrams[/\\]foo\.json$/);
       expect(file).not.toMatch(/puzzles[/\\]qux\.json$/);
-      const content = fs.readFileSync(file, 'utf-8');
-      expect(content).not.toContain('do-not-ship');
     }
 
     const dataEngineFiles = walk(path.join(fixture.appDir, 'data', 'engine'));
     for (const file of dataEngineFiles) {
+      if (file.endsWith('.bin')) continue;
       const content = fs.readFileSync(file, 'utf-8');
       expect(content).not.toContain('do-not-ship');
+      expect(content).not.toContain('secret');
     }
   });
 
@@ -195,9 +177,9 @@ describe('sync-engine-v3.js', () => {
     const dataEngine = path.join(fixture.appDir, 'data', 'engine');
     const serverDataEngine = path.join(fixture.appDir, 'server-data', 'engine');
     const files = [
-      path.join(dataEngine, 'diagrams', 'foo.json'),
-      path.join(dataEngine, 'paths', 'bar.json'),
-      path.join(dataEngine, 'library', 'baz.json'),
+      path.join(dataEngine, 'diagrams', 'foo.view.json'),
+      path.join(dataEngine, 'diagrams', 'foo.sim.bin'),
+      path.join(dataEngine, 'paths', 'bar.view.json'),
       path.join(dataEngine, 'catalog.json'),
       path.join(dataEngine, 'manifest.json'),
       path.join(serverDataEngine, 'diagrams', 'foo.json'),
@@ -206,7 +188,7 @@ describe('sync-engine-v3.js', () => {
     const mtimesBefore = files.map((f) => fs.statSync(f).mtimeMs);
 
     const second = runSync(fixture);
-    expect(second.status).toBe(0);
+    expect(second.status, second.stderr).toBe(0);
     expect(second.stdout).toContain('already up to date');
 
     const mtimesAfter = files.map((f) => fs.statSync(f).mtimeMs);
@@ -220,32 +202,33 @@ describe('sync-engine-v3.js', () => {
 
     const dataEngine = path.join(fixture.appDir, 'data', 'engine');
     const serverDataEngine = path.join(fixture.appDir, 'server-data', 'engine');
-    expect(fs.existsSync(path.join(dataEngine, 'paths', 'bar.json'))).toBe(true);
+    expect(fs.existsSync(path.join(dataEngine, 'paths', 'bar.view.json'))).toBe(true);
     expect(fs.existsSync(path.join(serverDataEngine, 'puzzles', 'qux.json'))).toBe(true);
 
-    // Rewrite the manifest without the path and the puzzle.
-    const trimmed = { ...manifest, paths: [], puzzles: [] };
-    writeJson(path.join(fixture.engineDir, 'manifest.json'), trimmed);
+    // Rewrite the manifest without the path and the puzzle's file entries.
+    const trimmedFiles = manifest.files.filter((f: { path: string }) => f.path !== 'public/paths/bar.view.json' && f.path !== 'server/puzzles/qux.json');
+    const trimmed = { ...manifest, paths: [], puzzles: [], files: trimmedFiles };
+    fs.writeFileSync(path.join(fixture.engineDir, 'manifest.json'), JSON.stringify(trimmed, null, 2));
 
     const result = runSync(fixture);
-    expect(result.status).toBe(0);
+    expect(result.status, result.stderr).toBe(0);
 
-    expect(fs.existsSync(path.join(dataEngine, 'paths', 'bar.json'))).toBe(false);
+    expect(fs.existsSync(path.join(dataEngine, 'paths', 'bar.view.json'))).toBe(false);
     expect(fs.existsSync(path.join(dataEngine, 'paths'))).toBe(false); // empty dir pruned
     expect(fs.existsSync(path.join(serverDataEngine, 'puzzles', 'qux.json'))).toBe(false);
 
     // Untouched entries survive.
-    expect(fs.existsSync(path.join(dataEngine, 'diagrams', 'foo.json'))).toBe(true);
+    expect(fs.existsSync(path.join(dataEngine, 'diagrams', 'foo.view.json'))).toBe(true);
   });
 
-  it('fails loudly and writes nothing when a server diagram hash does not match its source', () => {
+  it('fails loudly and writes nothing when a file has been tampered with (hash mismatch)', () => {
     const fixture = track(makeTempDirs());
     buildManifestFixture(fixture.engineDir);
 
     const serverPath = path.join(fixture.engineDir, 'server', 'diagrams', 'foo.json');
-    const serverContent = JSON.parse(fs.readFileSync(serverPath, 'utf-8'));
-    serverContent.source.title = 'Tampered title';
-    writeJson(serverPath, serverContent);
+    const original = fs.readFileSync(serverPath, 'utf-8');
+    // Same length as the original so this exercises the hash check, not the size check.
+    fs.writeFileSync(serverPath, original.replace('do-not-ship', 'TAMPERED!!!'));
 
     const result = runSync(fixture);
     expect(result.status).toBe(1);
@@ -254,24 +237,45 @@ describe('sync-engine-v3.js', () => {
     expect(fs.existsSync(path.join(fixture.appDir, 'server-data', 'engine'))).toBe(false);
   });
 
-  it('fails loudly when a public diagram hash disagrees with its server counterpart', () => {
+  it('fails loudly on a size mismatch', () => {
     const fixture = track(makeTempDirs());
-    buildManifestFixture(fixture.engineDir);
-
-    const publicPath = path.join(fixture.engineDir, 'public', 'diagrams', 'foo.json');
-    const publicContent = JSON.parse(fs.readFileSync(publicPath, 'utf-8'));
-    publicContent.compiled.hash = 'sha256:' + '0'.repeat(64);
-    writeJson(publicPath, publicContent);
+    const manifest = buildManifestFixture(fixture.engineDir);
+    manifest.files[0].bytes = manifest.files[0].bytes + 5;
+    fs.writeFileSync(path.join(fixture.engineDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
     const result = runSync(fixture);
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('hash mismatch');
+    expect(result.stderr).toContain('size mismatch');
+  });
+
+  it('fails loudly on a scope mismatch (declared scope disagrees with the path prefix)', () => {
+    const fixture = track(makeTempDirs());
+    const manifest = buildManifestFixture(fixture.engineDir);
+    // "public"-scoped entry whose own path is actually under server/.
+    manifest.files[0].scope = 'server';
+    fs.writeFileSync(path.join(fixture.engineDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+
+    const result = runSync(fixture);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/expected to start with "server\/"/);
+  });
+
+  it('fails loudly on an unknown runtimeFormat', () => {
+    const fixture = track(makeTempDirs());
+    const manifest = buildManifestFixture(fixture.engineDir);
+    const bumped = { ...manifest, runtimeFormat: 2 };
+    fs.writeFileSync(path.join(fixture.engineDir, 'manifest.json'), JSON.stringify(bumped, null, 2));
+
+    const result = runSync(fixture);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('runtimeFormat');
+    expect(fs.existsSync(path.join(fixture.appDir, 'data', 'engine'))).toBe(false);
   });
 
   it('fails loudly when a listed manifest file is missing', () => {
     const fixture = track(makeTempDirs());
     buildManifestFixture(fixture.engineDir);
-    fs.rmSync(path.join(fixture.engineDir, 'public', 'library', 'baz.json'));
+    fs.rmSync(path.join(fixture.engineDir, 'public', 'paths', 'bar.view.json'));
 
     const result = runSync(fixture);
     expect(result.status).toBe(1);

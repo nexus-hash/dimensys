@@ -1,34 +1,40 @@
 #!/usr/bin/env node
 
 /**
- * sync-engine-v3.js — Manifest-driven sync tool for dms-engine's v3 output.
+ * sync-engine-v3.js — Manifest-driven sync tool for the engine's v3 build
+ * output (manifest version 3.1).
  *
- * Reads dms-engine's `dist-v3/manifest.json` and, for
- * every file it lists, verifies the file exists and its content hash is
- * correct before copying anything:
+ * Reads the engine's `manifest.json`, which lists every output file under a
+ * flat `files[]` array: `{ path, hash: "sha256:<hex>", bytes, scope: "public"
+ * | "server" }`. For every listed file this script:
  *
- * - `server/diagrams/<id>.json` carries `{ compiled, source }`; its
- *   `compiled.hash` must equal the content hash of `source`, recomputed the
- *   same way the engine does it (sorted-key JSON, sha256, `sha256:` prefix).
- * - `public/diagrams/<id>.json` is a stripped view of the same document
- *   (interview fields removed) plus computed layouts, so it can't be
- *   rehashed against a source on its own; instead it must carry the exact
- *   same `compiled.hash` as its server counterpart (both are stamped from
- *   the same build-time `compiled` value).
- * - `public/paths/<id>.json`, `public/library/<id>.json` and
- *   `server/puzzles/<id>.json` are `{ ...doc, compiled }` with nothing else
- *   added, so `compiled.hash` is verified by recomputing the content hash of
- *   the file with `compiled` removed.
+ *   1. Verifies (before copying anything) that the file exists on disk and
+ *      that its size and sha256 hash match what the manifest says.
+ *   2. Copies it by `scope`:
+ *        - `public` → `data/engine/` (the file's path with its leading
+ *          `public/` segment stripped).
+ *        - `server` → `server-data/engine/` (its leading `server/` segment
+ *          stripped).
+ *      A file whose declared `scope` doesn't match its own path prefix (e.g.
+ *      scope `public` on a `server/...` path) fails verification rather than
+ *      being silently miscopied.
  *
- * Only once every listed file passes verification does it copy anything:
- * - `public/*`, `catalog.json`, `manifest.json` → `data/engine/` (flattening
- *   the `public/` prefix; never under `public/`).
- * - `server/*` → `server-data/engine/` (flattening the `server/` prefix;
- *   never under `public/` or `app/`).
+ * Files are copied as raw bytes — nothing is parsed or reinterpreted. This
+ * is deliberate: some are opaque binary payloads (`*.sim.bin`), and even the
+ * JSON ones are only ever treated as bytes here, never inspected. All this
+ * script needs to know is the manifest's own file list.
+ *
+ * The manifest also carries a `runtimeFormat` integer. This app supports
+ * exactly one format; a manifest built for any other format fails the sync
+ * loudly instead of producing output the app can't read correctly.
+ *
+ * `manifest.json` itself isn't one of the listed `files[]` entries (it's the
+ * thing that lists them), so it's copied separately, unconditionally, into
+ * `data/engine/manifest.json` — the app reads it from there.
  *
  * The sync is idempotent (a file already identical to its source is left
- * alone — mtime included) and removes files that are no longer listed in
- * the manifest from those two target directories.
+ * alone — mtime included) and removes files that are no longer listed in the
+ * manifest from the two managed directories.
  */
 
 const fs = require('fs');
@@ -47,6 +53,14 @@ const MANIFEST_PATH = path.join(ENGINE_DIST_V3, 'manifest.json');
 const DATA_ENGINE_DIR = path.join(DIMENSYS_ROOT, 'data', 'engine');
 const SERVER_DATA_ENGINE_DIR = path.join(DIMENSYS_ROOT, 'server-data', 'engine');
 const PUBLIC_DIR = path.join(DIMENSYS_ROOT, 'public');
+
+/**
+ * The one runtime format this app understands. Must match `RUNTIME_FORMAT`
+ * in `app/(components)/player/types.ts` — the two live in separate files
+ * (this is a plain Node script, that's a TypeScript module the app imports)
+ * but describe the same contract, so keep them in lockstep by hand.
+ */
+const SUPPORTED_RUNTIME_FORMAT = 1;
 
 // --- small path helpers ---------------------------------------------------
 
@@ -79,37 +93,12 @@ if (isInside(SERVER_DATA_ENGINE_DIR, DATA_ENGINE_DIR) || isInside(DATA_ENGINE_DI
   fail('data/engine and server-data/engine must not be nested inside one another');
 }
 
-// --- content hashing (mirrors dms-engine's src/compile/hash.ts) ----------
+// --- hashing -----------------------------------------------------------
 
-function sortKeysDeep(value) {
-  if (Array.isArray(value)) return value.map(sortKeysDeep);
-  if (value !== null && typeof value === 'object') {
-    const out = {};
-    for (const key of Object.keys(value).sort()) out[key] = sortKeysDeep(value[key]);
-    return out;
-  }
-  return value;
-}
-
-function canonicalJson(value) {
-  return JSON.stringify(sortKeysDeep(value));
-}
-
-/** `sha256:<hex>` content hash — same algorithm as `CompileInfo.hash`. */
-function contentHash(value) {
-  const digest = crypto.createHash('sha256').update(canonicalJson(value), 'utf-8').digest('hex');
+/** `sha256:<hex>` of a file's raw bytes. Never parses the file. */
+function fileHashEntry(absPath) {
+  const digest = crypto.createHash('sha256').update(fs.readFileSync(absPath)).digest('hex');
   return `sha256:${digest}`;
-}
-
-/** Raw byte hash of a file on disk, used only to decide whether a copy is needed. */
-function fileHash(filePath) {
-  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
-}
-
-function withoutCompiled(obj) {
-  const clone = { ...obj };
-  delete clone.compiled;
-  return clone;
 }
 
 function assertExists(absPath, label) {
@@ -131,66 +120,45 @@ function readJson(absPath, label) {
   return undefined;
 }
 
-function assertHashFormat(hash, label) {
-  if (typeof hash !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(hash)) {
-    fail(`${label} has an invalid compiled.hash: ${JSON.stringify(hash)}`);
+function stripPrefix(relPath, prefix, label) {
+  if (!relPath.startsWith(prefix)) {
+    fail(`${label} path "${relPath}" is expected to start with "${prefix}" for scope "${prefix.replace('/', '')}"`);
+  }
+  return relPath.slice(prefix.length);
+}
+
+/** Verifies one `files[]` entry exists with the exact size and hash the manifest declares. Never parses it. */
+function verifyFileEntry(absPath, entry, label) {
+  assertExists(absPath, label);
+  const stat = fs.statSync(absPath);
+  if (typeof entry.bytes !== 'number' || stat.size !== entry.bytes) {
+    fail(`${label} size mismatch: manifest says ${entry.bytes} bytes, file is ${stat.size} bytes (${absPath})`);
+  }
+  const hash = fileHashEntry(absPath);
+  if (typeof entry.hash !== 'string' || hash !== entry.hash) {
+    fail(`${label} hash mismatch: manifest says ${entry.hash}, file hashes to ${hash} (${absPath})`);
   }
 }
 
-/** `{...doc, compiled}` files (paths, libraries, puzzles): rehash the file with `compiled` stripped. */
-function verifySelfHashed(absPath, label) {
-  assertExists(absPath, label);
-  const content = readJson(absPath, label);
-  if (!content || typeof content !== 'object' || !content.compiled) {
-    fail(`${label} is missing "compiled"`);
+/** Resolves the `data/engine` or `server-data/engine` target for one manifest `files[]` entry, by its declared scope. */
+function targetForEntry(entry) {
+  const label = `file "${entry.path}"`;
+  if (entry.scope === 'public') {
+    return { dir: DATA_ENGINE_DIR, rel: stripPrefix(entry.path, 'public/', label) };
   }
-  assertHashFormat(content.compiled.hash, label);
-  const recomputed = contentHash(withoutCompiled(content));
-  if (recomputed !== content.compiled.hash) {
-    fail(`${label} hash mismatch: file says ${content.compiled.hash}, recomputed ${recomputed} (${absPath})`);
+  if (entry.scope === 'server') {
+    return { dir: SERVER_DATA_ENGINE_DIR, rel: stripPrefix(entry.path, 'server/', label) };
   }
-}
-
-/** `server/diagrams/<id>.json`: `{ compiled, source }`. `compiled.hash` must equal `contentHash(source)`. */
-function verifyServerDiagram(absPath, label) {
-  assertExists(absPath, label);
-  const content = readJson(absPath, label);
-  if (!content || typeof content !== 'object' || !content.compiled || content.source === undefined) {
-    fail(`${label} is missing "compiled" or "source"`);
-  }
-  assertHashFormat(content.compiled.hash, label);
-  const recomputed = contentHash(content.source);
-  if (recomputed !== content.compiled.hash) {
-    fail(`${label} hash mismatch: source hash is ${recomputed}, compiled.hash says ${content.compiled.hash} (${absPath})`);
-  }
-  return content;
-}
-
-/**
- * `public/diagrams/<id>.json`: a stripped, layout-augmented view of the same
- * document, so it can't be rehashed on its own — it must carry the exact
- * `compiled.hash` its server counterpart was stamped with.
- */
-function verifyPublicDiagram(absPath, label, expectedHash) {
-  assertExists(absPath, label);
-  const content = readJson(absPath, label);
-  if (!content || typeof content !== 'object' || !content.compiled) {
-    fail(`${label} is missing "compiled"`);
-  }
-  assertHashFormat(content.compiled.hash, label);
-  if (content.compiled.hash !== expectedHash) {
-    fail(
-      `${label} hash mismatch against its server counterpart: ${content.compiled.hash} !== ${expectedHash} (${absPath})`,
-    );
-  }
+  fail(`${label} has an unknown scope: ${JSON.stringify(entry.scope)} (expected "public" or "server")`);
+  return undefined;
 }
 
 // --- copying ---------------------------------------------------------------
 
-/** Copies `srcAbs` to `destAbs` only if the bytes differ (idempotent; preserves mtime otherwise). */
+/** Copies `srcAbs` to `destAbs` only if the bytes differ (idempotent; preserves mtime otherwise). Raw bytes only — never parses. */
 function copyIfChanged(srcAbs, destAbs) {
   fs.mkdirSync(path.dirname(destAbs), { recursive: true });
-  if (fs.existsSync(destAbs) && fileHash(srcAbs) === fileHash(destAbs)) {
+  if (fs.existsSync(destAbs) && fileHashEntry(srcAbs) === fileHashEntry(destAbs)) {
     return false;
   }
   fs.copyFileSync(srcAbs, destAbs);
@@ -226,29 +194,6 @@ function removeStale(rootDir, expectedRelPaths) {
   return removed;
 }
 
-function stripPrefix(relPath, prefix, label) {
-  if (!relPath.startsWith(prefix)) {
-    fail(`${label} path "${relPath}" is expected to start with "${prefix}"`);
-  }
-  return relPath.slice(prefix.length);
-}
-
-function copyRecursive(srcDir, destDir) {
-  fs.mkdirSync(destDir, { recursive: true });
-  let changed = false;
-  const entries = fs.readdirSync(srcDir, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = path.join(srcDir, entry.name);
-    const destPath = path.join(destDir, entry.name);
-    if (entry.isDirectory()) {
-      if (copyRecursive(srcPath, destPath)) changed = true;
-    } else if (copyIfChanged(srcPath, destPath)) {
-      changed = true;
-    }
-  }
-  return changed;
-}
-
 function main() {
   if (!fs.existsSync(MANIFEST_PATH)) {
     console.log('⚠️  No dms-engine v3 manifest found at', MANIFEST_PATH);
@@ -259,103 +204,45 @@ function main() {
   const manifest = readJson(MANIFEST_PATH, 'v3 manifest');
   console.log(`📋 Syncing dms-engine v3 ${manifest.version} (built ${manifest.generatedAt})`);
 
-  const diagrams = manifest.diagrams || [];
-  const pathDocs = manifest.paths || [];
-  const libraries = manifest.libraries || [];
-  const puzzles = manifest.puzzles || [];
-  const staticAssets = manifest.staticAssets || [];
-  const sharedComponents = manifest.sharedComponents || [];
+  if (manifest.runtimeFormat !== SUPPORTED_RUNTIME_FORMAT) {
+    fail(
+      `manifest.json declares runtimeFormat ${JSON.stringify(manifest.runtimeFormat)}, ` +
+        `this app only supports runtimeFormat ${SUPPORTED_RUNTIME_FORMAT}. Rebuild the app against a matching engine build.`,
+    );
+  }
 
-  // ---- Phase 1: verify every listed file exists and its hash is correct.
-  // Nothing is copied until every check below has passed, so a bad manifest
-  // never produces a partial sync.
-  console.log('\n🔎 Verifying manifest contents...');
-  const serverDiagramContents = new Map();
-  for (const d of diagrams) {
-    const serverAbs = path.join(ENGINE_DIST_V3, d.server);
-    const publicAbs = path.join(ENGINE_DIST_V3, d.public);
-    const content = verifyServerDiagram(serverAbs, `diagram "${d.id}" server file`);
-    verifyPublicDiagram(publicAbs, `diagram "${d.id}" public file`, content.compiled.hash);
-    serverDiagramContents.set(d.id, content);
-  }
-  for (const p of pathDocs) {
-    verifySelfHashed(path.join(ENGINE_DIST_V3, p.public), `path "${p.id}"`);
-  }
-  for (const lib of libraries) {
-    verifySelfHashed(path.join(ENGINE_DIST_V3, lib.public), `library "${lib.id}"`);
-  }
-  for (const puzzle of puzzles) {
-    verifySelfHashed(path.join(ENGINE_DIST_V3, puzzle.server), `puzzle "${puzzle.id}"`);
-  }
-  if (manifest.catalog) assertExists(path.join(ENGINE_DIST_V3, manifest.catalog), 'catalog.json');
-  for (const asset of staticAssets) {
-    assertExists(path.join(ENGINE_DIST_V3, asset.source), `static asset "${asset.source}"`);
-  }
-  for (const comp of sharedComponents) {
-    assertExists(path.join(ENGINE_DIST_V3, comp.source), `shared component "${comp.source}"`);
-  }
-  console.log('   ✅ All manifest files present with matching hashes');
+  const files = Array.isArray(manifest.files) ? manifest.files : [];
 
-  // ---- Phase 2: copy. `data/engine/` mirrors `public/*` (prefix stripped);
-  // `server-data/engine/` mirrors `server/*` (prefix stripped).
+  // ---- Phase 1: verify every listed file exists with the exact size and
+  // hash the manifest declares. Nothing is copied until every check below
+  // has passed, so a bad manifest never produces a partial sync.
+  console.log('\n🔎 Verifying manifest file list...');
+  const targets = [];
+  for (const entry of files) {
+    const absPath = path.join(ENGINE_DIST_V3, entry.path);
+    verifyFileEntry(absPath, entry, `file "${entry.path}"`);
+    targets.push({ entry, absPath, target: targetForEntry(entry) });
+  }
+  console.log(`   ✅ All ${files.length} manifest file(s) present with matching size and hash`);
+
+  // ---- Phase 2: copy. Raw bytes only, per `scope`.
   let changed = false;
   const expectedDataFiles = new Set();
   const expectedServerFiles = new Set();
 
-  function syncDataFile(manifestRelPath, targetRelPath) {
-    const src = path.join(ENGINE_DIST_V3, manifestRelPath);
-    const dest = path.join(DATA_ENGINE_DIR, targetRelPath);
-    expectedDataFiles.add(toPosix(targetRelPath));
-    if (copyIfChanged(src, dest)) changed = true;
+  for (const { absPath, target } of targets) {
+    const destAbs = path.join(target.dir, target.rel);
+    if (copyIfChanged(absPath, destAbs)) changed = true;
+    if (target.dir === DATA_ENGINE_DIR) expectedDataFiles.add(toPosix(target.rel));
+    else expectedServerFiles.add(toPosix(target.rel));
   }
 
-  function syncServerFile(manifestRelPath, targetRelPath) {
-    const src = path.join(ENGINE_DIST_V3, manifestRelPath);
-    const dest = path.join(SERVER_DATA_ENGINE_DIR, targetRelPath);
-    expectedServerFiles.add(toPosix(targetRelPath));
-    if (copyIfChanged(src, dest)) changed = true;
-  }
-
-  console.log('\n📄 Syncing diagrams, paths, libraries and puzzles...');
-  for (const d of diagrams) {
-    syncDataFile(d.public, stripPrefix(d.public, 'public/', `diagram "${d.id}" public`));
-    syncServerFile(d.server, stripPrefix(d.server, 'server/', `diagram "${d.id}" server`));
-  }
-  for (const p of pathDocs) {
-    syncDataFile(p.public, stripPrefix(p.public, 'public/', `path "${p.id}"`));
-  }
-  for (const lib of libraries) {
-    syncDataFile(lib.public, stripPrefix(lib.public, 'public/', `library "${lib.id}"`));
-  }
-  for (const puzzle of puzzles) {
-    syncServerFile(puzzle.server, stripPrefix(puzzle.server, 'server/', `puzzle "${puzzle.id}"`));
-  }
-
-  console.log('📋 Syncing catalog and manifest...');
-  if (manifest.catalog) syncDataFile(manifest.catalog, path.basename(manifest.catalog));
-  syncDataFile('manifest.json', 'manifest.json');
-
-  if (staticAssets.length > 0 || sharedComponents.length > 0) {
-    console.log('🧩 Syncing static assets and shared components...');
-    for (const asset of staticAssets) {
-      const src = path.join(ENGINE_DIST_V3, asset.source);
-      const dest = path.join(DIMENSYS_ROOT, asset.target);
-      if (fs.statSync(src).isDirectory()) {
-        if (copyRecursive(src, dest)) changed = true;
-      } else if (copyIfChanged(src, dest)) {
-        changed = true;
-      }
-    }
-    for (const comp of sharedComponents) {
-      const src = path.join(ENGINE_DIST_V3, comp.source);
-      const dest = path.join(DIMENSYS_ROOT, comp.target);
-      if (fs.statSync(src).isDirectory()) {
-        if (copyRecursive(src, dest)) changed = true;
-      } else if (copyIfChanged(src, dest)) {
-        changed = true;
-      }
-    }
-  }
+  // `manifest.json` isn't itself a `files[]` entry (it's the list), so it's
+  // copied unconditionally alongside the public data it describes.
+  console.log('📋 Syncing manifest...');
+  const manifestDest = path.join(DATA_ENGINE_DIR, 'manifest.json');
+  if (copyIfChanged(MANIFEST_PATH, manifestDest)) changed = true;
+  expectedDataFiles.add('manifest.json');
 
   // ---- Phase 3: remove stale files from the two managed directories.
   console.log('\n🧹 Removing stale files...');

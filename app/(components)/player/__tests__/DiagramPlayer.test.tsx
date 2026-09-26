@@ -4,12 +4,27 @@ import { DiagramPlayer, diagramJsonUrl } from '../DiagramPlayer';
 import type { ViewData } from '../types';
 
 const diagram: ViewData = {
+  fmt: 1,
+  build: `sha256:${'ab'.repeat(32)}`,
   id: 'url-shortener',
-  build: { version: '3.0.0', hash: `sha256:${'ab'.repeat(32)}`, builtAt: '2026-09-26T00:00:00.000Z' },
-  layouts: { desktop: { canvas: { w: 800, h: 400 }, nodes: {}, links: {} } },
-  metadata: { title: 'URL shortener' },
-  walkthroughStates: {},
-  hasSimulation: true,
+  rev: 1,
+  family: 'hld',
+  head: { title: 'URL shortener', blurb: 'A shortener service.', grade: 'medium', labels: [] },
+  needs: [],
+  premises: [],
+  refs: [],
+  board: { size: [800, 400], blocks: [], wires: [] },
+  spares: { blocks: [], wires: [] },
+  pins: [],
+  stories: [],
+  plays: [],
+  remedies: [],
+  switches: [],
+  gauges: [],
+  calcs: [],
+  drills: [],
+  motifs: [],
+  live: true,
 };
 
 describe('DiagramPlayer (skeleton)', () => {

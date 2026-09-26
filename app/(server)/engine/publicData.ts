@@ -1,43 +1,105 @@
 import 'server-only';
 
-import type { ViewData } from '@/app/(components)/player/types';
+import { cache } from 'react';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { RUNTIME_FORMAT } from '@/app/(components)/player/types';
+import type { CatalogView, RuntimeManifest, ViewData } from '@/app/(components)/player/types';
 
 /**
- * Reader for the PUBLIC view-data output, synced by T2.5 into `data/engine/`.
+ * Reader for the PUBLIC view-data output, synced by `sync-engine-v3.js` into
+ * `data/engine/`.
  *
  * Read only at build time from Server Components (`/solutions/[id]` is fully
  * prerendered via `generateStaticParams`, `dynamicParams = false`), plus the
  * force-static JSON route the worker fetches. IDs are only ever looked up in
  * the manifest list, never joined into a path unchecked.
- *
- * Skeleton (T3.1): typed stubs, no behaviour. Implemented in T3.13.
  */
 
 /** Relative to the app root (`process.cwd()` during `next build`). */
 export const ENGINE_DATA_DIR = 'data/engine';
 
-/** Every diagram ID with a synced public file (from `data/engine/manifest.json`). */
+function dataPath(...segments: string[]): string {
+  return path.join(process.cwd(), ENGINE_DATA_DIR, ...segments);
+}
+
+/** Thrown when a synced file declares a `runtimeFormat`/`fmt` this app wasn't built for. */
+export class UnsupportedRuntimeFormatError extends Error {
+  constructor(label: string, found: number) {
+    super(`${label} has runtimeFormat/fmt ${found}, this app only supports ${RUNTIME_FORMAT}`);
+    this.name = 'UnsupportedRuntimeFormatError';
+  }
+}
+
+function checkFormat(label: string, fmt: number): void {
+  if (fmt !== RUNTIME_FORMAT) throw new UnsupportedRuntimeFormatError(label, fmt);
+}
+
+async function readJson<T>(absPath: string): Promise<T> {
+  const raw = await fs.readFile(absPath, 'utf-8');
+  return JSON.parse(raw) as T;
+}
+
+/** `data/engine/manifest.json`, cached for the lifetime of the request/build. */
+export const loadManifest = cache(async (): Promise<RuntimeManifest> => {
+  const manifest = await readJson<RuntimeManifest>(dataPath('manifest.json'));
+  checkFormat('manifest.json', manifest.runtimeFormat);
+  return manifest;
+});
+
+/** `data/engine/catalog.json`, cached. */
+export const loadCatalog = cache(async (): Promise<CatalogView> => {
+  const catalog = await readJson<CatalogView>(dataPath('catalog.json'));
+  checkFormat('catalog.json', catalog.fmt);
+  return catalog;
+});
+
+/** Every diagram ID with a synced public file (from `manifest.diagrams[].id`). */
 export async function listDiagramIds(): Promise<string[]> {
-  // TODO(T3.13): read manifest.diagrams[].id.
-  return [];
+  const manifest = await loadManifest();
+  return manifest.diagrams.map((d) => d.id);
 }
 
-/** Maps a former ID (catalog aliases) to its canonical ID, or `null`. Used by next.config `redirects()`. */
+/** Maps a former ID (catalog `formerly` aliases) to its canonical ID, or `null`. Used by next.config `redirects()`. */
 export async function resolveAlias(id: string): Promise<string | null> {
-  void id;
-  // TODO(T3.13): build the alias map from catalog.json entries[].aliases.
-  return null;
+  const catalog = await loadCatalog();
+  const card = catalog.cards.find((c) => c.formerly?.includes(id));
+  return card ? card.id : null;
 }
 
-/** The player's slice of `public/diagrams/<id>.json`, or `null` when the ID is unknown. */
-export async function loadPlayerDiagram(id: string): Promise<ViewData | null> {
-  void id;
-  // TODO(T3.13): fs read + JSON.parse, wrapped in React `cache()`; check VIEW_DATA_MAJOR.
-  return null;
+/** The player's view-data document for one diagram, or `null` when the ID is unknown or unsynced. */
+export const loadPlayerDiagram = cache(async (id: string): Promise<ViewData | null> => {
+  const manifest = await loadManifest();
+  if (!manifest.diagrams.some((d) => d.id === id)) return null;
+  let view: ViewData;
+  try {
+    view = await readJson<ViewData>(dataPath('diagrams', `${id}.view.json`));
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw err;
+  }
+  checkFormat(`diagrams/${id}.view.json`, view.fmt);
+  return view;
+});
+
+/** Where a diagram's sim payload lives on disk, plus the build hash it must match. `null` when the diagram has no simulation. */
+export interface SimPayloadRef {
+  /** Path relative to `ENGINE_DATA_DIR`, POSIX — not a served URL. The worker's fetch route is T2.13's concern. */
+  dataPath: string;
+  build: string;
 }
+
+export const loadSimPayloadRef = cache(async (id: string): Promise<SimPayloadRef | null> => {
+  const manifest = await loadManifest();
+  const entry = manifest.diagrams.find((d) => d.id === id);
+  if (!entry || !entry.sim) return null;
+  const rel = entry.sim.path.startsWith('public/') ? entry.sim.path.slice('public/'.length) : entry.sim.path;
+  return { dataPath: rel, build: entry.build };
+});
 
 /** Hashed URL of the prebuilt worker bundle (manifest `staticAssets`), or `null`. */
 export async function loadRuntimeUrl(): Promise<string | null> {
-  // TODO(T2.13/T3.13): read from the synced manifest once the runtime bundle is emitted.
+  // TODO(T2.13): the runtime worker bundle isn't emitted by the engine build
+  // yet (manifest.staticAssets is always empty today).
   return null;
 }
