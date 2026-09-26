@@ -1,0 +1,62 @@
+import { PlayerIsland } from './PlayerIsland';
+import type { PlayerBootstrap, PlayerDiagram } from './types';
+
+export interface DiagramPlayerProps {
+  /** Compiled diagram slice, loaded server-side (T3.13 `loadPlayerDiagram`). `null` renders the unavailable state. */
+  diagram: PlayerDiagram | null;
+  /** Hashed worker bundle URL from the engine manifest; `null` when the engine output has no runtime. */
+  runtimeUrl?: string | null;
+  /** `full` = /solutions/[id]; `embed` / `hero` drop the rails (S4.3, S4.6). */
+  variant?: 'full' | 'embed' | 'hero';
+}
+
+/** Static JSON route for the full compiled document (T3.13). */
+export function diagramJsonUrl(diagram: Pick<PlayerDiagram, 'id' | 'compiled'>): string {
+  return `/solutions/${encodeURIComponent(diagram.id)}/diagram.json?h=${encodeURIComponent(diagram.compiled.hash.replace(/^sha256:/, '').slice(0, 16))}`;
+}
+
+export function toBootstrap(diagram: PlayerDiagram, runtimeUrl: string | null): PlayerBootstrap {
+  return {
+    diagramId: diagram.id,
+    revision: diagram.metadata.revision ?? 1,
+    hash: diagram.compiled.hash,
+    diagramUrl: diagramJsonUrl(diagram),
+    runtimeUrl,
+    hasSimulation: diagram.hasSimulation,
+    canvas: diagram.layouts.desktop.canvas,
+  };
+}
+
+/**
+ * `<DiagramPlayer>`: a Server Component (docs/PLAYER_ARCHITECTURE.md §3).
+ *
+ * Renders the frame server-side and hands a small serialisable bootstrap to
+ * the one client boundary, `<PlayerIsland>`. The static SVG blueprint (T3.2)
+ * goes in as a server-rendered child, so a readable diagram needs no client
+ * JS and is the LCP element (UI_UX_SPEC §10, §6.16).
+ *
+ * Skeleton (T3.1): renders a "not implemented" notice only.
+ */
+export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: DiagramPlayerProps) {
+  if (!diagram) {
+    return (
+      <section data-player-variant={variant} className="rounded-lg border border-line-hairline p-6 text-ink-secondary">
+        <p role="status">This diagram isn&apos;t available.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section data-player-variant={variant} aria-label={diagram.metadata.title} className="rounded-lg border border-line-hairline">
+      <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
+        {/* TODO(T3.16): player shell (top bar, rails, inspector, timeline frame). */}
+        {/* TODO(T3.2): <StaticBlueprint layout={diagram.layouts.desktop} /> server-rendered here. */}
+        <div className="p-6 text-ink-secondary">
+          <p role="status">
+            Player not implemented yet: <span className="text-ink-primary">{diagram.metadata.title}</span>
+          </p>
+        </div>
+      </PlayerIsland>
+    </section>
+  );
+}
