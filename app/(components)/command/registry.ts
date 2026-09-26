@@ -105,7 +105,14 @@ class ShortcutRegistry {
 
 export const shortcutRegistry = new ShortcutRegistry();
 
-export const GROUP_ORDER = ['Global', 'Navigation', 'Actions', 'Player', 'Build'];
+/**
+ * Canonical group order, shared by the palette (registry actions + nav
+ * items) and the `?` cheat sheet (registry actions only). Roughly follows
+ * the palette's own group list — diagrams/content first, actions next,
+ * "Navigation" (jump-to-route entries) last before Recent, which the
+ * palette always pins to the very top regardless of this order.
+ */
+export const GROUP_ORDER = ['Global', 'Diagrams', 'Replays', 'Concepts', 'Actions', 'Player', 'Build', 'Navigation'];
 
 /** Sorts groups by the app's canonical order, unknown groups sorted after by name. */
 export function sortGroups(groups: string[]): string[] {
