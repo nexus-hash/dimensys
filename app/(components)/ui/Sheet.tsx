@@ -229,5 +229,5 @@ export function BottomSheet({
   );
 }
 
-/** Alias — §12 lists both names for the same snap-point sheet. */
+/** Alias — the design spec lists both names for the same snap-point sheet. */
 export const Drawer = BottomSheet;

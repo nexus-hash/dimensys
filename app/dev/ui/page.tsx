@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 /**
- * Living component gallery (§12/§14): every primitive, in every state and
+ * Living component gallery: every primitive, in every state and
  * variant, in both themes. Development only — not linked from the nav, and
  * 404s in production builds so it never ships as a route.
  */

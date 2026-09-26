@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { CanvasDefs } from './CanvasDefs';
 
 /**
- * The board (§5.1): `--surface-canvas` background with a 24px dot grid, and
+ * The board: `--surface-canvas` background with a 24px dot grid, and
  * one `<svg>` per instance holding this board's `<defs>` (shared markers /
  * hatch pattern, namespaced by `id`) plus whatever `Node`/`Link`/`Subsystem`
  * children later tasks (T3.2 static blueprint, T3.3 interactive layer)

@@ -21,7 +21,7 @@ export interface SliderProps {
   className?: string;
 }
 
-/** Slider (§12; prototype's meter-track look): 2px hairline track, ink fill/thumb. */
+/** Slider: 2px hairline track, ink fill/thumb. */
 export function Slider({
   value,
   onValueChange,

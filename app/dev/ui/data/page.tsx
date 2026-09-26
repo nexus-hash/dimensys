@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 /**
- * Living gallery for the data-display kit (§8): StatTile, Meter, Sparkline,
+ * Living gallery for the data-display kit: StatTile, Meter, Sparkline,
  * DumbbellBars, HealthBadge and RequirementBadge, every state, both themes,
  * plus a streaming sparkline demo. Development only — 404s in production,
  * same gating as `/dev/ui` and `/dev/ui/canvas`.

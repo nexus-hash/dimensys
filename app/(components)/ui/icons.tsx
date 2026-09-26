@@ -1,9 +1,9 @@
 import type { SVGProps } from 'react';
 
 /**
- * A minimal inline icon set (1.5px stroke, 16/20px grid, §3.7) so the
+ * A minimal inline icon set (1.5px stroke, 16/20px grid, the design spec) so the
  * primitive layer doesn't need an icon package dependency. Real product UI
- * (nav, node icons, …) uses Lucide per §3.7; these are placeholders for
+ * (nav, node icons, …) uses Lucide per the design spec; these are placeholders for
  * dev-gallery and internal primitive chrome only (close buttons, carets, …).
  */
 function Base(props: SVGProps<SVGSVGElement>) {

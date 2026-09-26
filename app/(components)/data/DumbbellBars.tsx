@@ -24,7 +24,7 @@ export interface DumbbellBarsProps {
 }
 
 /**
- * DumbbellBars (§8): comparisons across a few axes — e.g. a fix applied vs
+ * DumbbellBars: comparisons across a few axes — e.g. a fix applied vs
  * not. Two dots on a shared track connected by a segment; a legend spells
  * out which dot is which (never color-only: the dots differ in fill, not
  * just hue), and a table view lists the same rows as numbers.

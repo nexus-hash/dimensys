@@ -1,10 +1,10 @@
 import 'server-only';
 
 /**
- * Reader for the engine's SERVER-ONLY output, synced by T2.5 into
+ * Reader for the SERVER-ONLY output, synced by T2.5 into
  * `server-data/engine/` (never under `public/`): full diagram sources with
- * `interview` blocks, and puzzles with their secrets
- * (docs/PLAYER_ARCHITECTURE.md §4, DETAILED_PLAN §3.3 IP note).
+ * `interview` blocks, and puzzles with their secrets. Kept out of any
+ * client-reachable path deliberately — see the private engine docs for why.
  *
  * Import this ONLY from Route Handlers (`app/api/**\/route.ts`) or other
  * server-only modules that return derived answers (a grade, a hint, today's

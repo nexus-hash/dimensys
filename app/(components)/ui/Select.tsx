@@ -21,7 +21,7 @@ export interface SelectProps {
   className?: string;
 }
 
-/** Select (§12): Radix Select for native-equivalent keyboard/typeahead behavior. */
+/** Select: Radix Select for native-equivalent keyboard/typeahead behavior. */
 export function Select({ options, value, onValueChange, placeholder, disabled, className, ...aria }: SelectProps) {
   return (
     <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled}>

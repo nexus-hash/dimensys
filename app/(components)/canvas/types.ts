@@ -1,18 +1,18 @@
 /**
- * Local prop types for the canvas kit (DS5), mirroring the minimal shapes the
- * kit needs from dms-engine's v3 schema — `dms-engine/src/types/v3/graph.ts`
- * and `common.ts` — without importing the (private) engine package.
+ * Local prop types for the canvas kit (DS5): the minimal, neutral shapes the
+ * kit needs to render, defined here so the public app never imports the
+ * (private) build tool's own types.
  *
- * SPEC GAP: `common.ts`'s `HealthToken` (`ok | warn | critical | info | accent
- * | muted`) is a generic decoration/color token, not the runtime health FSM
- * that UI_UX_SPEC §5.3 draws on the canvas (`ok | warn | critical | down |
- * recovering`). This file defines `HealthState` for that FSM instead of
- * reusing `HealthToken` — see the DS5 report.
+ * SPEC GAP: a generic decoration/color token (`ok | warn | critical | info |
+ * accent | muted`) is not the same as the runtime health state machine the
+ * canvas draws (`ok | warn | critical | down | recovering`). This file
+ * defines `HealthState` for that FSM rather than reusing the decoration
+ * token — see the DS5 report.
  */
 
-/** HLD node types the `Node` component (§5.2) renders. Matches `NodeType`
- * from graph.ts minus the DSA (`node`, `cell`) and LLD (`class`, `interface`,
- * `enum`) members, which get their own components (§5.7). */
+/** HLD node types the `Node` component renders. Excludes the DSA (`node`,
+ * `cell`) and LLD (`class`, `interface`, `enum`) members, which get their
+ * own components. */
 export type HldNodeType =
   | 'client'
   | 'lb'
@@ -30,25 +30,25 @@ export type HldNodeType =
   | 'external'
   | 'subSystem';
 
-/** Replication / HA role of a node (§8.1 `NodeRole`). */
+/** Replication / HA role of a node. */
 export type NodeRole = 'primary' | 'replica' | 'leader' | 'follower' | 'active' | 'standby';
 
-/** The canvas health state machine (§5.3). */
+/** The canvas health state machine. */
 export type HealthState = 'ok' | 'warn' | 'critical' | 'down' | 'recovering';
 
-/** Link protocol (§8.3 `LinkProtocol`): sets the stroke style (§5.4). */
+/** Link protocol: sets the stroke style. */
 export type LinkProtocol = 'sync' | 'async' | 'stream';
 
-/** DSA cell state (§5.7). */
+/** DSA cell state. */
 export type DsaCellState = 'default' | 'active' | 'compare' | 'visited' | 'done' | 'error';
 
-/** LLD member visibility glyph (§8.5 `Visibility`). */
+/** LLD member visibility glyph. */
 export type LldVisibility = 'public' | 'private' | 'protected' | 'package';
 
-/** LLD relation notation (§8.5 `LldRelation`, §5.7). */
+/** LLD relation notation. */
 export type LldRelation = 'inherits' | 'implements' | 'composes' | 'aggregates' | 'associates' | 'depends';
 
-/** A node's meter kind (§5.2: utilization / cache hit ratio / queue backlog / replication lag). */
+/** A node's meter kind. */
 export type NodeMeterKind = 'util' | 'hit' | 'backlog' | 'lag';
 
 export interface NodeMeter {
@@ -81,7 +81,7 @@ export interface LldMethod {
   static?: boolean;
 }
 
-/** Node geometry (§5.2): 144×72 desktop, 104×64 phone. */
+/** Node geometry: 144×72 desktop, 104×64 phone. */
 export const NODE_WIDTH = 144;
 export const NODE_HEIGHT = 72;
 export const NODE_WIDTH_PHONE = 104;

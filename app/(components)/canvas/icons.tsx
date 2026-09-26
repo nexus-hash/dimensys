@@ -1,10 +1,10 @@
 import type { HldNodeType } from './types';
 
 /**
- * Node-type icon set (§3.7, §5.2): redrawn on the prototype's 24px grid with
+ * Node-type icon set: redrawn on the prototype's 24px grid with
  * a 1.5px stroke so product and UI icons match. Icons are pure path data —
  * rendered with `stroke="currentColor" fill="none"` by `NodeIcon` so they
- * inherit `--ink-secondary` from the node body (nodes are monochrome, §5.2).
+ * inherit `--ink-secondary` from the node body (nodes are monochrome, the design spec).
  *
  * The prototype (`prototype/index.html`'s `IC` map) only draws icons for the
  * subset of types its one demo diagram uses (client/lb/server/cache/db/queue/
@@ -54,10 +54,10 @@ const TYPE_DEFAULT: Record<HldNodeType, string> = {
 };
 
 /**
- * Variant overrides (§3.7: "redis, kafka, postgres, cassandra, mobile, web").
+ * Variant overrides.
  * Where the schema's variant doesn't warrant genuinely different artwork
  * (e.g. `db` variants are all the same cylinder glyph — the `type · variant`
- * mono sub-label carries the distinction, §5.2), the type default is kept.
+ * mono sub-label carries the distinction, the design spec), the type default is kept.
  */
 const VARIANT_OVERRIDE: Partial<Record<HldNodeType, Record<string, string>>> = {
   client: { web: 'web', mobile: 'mobile' },
@@ -73,7 +73,7 @@ export function nodeIconKey(type: HldNodeType, variant?: string): string {
 }
 
 /** Renders a 24×24 node-type icon. Purely decorative — the node's own
- * `aria-label` carries the accessible name (§5.2/§the a11y requirement). */
+ * `aria-label` carries the accessible name. */
 export function NodeIcon({ type, variant, className }: { type: HldNodeType; variant?: string; className?: string }) {
   const key = nodeIconKey(type, variant);
   const d = ICON_PATHS[key] ?? ICON_PATHS.web;

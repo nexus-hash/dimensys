@@ -13,19 +13,19 @@ export interface LinkProps {
   label?: string;
   /** Where to anchor the label pill (usually the path's midpoint). */
   labelPosition?: { x: number; y: number };
-  /** Retry storm on this link: the label pill gets a critical outline (§5.4). */
+  /** Retry storm on this link: the label pill gets a critical outline. */
   labelHot?: boolean;
-  /** Error rate is high enough that the line itself tints critical (§5.4). */
+  /** Error rate is high enough that the line itself tints critical. */
   bad?: boolean;
-  /** Walkthrough / selection emphasis: bright ink, §5.4/§5.6. */
+  /** Walkthrough / selection emphasis: bright ink. */
   highlighted?: boolean;
   selected?: boolean;
   dimmed?: boolean;
-  /** The link is cut (§5.4): the line gets a gap with a ✂ glyph at `cutPosition`. */
+  /** The link is cut: the line gets a gap with a ✂ glyph at `cutPosition`. */
   partitioned?: boolean;
   cutPosition?: { x: number; y: number };
   /**
-   * Slot for the Canvas2D particle layer (§5.4 request/retry dots) that T3.3
+   * Slot for the Canvas2D particle layer that T3.3
    * adds above the SVG — out of scope here. Anything passed renders inside
    * this link's group, after the static path, so it composes without this
    * component needing to know about particles.
@@ -34,7 +34,7 @@ export interface LinkProps {
 }
 
 /**
- * A static link (§5.4): `sync` solid / `async` dashed / `stream` dotted with
+ * A static link: `sync` solid / `async` dashed / `stream` dotted with
  * a drifting dash-offset, arrowheads, an optional mono label pill, health
  * tint and dim/highlight/selection states. The particle layer is T3.3 (see
  * `children`).

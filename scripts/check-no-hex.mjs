@@ -102,7 +102,7 @@ function main() {
   console.error(
     `\n${allViolations.reduce((n, f) => n + f.violations.length, 0)} violation(s) in ${allViolations.length} file(s).`
   );
-  console.error('Replace hex literals with a design token from app/globals.css (see UI_UX_SPEC.md §3).');
+  console.error('Replace hex literals with a design token from app/globals.css (see the design spec).');
   process.exit(1);
 }
 

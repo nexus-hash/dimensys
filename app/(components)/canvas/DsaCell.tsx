@@ -4,7 +4,7 @@ import type { DsaCellState } from './types';
 const CELL_SIZE = 48;
 
 /**
- * A DSA array cell (§5.7): 48×48, mono value, state ring/fill/badge.
+ * A DSA array cell: 48×48, mono value, state ring/fill/badge.
  * `active` = ink ring, `compare` = flow-blue ring, `visited` = muted fill,
  * `done` = ✓ badge, `error` = critical ring + ✕.
  */

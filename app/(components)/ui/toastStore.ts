@@ -33,7 +33,7 @@ export function getToastSnapshot(): ToastItem[] {
   return queue;
 }
 
-/** Imperative toast helper (§12: "Toast (+ a `toast()` helper)"). Callable from anywhere. */
+/** Imperative toast helper, callable from anywhere. */
 export function toast(input: ToastInput | string): string {
   const props: ToastInput = typeof input === 'string' ? { title: input } : input;
   const id = `toast-${++nextId}`;

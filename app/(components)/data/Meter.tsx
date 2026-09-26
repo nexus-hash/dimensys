@@ -10,7 +10,7 @@ export interface MeterProps {
   value: number;
   /** Always-visible mono text for the current value, e.g. "82%", "$2,161 / $3,000". */
   valueLabel: string;
-  /** Ratio at which the fill turns warn (§3.4: never color-only — a glyph appears too). */
+  /** Ratio at which the fill turns warn. */
   warnAt?: number;
   /** Ratio at which the fill turns critical. */
   criticalAt?: number;
@@ -26,7 +26,7 @@ export interface MeterProps {
 const SEVERITY_LABEL: Record<Severity, string> = { 0: 'ok', 1: 'warning', 2: 'critical' };
 
 /**
- * Meter (§8): a hairline track with an ink fill; above threshold the fill
+ * Meter: a hairline track with an ink fill; above threshold the fill
  * takes the signal color, but severity is never color-only — a health glyph
  * appears next to the always-present numeric label.
  */

@@ -279,27 +279,27 @@ export function CanvasGallery() {
         )}
       </header>
 
-      <Section title="Node anatomy — every type × every health state (§5.2, §5.3)">
+      <Section title="Node anatomy — every type × every health state">
         <NodeGrid />
       </Section>
 
-      <Section title="Selection, hover, focus, dimmed, replicas (§5.6)">
+      <Section title="Selection, hover, focus, dimmed, replicas">
         <NodeStates />
       </Section>
 
-      <Section title="Links (§5.4, static)">
+      <Section title="Links">
         <LinksSection />
       </Section>
 
-      <Section title="Subsystems (§5.5)">
+      <Section title="Subsystems">
         <SubsystemSection />
       </Section>
 
-      <Section title="DSA cells and pointer markers (§5.7)">
+      <Section title="DSA cells and pointer markers">
         <DsaSection />
       </Section>
 
-      <Section title="LLD UML card (§5.7)">
+      <Section title="LLD UML card">
         <LldSection />
       </Section>
     </div>

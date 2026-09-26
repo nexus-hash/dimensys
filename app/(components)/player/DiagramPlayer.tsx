@@ -1,25 +1,25 @@
 import { PlayerIsland } from './PlayerIsland';
-import type { PlayerBootstrap, PlayerDiagram } from './types';
+import type { PlayerBootstrap, ViewData } from './types';
 
 export interface DiagramPlayerProps {
-  /** Compiled diagram slice, loaded server-side (T3.13 `loadPlayerDiagram`). `null` renders the unavailable state. */
-  diagram: PlayerDiagram | null;
-  /** Hashed worker bundle URL from the engine manifest; `null` when the engine output has no runtime. */
+  /** View-data slice, loaded server-side (T3.13 `loadPlayerDiagram`). `null` renders the unavailable state. */
+  diagram: ViewData | null;
+  /** Hashed worker bundle URL from the sync manifest; `null` when the synced output has no runtime. */
   runtimeUrl?: string | null;
   /** `full` = /solutions/[id]; `embed` / `hero` drop the rails (S4.3, S4.6). */
   variant?: 'full' | 'embed' | 'hero';
 }
 
-/** Static JSON route for the full compiled document (T3.13). */
-export function diagramJsonUrl(diagram: Pick<PlayerDiagram, 'id' | 'compiled'>): string {
-  return `/solutions/${encodeURIComponent(diagram.id)}/diagram.json?h=${encodeURIComponent(diagram.compiled.hash.replace(/^sha256:/, '').slice(0, 16))}`;
+/** Static JSON route for the full view-data document (T3.13). */
+export function diagramJsonUrl(diagram: Pick<ViewData, 'id' | 'build'>): string {
+  return `/solutions/${encodeURIComponent(diagram.id)}/diagram.json?h=${encodeURIComponent(diagram.build.hash.replace(/^sha256:/, '').slice(0, 16))}`;
 }
 
-export function toBootstrap(diagram: PlayerDiagram, runtimeUrl: string | null): PlayerBootstrap {
+export function toBootstrap(diagram: ViewData, runtimeUrl: string | null): PlayerBootstrap {
   return {
     diagramId: diagram.id,
     revision: diagram.metadata.revision ?? 1,
-    hash: diagram.compiled.hash,
+    hash: diagram.build.hash,
     diagramUrl: diagramJsonUrl(diagram),
     runtimeUrl,
     hasSimulation: diagram.hasSimulation,
@@ -28,12 +28,12 @@ export function toBootstrap(diagram: PlayerDiagram, runtimeUrl: string | null): 
 }
 
 /**
- * `<DiagramPlayer>`: a Server Component (docs/PLAYER_ARCHITECTURE.md §3).
+ * `<DiagramPlayer>`: a Server Component.
  *
  * Renders the frame server-side and hands a small serialisable bootstrap to
  * the one client boundary, `<PlayerIsland>`. The static SVG blueprint (T3.2)
  * goes in as a server-rendered child, so a readable diagram needs no client
- * JS and is the LCP element (UI_UX_SPEC §10, §6.16).
+ * JS and is the LCP element.
  *
  * Skeleton (T3.1): renders a "not implemented" notice only.
  */

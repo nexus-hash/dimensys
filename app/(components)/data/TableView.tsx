@@ -1,5 +1,5 @@
 /**
- * The "view as table" affordance every chart in §8 must offer alongside its
+ * The "view as table" affordance every chart in the design spec must offer alongside its
  * hover tooltip, so the same series is available to anyone who can't (or
  * doesn't want to) read the SVG — screen reader users, keyboard-only users,
  * anyone who wants to copy the numbers out.

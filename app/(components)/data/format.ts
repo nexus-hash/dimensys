@@ -1,5 +1,5 @@
 /**
- * Unit formatting + threshold helpers for the data-display kit (§8).
+ * Unit formatting + threshold helpers for the data-display kit.
  *
  * The numeric formatting mirrors the prototype's `fmtMs`/`fmtPct`/`fmtRps`/
  * `fmtUsd` (prototype/index.html) exactly, so the HUD reads identically to
@@ -8,7 +8,7 @@
  * metric that hasn't reported yet) render as a dash rather than "NaN" or
  * "undefined".
  *
- * These return bare numeric strings (no unit suffix) — §3.2's mono-metric
+ * These return bare numeric strings (no unit suffix) — the design spec's mono-metric
  * style puts the unit in a separate, smaller `<small>` beside the value
  * (see `StatTile`). Use `metricUnitLabel` for that suffix, or `formatMetric`
  * for a single combined "value unit" string (aria-labels, table cells).
@@ -62,7 +62,7 @@ export function formatUsd(value: number | null | undefined): string {
 
 export type MetricUnit = 'ms' | 's' | '%' | 'rps' | 'usd-mo' | 'count';
 
-/** The small unit label rendered beside a formatted value (§3.2 mono-sm). */
+/** The small unit label rendered beside a formatted value. */
 export function metricUnitLabel(unit: MetricUnit): string {
   switch (unit) {
     case 'ms':
@@ -106,10 +106,10 @@ export function formatMetric(value: number | null | undefined, unit: MetricUnit,
   return `${v} ${u}`;
 }
 
-/** Severity states a threshold-driven metric can be in (§5.3/§8: never color alone). */
+/** Severity states a threshold-driven metric can be in. */
 export type Severity = 0 | 1 | 2;
 
-/** The prototype's `HEALTH` thresholds (§5.3), `[warnAt, criticalAt]` per metric kind. */
+/** The prototype's `HEALTH` thresholds, `[warnAt, criticalAt]` per metric kind. */
 export const HEALTH_THRESHOLDS = {
   util: [0.7, 0.9],
   err: [0.01, 0.05],

@@ -15,18 +15,18 @@
   --color-orange-500: #ff6600;
   --color-orange-400: #FF5F15;
 
-  /* ── Fonts (§3.2) — Geist Sans for UI/prose, Geist Mono for machine text ── */
+  /* ── Fonts — Geist Sans for UI/prose, Geist Mono for machine text ── */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 
-  /* ── Surfaces (§3.1) ────────────────────────────────────────────────────── */
+  /* ── Surfaces ────────────────────────────────────────────────────── */
   --color-surface-page: var(--surface-page);
   --color-surface-canvas: var(--surface-canvas);
   --color-surface-raised: var(--surface-raised);
   --color-surface-overlay: var(--surface-overlay);
   --color-surface-glass: var(--surface-glass);
 
-  /* ── Ink & lines (§3.1) ─────────────────────────────────────────────────── */
+  /* ── Ink & lines ─────────────────────────────────────────────────── */
   --color-ink-primary: var(--ink-primary);
   --color-ink-secondary: var(--ink-secondary);
   --color-ink-muted: var(--ink-muted);
@@ -34,7 +34,7 @@
   --color-line-strong: var(--line-strong);
   --color-grid-dot: var(--grid-dot);
 
-  /* ── Brand — chrome only, never the canvas (§3.1 / §3.4) ───────────────── */
+  /* ── Brand — chrome only, never the canvas ───────────────── */
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-tertiary: var(--brand-tertiary);
@@ -43,31 +43,31 @@
      Fixed (not per-theme): the gradient itself is identical in both themes, and
      this near-black tone is the only ink value that clears 4.5:1 text contrast
      against it (white only clears ~3:1, the "large text/graphics" floor). Not
-     in UI_UX_SPEC §3.1 — see SPEC GAPS in the DS3 report. */
+     in the design spec — see SPEC GAPS in the DS3 report. */
   --color-on-brand: var(--on-brand);
   /* Text color for brand-colored text/glyphs on a light `--brand-subtle` fill
      (e.g. the `brand` Pill variant) — flat `--brand` (#ff6600) is only
      ~2.6:1 there, short of the 4.5:1 text floor. Per-theme, darker/lighter
-     same-hue value; not in UI_UX_SPEC §3.1 — see SPEC GAPS in DS3 report. */
+     same-hue value; not in the design spec — see SPEC GAPS in DS3 report. */
   --color-brand-ink: var(--brand-ink);
 
   /* ── Surfaces, cont. — a recessed surface for control tracks (segmented
-     control, sliders). Not in UI_UX_SPEC §3.1 — see SPEC GAPS in DS3 report. */
+     control, sliders). Not in the design spec — see SPEC GAPS in DS3 report. */
   --color-surface-sunken: var(--surface-sunken);
 
-  /* ── Signal (§3.1) ──────────────────────────────────────────────────────── */
+  /* ── Signal ──────────────────────────────────────────────────────── */
   --color-signal-ok: var(--signal-ok);
   --color-signal-warn: var(--signal-warn);
   --color-signal-critical: var(--signal-critical);
   --color-signal-flow: var(--signal-flow);
   --color-signal-retry: var(--signal-retry);
 
-  /* ── Glyph ink — the health glyph (§5.3) sits on a small saturated fill
+  /* ── Glyph ink — the health glyph sits on a small saturated fill
      (the warn triangle, the ok/critical roundels), so it needs its own ink
      rather than --ink-primary/--surface-page. Per-theme inverse of
      --ink-primary for the ok/critical glyph strokes, plus a fixed dark tone
      for the warn triangle (yellow needs dark, not light, ink in both
-     themes). Not in UI_UX_SPEC §3/§5.3 — see SPEC GAPS in the DS5 report. */
+     themes). Not in the design spec — see SPEC GAPS in the DS5 report. */
   --color-ink-inverse: var(--ink-inverse);
   --color-warn-ink: var(--warn-ink);
 
@@ -81,7 +81,7 @@
   --color-logo-body: var(--logo-body);
   --color-logo-emissive: var(--logo-emissive);
 
-  /* ── Type scale (§3.2) ──────────────────────────────────────────────────── */
+  /* ── Type scale ──────────────────────────────────────────────────── */
   --text-display-xl: 6rem;
   --text-display-xl--line-height: 1;
   --text-display-xl--letter-spacing: -0.03em;
@@ -125,18 +125,18 @@
   --text-mono-metric--line-height: 1.2;
   --text-mono-metric--font-weight: 600;
 
-  /* ── Radii (§3.3) ───────────────────────────────────────────────────────── */
+  /* ── Radii ───────────────────────────────────────────────────────── */
   --radius-control: 6px;
   --radius-node: 10px;
   --radius-card: 16px;
   --radius-pill: 9999px;
 
-  /* ── Elevation (§3.3) ───────────────────────────────────────────────────── */
+  /* ── Elevation ───────────────────────────────────────────────────── */
   --shadow-elevation-1: var(--elevation-1);
   --shadow-elevation-2: var(--elevation-2);
   --shadow-brand-glow: var(--brand-glow);
 
-  /* ── Z-layers (§3.3) — z-canvas, z-rail, z-chrome, z-sheet, z-dialog, … ──── */
+  /* ── Z-layers — z-canvas, z-rail, z-chrome, z-sheet, z-dialog, … ──── */
   --z-index-canvas: 0;
   --z-index-canvas-overlay: 10;
   --z-index-rail: 20;
@@ -146,7 +146,7 @@
   --z-index-toast: 60;
   --z-index-palette: 70;
 
-  /* ── Motion (§3.5) ──────────────────────────────────────────────────────── */
+  /* ── Motion ──────────────────────────────────────────────────────── */
   --transition-duration-micro: 120ms;
   --transition-duration-small: 200ms;
   --transition-duration-panel: 320ms;
@@ -161,7 +161,7 @@
     --background: var(--color-light-primary);
     --foreground: var(--color-light-secondary);
 
-    /* Surfaces (§3.1, light) */
+    /* Surfaces */
     --surface-page: #ffffff;
     --surface-canvas: #fcfcfb;
     --surface-raised: #fafafa;
@@ -169,7 +169,7 @@
     --surface-glass: rgba(0, 0, 0, 0.03);
     --surface-sunken: #f4f4f3;
 
-    /* Ink & lines (§3.1, light) */
+    /* Ink & lines */
     --ink-primary: #121212;
     --ink-secondary: rgba(18, 18, 18, 0.64);
     --ink-muted: rgba(18, 18, 18, 0.60);
@@ -177,11 +177,11 @@
     --line-strong: rgba(0, 0, 0, 0.16);
     --grid-dot: rgba(0, 0, 0, 0.06);
 
-    /* Elevation (§3.3, light — soft shadows) */
+    /* Elevation */
     --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.06);
     --elevation-2: 0 8px 24px rgba(0, 0, 0, 0.08);
 
-    /* Brand — chrome only, same in both themes (§3.1 / §3.4) */
+    /* Brand — chrome only, same in both themes */
     --brand: #ff6600;
     --brand-strong: #ff5f15;
     --brand-tertiary: #ff8c42;
@@ -191,9 +191,9 @@
     --on-brand: #1a0800;
     --brand-ink: #c24100;
 
-    /* Signal — validated against #121212 and #ffffff (§3.1). §3.1 lists a single
+    /* Signal — validated against #121212 and #ffffff. The design spec lists a single
        flat value per signal, but --signal-warn (#fab219) only clears ~1.8:1
-       against a white/light surface (needs the §9 "UI graphics" ≥3:1 floor).
+       against a white/light surface (needs the design spec's "UI graphics" ≥3:1 floor).
        It is kept exactly as specified for the dark theme (~10:1 there, see the
        [data-theme="dark"] override below) and given a same-hue, darker
        light-theme value here so both themes pass; every other signal color
@@ -205,7 +205,7 @@
     --signal-flow: #38bdf8;
     --signal-retry: #e11d48;
 
-    /* Glyph ink (§5.3, light) — see DS5 SPEC GAPS */
+    /* Glyph ink — see DS5 SPEC GAPS */
     --ink-inverse: #ffffff;
     --warn-ink: #1a1200;
 
@@ -219,7 +219,7 @@
     --logo-body: #ff4400;
     --logo-emissive: #ff2000;
 
-    /* Motion spring configs (§3.5) — consumed by JS (motion libs), not CSS */
+    /* Motion spring configs — consumed by JS (motion libs), not CSS */
     --spring-camera-stiffness: 170;
     --spring-camera-damping: 26;
     --spring-ui-stiffness: 400;
@@ -246,7 +246,7 @@
     --background: var(--color-dark-primary);
     --foreground: var(--color-dark-secondary);
 
-    /* Surfaces (§3.1, dark) */
+    /* Surfaces */
     --surface-page: #121212;
     --surface-canvas: #101010;
     --surface-raised: #1a1a1a;
@@ -254,7 +254,7 @@
     --surface-glass: rgba(255, 255, 255, 0.04);
     --surface-sunken: #0c0c0c;
 
-    /* Ink & lines (§3.1, dark) */
+    /* Ink & lines */
     --ink-primary: #f0f0f0;
     --ink-secondary: rgba(240, 240, 240, 0.64);
     --ink-muted: rgba(240, 240, 240, 0.52);
@@ -262,16 +262,16 @@
     --line-strong: rgba(255, 255, 255, 0.16);
     --grid-dot: rgba(255, 255, 255, 0.04);
 
-    /* Elevation (§3.3, dark — hairline + inset highlight, not shadow) */
+    /* Elevation */
     --elevation-1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     --elevation-2: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
-    /* Signal — the exact §3.1 value; passes ≥3:1 comfortably on this theme's
+    /* Signal — the exact the design spec value; passes ≥3:1 comfortably on this theme's
        surfaces (see the light-theme note above). */
     --signal-warn: #fab219;
     --brand-ink: #ff7a26;
 
-    /* Glyph ink (§5.3, dark) — see DS5 SPEC GAPS */
+    /* Glyph ink — see DS5 SPEC GAPS */
     --ink-inverse: #121212;
     --warn-ink: #1a1200;
 
@@ -510,7 +510,7 @@
   }
 }
 
-/* ─── UI primitive motion (DS3, §3.5/§7) ─── */
+/* ─── UI primitive motion (DS3) ─── */
 
 @keyframes fadein {
   from { opacity: 0; }
@@ -533,8 +533,8 @@
 }
 
 /*
- * §3.5 "Reduced motion: springs become 120ms fades..." and §9 "Reduced
- * motion: per §3.5". Applied as one blanket rule rather than per-component,
+ * The design spec's reduced-motion rule: springs become 120ms fades and non-essential
+ * animation is skipped. Applied as one blanket rule rather than per-component,
  * so every current and future transition/animation in the primitive layer
  * (and the rest of the app) automatically complies — including the app's
  * own future Motion setting, honored the same way as the OS preference via
@@ -560,13 +560,13 @@
   scroll-behavior: auto !important;
 }
 /* ============================================================================
- * Canvas (§5) — DS5 node/link/subsystem states.
+ * Canvas — DS5 node/link/subsystem states.
  *
  * Kept as plain classes (not Tailwind utilities) because these are stateful
  * SVG selectors (`:hover`, `:focus-visible`, sibling/descendant combinators)
  * that Tailwind's arbitrary-variant syntax makes unreadable at this density —
  * the same reasoning as `.glass`/`.grid-bg` above. Every color is a token
- * from §3 (or the DS5 additions above); no hex.
+ * from the design spec (or the DS5 additions above); no hex.
  * ========================================================================= */
 
 .cv-node { cursor: pointer; outline: none; }
@@ -619,7 +619,7 @@
 @keyframes cv-dashrot { to { stroke-dashoffset: -24; } }
 @keyframes cv-drift { to { stroke-dashoffset: -11; } }
 
-/* Links (§5.4, static parts only — particles are T3.3) */
+/* Links */
 .cv-link { fill: none; stroke: var(--color-line-strong); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--transition-duration-small), opacity var(--transition-duration-small); }
 .cv-link.is-async { stroke-dasharray: 6 4; }
 .cv-link.is-stream { stroke-dasharray: 1.5 4; animation: cv-drift 1.6s linear infinite; }
@@ -634,7 +634,7 @@
 .cv-link-cut text { font: 600 14px var(--font-sans); fill: var(--color-ink-primary); }
 .cv-link-cut circle { fill: var(--color-surface-canvas); stroke: var(--color-line-strong); }
 
-/* DSA cells (§5.7) */
+/* DSA cells */
 .cv-cell rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
 .cv-cell text { font: 600 14px var(--font-mono); fill: var(--color-ink-primary); }
 .cv-cell.cv-cell-active rect { stroke: var(--color-ink-primary); stroke-width: 2; }
@@ -644,7 +644,7 @@
 .cv-marker rect { fill: var(--color-surface-overlay); stroke: var(--color-line-strong); }
 .cv-marker text { font: 600 11px var(--font-mono); fill: var(--color-ink-primary); }
 
-/* LLD cards (§5.7) */
+/* LLD cards */
 .cv-lld-card { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
 .cv-lld-name { font: 600 13px var(--font-sans); fill: var(--color-ink-primary); }
 .cv-lld-stereotype { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }

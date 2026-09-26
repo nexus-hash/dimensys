@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
- * §9/§14: the dev gallery is the a11y test surface for the primitive layer.
+ * The dev gallery is the a11y test surface for the primitive layer.
  * Runs axe in both themes with zero serious/critical violations.
  *
  * Themes are set the way the app actually sets them: next-themes

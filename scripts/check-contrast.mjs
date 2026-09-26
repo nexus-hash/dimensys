@@ -4,16 +4,16 @@
  * check-contrast.mjs — WCAG contrast guardrail for the design-token system (DS2).
  *
  * Computes real WCAG 2.2 contrast ratios for the key token pairs called out
- * in UI_UX_SPEC.md §3/§9, in both themes, and fails the build if any pair
+ * in the design spec, in both themes, and fails the build if any pair
  * violates its threshold:
  *
  *   - ink-primary / ink-secondary on surface-page / surface-raised /
- *     surface-canvas — normal text, WCAG AA minimum 4.5:1 (§9).
- *   - ink-muted on the same three surfaces — caption/metadata-tier text
- *     (§3.2 "caption: metadata, axis labels"), checked at the WCAG
+ *     surface-canvas — normal text, WCAG AA minimum 4.5:1.
+ *   - ink-muted on the same three surfaces — caption/metadata-tier text,
+ *     checked at the WCAG
  *     "UI graphics / large text" minimum of 3:1.
  *   - signal-warn / signal-critical on the dark and light surface-page —
- *     UI graphics, WCAG minimum 3:1 (§9).
+ *     UI graphics, WCAG minimum 3:1.
  *
  * The token values below MUST be kept in sync with app/globals.css by hand
  * (this is plain Node with no CSS parser, per the DS2 task constraints).
@@ -46,8 +46,8 @@ const SIGNAL = {
   dark: { 'signal-warn': '#fab219', 'signal-critical': '#e11d48' },
 };
 
-const TEXT_MIN = 4.5; // WCAG AA, normal text (§9)
-const GRAPHIC_MIN = 3.0; // WCAG AA, UI graphics / large text (§9)
+const TEXT_MIN = 4.5; // WCAG AA, normal text
+const GRAPHIC_MIN = 3.0; // WCAG AA, UI graphics / large text
 
 // ── Color parsing ─────────────────────────────────────────────────────────────
 function parseColor(input) {

@@ -1,5 +1,5 @@
 /**
- * Player state store (T3.1, docs/PLAYER_ARCHITECTURE.md §2).
+ * Player state store (T3.1).
  *
  * A tiny external store, one instance per mounted player (never a module
  * singleton: the home hero, an embed and a full player can share a page, and
@@ -14,7 +14,7 @@
 import type { Speed } from '../worker/protocol';
 import type { PlayerBootstrap, UserAction } from '../types';
 
-/** Player modes (UI_UX_SPEC §6.3). Unsupported modes are hidden, not disabled. */
+/** Player modes. Unsupported modes are hidden, not disabled. */
 export type PlayerMode = 'explore' | 'break' | 'walkthrough' | 'build' | 'interview';
 
 export type Selection = { kind: 'node' | 'link' | 'flow'; id: string } | null;
@@ -60,7 +60,7 @@ export interface PlayerState {
   sim: SimSlice;
   story: StorySlice;
   walkthrough: WalkthroughSlice;
-  /** Canonical, worker-stamped action log: the share link's `a` param (§23.4). */
+  /** Canonical, worker-stamped action log: the share link's `a` param. */
   actions: readonly UserAction[];
 }
 
@@ -77,7 +77,7 @@ export function initialPlayerState(bootstrap: Pick<PlayerBootstrap, 'diagramId' 
   return {
     diagramId: bootstrap.diagramId,
     revision: bootstrap.revision,
-    // UI_UX_SPEC §15.6: the player always opens in Explore, healthy.
+    // The player always opens in Explore, healthy.
     mode: 'explore',
     selection: null,
     sim: {

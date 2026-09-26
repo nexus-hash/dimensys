@@ -4,7 +4,7 @@ import { hatchId } from './CanvasDefs';
 import type { HealthState } from './types';
 
 /**
- * The collapsed subsystem affordance (§5.5): renders like a larger node,
+ * The collapsed subsystem affordance: renders like a larger node,
  * with the inner node count and a ⤢ expand glyph, and aggregates the worst
  * health of its contents (the caller computes that aggregate and passes it
  * as `health`, same as `Node`).
@@ -87,7 +87,7 @@ export function SubsystemCollapsed({
 }
 
 /**
- * The expanded subsystem boundary (§5.5): a dashed frame with a top-left
+ * The expanded subsystem boundary: a dashed frame with a top-left
  * mono tab label. Purely decorative — it draws around whatever `Node`s the
  * caller places inside `width`×`height`, it doesn't lay them out.
  */

@@ -17,14 +17,14 @@ export interface NodeProps {
   /** Mono-sm sub-label under the label: `type · variant`, replica count, role. */
   sublabel?: string;
   role?: NodeRole;
-  /** > 1 draws stacked "shadow cards" behind the body (§5.2). */
+  /** > 1 draws stacked "shadow cards" behind the body. */
   replicas?: number;
-  /** Utilization / hit-ratio / backlog / lag meter (§5.2). Omit for source nodes (`client`). */
+  /** Utilization / hit-ratio / backlog / lag meter. Omit for source nodes (`client`). */
   meter?: NodeMeter;
   health?: HealthState;
   /** Mono chip text shown below the node once health isn't `ok`, e.g. "p99 640 ms". */
   healthLabel?: string;
-  /** Critical only: the ring opacity-pulses while the metric keeps getting worse (§5.3).
+  /** Critical only: the ring opacity-pulses while the metric keeps getting worse.
    * A static kit can't know "getting worse" on its own — callers in the interactive
    * layer (T3.3) pass this once they track the trend. */
   pulsing?: boolean;
@@ -65,10 +65,10 @@ function healthSentence(health: HealthState, healthLabel?: string): string {
 }
 
 /**
- * The HLD node (§5.2): 144×72, monochrome body, icon + label + mono
+ * The HLD node: 144×72, monochrome body, icon + label + mono
  * sub-label, an optional meter, an optional role pill, and the health ring +
- * glyph + text label (§5.3 — health is never color-only, §3.4 rule 2).
- * Hover/focus/selected/dimmed are §5.6 states.
+ * glyph + text label.
+ * Hover/focus/selected/dimmed are the design spec states.
  */
 export function Node({
   boardId,
@@ -95,7 +95,7 @@ export function Node({
   const showRolePill = !showGlyphSlot && !!role;
   const ariaLabel = `${label}, ${type}${variant ? ` · ${variant}` : ''}, ${healthSentence(health, healthLabel)}`;
   // Label/sub-label are clipped to the space left of the health glyph / role
-  // pill so a long label never overlaps them (§5.2: "truncated with a full
+  // pill so a long label never overlaps them (the design spec: "truncated with a full
   // tooltip" — the tooltip itself is an interactive concern, T3.3).
   const textClipId = `${boardId}-${id}-text-clip`;
   const textAreaWidth = w - 38 - (showRolePill ? 60 : 12);

@@ -3,14 +3,13 @@
 /**
  * sync-engine-v3.js — Manifest-driven sync tool for dms-engine's v3 output.
  *
- * Reads dms-engine's `dist-v3/manifest.json` (SCHEMA_V3 §23.3) and, for
+ * Reads dms-engine's `dist-v3/manifest.json` and, for
  * every file it lists, verifies the file exists and its content hash is
  * correct before copying anything:
  *
  * - `server/diagrams/<id>.json` carries `{ compiled, source }`; its
  *   `compiled.hash` must equal the content hash of `source`, recomputed the
- *   same way dms-engine's `src/compile/hash.ts` does (sorted-key JSON,
- *   sha256, `sha256:` prefix).
+ *   same way the engine does it (sorted-key JSON, sha256, `sha256:` prefix).
  * - `public/diagrams/<id>.json` is a stripped view of the same document
  *   (interview fields removed) plus computed layouts, so it can't be
  *   rehashed against a source on its own; instead it must carry the exact

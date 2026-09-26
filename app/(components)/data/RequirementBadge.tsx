@@ -21,7 +21,7 @@ function PendingGlyph({ size = 16 }: { size?: number }) {
 }
 
 /**
- * RequirementBadge (§8): a requirement's pass/fail state plus the observed
+ * RequirementBadge: a requirement's pass/fail state plus the observed
  * value that decided it, e.g. "p99 < 50 ms" / "p99 42 ms". Reuses the canvas
  * health glyph for pass/fail so the same ✓/✕ shapes read consistently
  * everywhere; `pending` (debounced, not yet settled) and `not-simulated`

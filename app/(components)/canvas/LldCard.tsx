@@ -5,7 +5,7 @@ const PAD = 10;
 const HEADER_H = 30;
 
 /**
- * UML visibility glyph (§5.7: "+ − #"). The engine's `Visibility` type also
+ * UML visibility glyph. The engine's `Visibility` type also
  * allows `package`; the spec's glyph set doesn't cover it, so this uses the
  * conventional UML `~` — see DS5 SPEC GAPS.
  */
@@ -23,7 +23,7 @@ function methodSignature(m: LldMethod): string {
 }
 
 /**
- * A static LLD UML card (§5.7): name / stereotype, fields, methods, each
+ * A static LLD UML card: name / stereotype, fields, methods, each
  * member prefixed with its visibility glyph. Relation lines (inherits,
  * implements, composes, aggregates) are drawn by `Link` with the matching
  * marker from `CanvasDefs` — this component only draws the card itself.

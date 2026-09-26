@@ -1,5 +1,5 @@
 /**
- * A DSA pointer marker (§5.7): a mono pill above a cell (`i`, `j`, …).
+ * A DSA pointer marker: a mono pill above a cell (`i`, `j`, …).
  * `stackIndex` offsets markers that share a cell so they stack instead of
  * overlapping (the spec's "when two markers share a cell they stack").
  */

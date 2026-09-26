@@ -10,7 +10,7 @@ export const TooltipProvider = RadixTooltip.Provider;
 export interface TooltipProps {
   content: React.ReactNode;
   children: React.ReactElement;
-  /** Element(s) or rect(s) the tooltip must never cover (§15.6). */
+  /** Element(s) or rect(s) the tooltip must never cover. */
   avoid?: AvoidTarget | AvoidTarget[];
   side?: 'top' | 'right' | 'bottom' | 'left';
   delayDuration?: number;

@@ -3,10 +3,10 @@ import { TableView } from './TableView';
 import type { Severity } from './format';
 
 export interface SparklineProps {
-  /** Samples, oldest first. `NaN`/`null`/`undefined` entries are gaps (§8: "handles gaps/NaN"). */
+  /** Samples, oldest first. `NaN`/`null`/`undefined` entries are gaps. */
   values: Array<number | null | undefined>;
   /**
-   * The fixed number of slots the rolling window holds (§15.4: free play is a
+   * The fixed number of slots the rolling window holds (the design spec: free play is a
    * rolling 60s window, no scrubber). Values render right-aligned into this
    * many slots, so the line's width never changes as samples stream in —
    * only `values.length < window` (still filling up) shifts what's drawn,
@@ -15,7 +15,7 @@ export interface SparklineProps {
   window?: number;
   /** Rendered height in px. Width is fluid (viewBox 0 0 100 height, `preserveAspectRatio="none"`). */
   height?: number;
-  /** A dashed hairline warn threshold (§8: "a dashed hairline marks the warn threshold"). */
+  /** A dashed hairline warn threshold. */
   warnThreshold?: number;
   /** Vertical dashed marker at a slot index, e.g. a before/after boundary. */
   markIndex?: number;
@@ -39,10 +39,10 @@ const SEVERITY_COLOR: Record<Severity, string> = {
 };
 
 /**
- * Sparkline (§8): a single muted line with a subtle area fill, no axes, the
+ * Sparkline: a single muted line with a subtle area fill, no axes, the
  * current point emphasized as a dot, gaps for missing samples, and a fixed
  * viewBox so the chart never reflows as data streams. Ships with a hover
- * tooltip and a "view as table" disclosure (§8: "tooltips + table view").
+ * tooltip and a "view as table" disclosure.
  */
 export function Sparkline({
   values,

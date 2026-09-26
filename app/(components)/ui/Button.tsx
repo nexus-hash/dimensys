@@ -37,8 +37,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 /**
- * Button (§12 primitives; prototype `.btn` variants).
- * `primary` uses `--brand-gradient` (chrome only, never the canvas per §3.4).
+ * Button.
+ * `primary` uses `--brand-gradient` (chrome only, never the canvas per the design spec).
  */
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = 'primary', size = 'md', iconOnly = false, asChild = false, className, children, ...props },

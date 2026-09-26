@@ -1,16 +1,16 @@
 import { notFound } from 'next/navigation';
 import { DiagramPlayer } from '@/app/(components)/player';
-import type { PlayerDiagram } from '@/app/(components)/player';
+import type { ViewData } from '@/app/(components)/player';
 
 export const metadata = {
   title: 'Player skeleton — /dev/player',
   robots: { index: false, follow: false },
 };
 
-/** Hand-written stand-in for a compiled diagram, so the skeleton renders without engine output. */
-const FIXTURE: PlayerDiagram = {
+/** Hand-written stand-in for a view-data document, so the skeleton renders without synced output. */
+const FIXTURE: ViewData = {
   id: 'dev-fixture',
-  compiled: { engineVersion: '3.0.0', hash: `sha256:${'0'.repeat(64)}`, builtAt: '2026-09-26T00:00:00.000Z' },
+  build: { version: '3.0.0', hash: `sha256:${'0'.repeat(64)}`, builtAt: '2026-09-26T00:00:00.000Z' },
   layouts: { desktop: { canvas: { w: 640, h: 360 }, nodes: {}, links: {} } },
   metadata: { title: 'Player skeleton fixture', revision: 1 },
   walkthroughStates: {},

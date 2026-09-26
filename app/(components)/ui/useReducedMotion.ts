@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Honors both channels §3.5 requires motion to respect:
+ * Honors both channels the design spec requires motion to respect:
  *   1. the OS-level `prefers-reduced-motion` media query, and
  *   2. the app's own Motion setting, applied as `data-motion="off"` on
  *      `<html>` (see the player's future Motion: normal/calm/off control).
  *
  * Primitives use this to switch springs/slides for 120ms fades (or skip
- * animation entirely) per the reduced-motion rules in §3.5 and §9.
+ * animation entirely) per the reduced-motion rules in the design spec.
  */
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(() => {

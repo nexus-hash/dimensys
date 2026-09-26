@@ -19,7 +19,7 @@ function rectsOverlap(a: DOMRect, b: DOMRect): boolean {
 }
 
 /**
- * §15.6: "nothing floats over the diagram" — transient, pointer-anchored UI
+ * the design spec: "nothing floats over the diagram" — transient, pointer-anchored UI
  * (tooltips, popovers, context menus) is the one exception, but it must never
  * cover the element it names as `avoid` (e.g. a selected canvas node).
  *

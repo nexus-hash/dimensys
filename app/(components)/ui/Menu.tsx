@@ -38,7 +38,7 @@ export interface DropdownMenuProps {
   align?: 'start' | 'center' | 'end';
 }
 
-/** DropdownMenu (§12): a triggered command menu, opened by click or Enter/Space. */
+/** DropdownMenu: a triggered command menu, opened by click or Enter/Space. */
 export function DropdownMenu({ trigger, items, onSelect, align = 'start' }: DropdownMenuProps) {
   return (
     <RxDropdown.Root>
@@ -72,7 +72,7 @@ export interface ContextMenuProps {
   onSelect: (value: string) => void;
 }
 
-/** ContextMenu (§12): right-click (or long-press) menu. */
+/** ContextMenu: right-click (or long-press) menu. */
 export function ContextMenu({ children, items, onSelect }: ContextMenuProps) {
   return (
     <RxContext.Root>

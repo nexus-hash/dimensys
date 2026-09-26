@@ -7,7 +7,7 @@ import { spawnSync } from 'child_process';
 
 const SCRIPT_PATH = path.resolve(__dirname, '../sync-engine-v3.js');
 
-// --- content hashing, mirroring dms-engine's src/compile/hash.ts, used only
+// --- content hashing, mirroring how the engine hashes documents, used only
 // to build fixture files with a correct `compiled.hash`. ---------------------
 
 function sortKeysDeep(value: unknown): unknown {

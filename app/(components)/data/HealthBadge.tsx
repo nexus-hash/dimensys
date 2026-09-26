@@ -19,7 +19,7 @@ const STATE_TEXT_CLASS: Record<HealthState, string> = {
 };
 
 /**
- * HealthBadge (§8/§5.3): glyph + label, sharing `HealthGlyph` with the
+ * HealthBadge: glyph + label, sharing `HealthGlyph` with the
  * canvas (DS5) so the HUD and the diagram agree on what each state looks
  * like. Never color-only — the glyph shape and the text label both carry
  * the state, independent of the ring/hue.

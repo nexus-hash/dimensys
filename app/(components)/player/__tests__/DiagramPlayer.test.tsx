@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DiagramPlayer, diagramJsonUrl } from '../DiagramPlayer';
-import type { PlayerDiagram } from '../types';
+import type { ViewData } from '../types';
 
-const diagram: PlayerDiagram = {
+const diagram: ViewData = {
   id: 'url-shortener',
-  compiled: { engineVersion: '3.0.0', hash: `sha256:${'ab'.repeat(32)}`, builtAt: '2026-09-26T00:00:00.000Z' },
+  build: { version: '3.0.0', hash: `sha256:${'ab'.repeat(32)}`, builtAt: '2026-09-26T00:00:00.000Z' },
   layouts: { desktop: { canvas: { w: 800, h: 400 }, nodes: {}, links: {} } },
   metadata: { title: 'URL shortener' },
   walkthroughStates: {},

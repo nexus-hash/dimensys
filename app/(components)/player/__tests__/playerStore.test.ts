@@ -4,7 +4,7 @@ import { createPlayerStore, initialPlayerState } from '../store/playerStore';
 const boot = { diagramId: 'url-shortener', revision: 2, hasSimulation: true, runtimeUrl: '/engine/runtime/sim-worker.abc.js' };
 
 describe('initialPlayerState', () => {
-  it('opens in explore with nothing selected (UI_UX_SPEC §15.6)', () => {
+  it('opens in explore with nothing selected', () => {
     const s = initialPlayerState(boot);
     expect(s.mode).toBe('explore');
     expect(s.selection).toBeNull();

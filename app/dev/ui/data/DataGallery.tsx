@@ -64,7 +64,7 @@ function initialHistory(base: number, spread: number, seed: number): number[] {
 
 /**
  * A live StatTile: appends one sample roughly every tick, capped at a fixed
- * 60-sample rolling window with no scrubber (§15.4 — free play's HUD).
+ * 60-sample rolling window with no scrubber.
  */
 function StreamingStat() {
   const [history, setHistory] = React.useState(() => initialHistory(420, 60, 7));
@@ -137,7 +137,7 @@ export function DataGallery() {
         )}
       </header>
 
-      <Section title="StatTile — value + delta + sparkline (§8)">
+      <Section title="StatTile — value + delta + sparkline">
         <Row label="ok">
           <StatTile
             label="p99 latency"
@@ -187,7 +187,7 @@ export function DataGallery() {
         </Row>
       </Section>
 
-      <Section title="Meter — utilization with warn/critical thresholds (§8)">
+      <Section title="Meter — utilization with warn/critical thresholds">
         <Row label="ok">
           <Meter label="core-db util" value={0.42} valueLabel="42%" warnAt={0.7} criticalAt={0.9} className="w-64" />
         </Row>
@@ -223,7 +223,7 @@ export function DataGallery() {
         </Row>
       </Section>
 
-      <Section title="Sparkline — fixed window, gaps, threshold (§8)">
+      <Section title="Sparkline — fixed window, gaps, threshold">
         <Row label="normal">
           <div className="w-48">
             <Sparkline values={[10, 12, 11, 14, 18, 22, 20, 24]} title="requests/sec, last 8 samples" />
@@ -258,7 +258,7 @@ export function DataGallery() {
         </Row>
       </Section>
 
-      <Section title="DumbbellBars — before/after comparisons (§8)">
+      <Section title="DumbbellBars — before/after comparisons">
         <Row label="fix impact">
           <div className="w-96">
             <DumbbellBars
@@ -275,7 +275,7 @@ export function DataGallery() {
         </Row>
       </Section>
 
-      <Section title="HealthBadge — shared with the canvas kit (§5.3/§8)">
+      <Section title="HealthBadge — shared with the canvas kit">
         <Row label="all states">
           {HEALTH_STATES.map((state) => (
             <HealthBadge key={state} state={state} label={state} detail={HEALTH_DETAIL[state]} />
@@ -283,7 +283,7 @@ export function DataGallery() {
         </Row>
       </Section>
 
-      <Section title="RequirementBadge — pass/fail with observed value (§8)">
+      <Section title="RequirementBadge — pass/fail with observed value">
         <Row label="pass">
           <RequirementBadge text="p99 < 50 ms" status="pass" observed="p99 42 ms" />
         </Row>

@@ -1,23 +1,23 @@
 /**
- * Worker bridge protocol (outline for T2.13; docs/PLAYER_ARCHITECTURE.md §5).
+ * Worker bridge protocol (outline for T2.13).
  *
- * The simulation runtime is an engine-built, minified worker bundle served
- * from `/engine/runtime/` (never engine source in this repo). The app and
+ * The simulation runtime is a prebuilt, minified worker bundle served from
+ * `/engine/runtime/` (never build-tool source in this repo). The app and
  * that bundle only share this message contract: plain structured-clone data,
  * plus transferable typed arrays for the 10 Hz metric frames.
  *
- * This file is the app side of the contract. The engine keeps a copy and the
- * two are tied together by `PROTOCOL_VERSION`, checked in the `ready`
- * handshake. Any breaking change bumps it.
+ * This file is the app side of the contract. The producing side keeps a copy
+ * and the two are tied together by `PROTOCOL_VERSION`, checked in the
+ * `ready` handshake. Any breaking change bumps it.
  */
 import type { RunnerEventLike, UserAction } from '../types';
 
 export const PROTOCOL_VERSION = 1;
 
-/** Playback speeds the UI offers (UI_UX_SPEC §6.4). */
+/** Playback speeds the UI offers. */
 export type Speed = 0.5 | 1 | 2 | 4;
 
-/** Snapshot cadence to the UI, in Hz (TASK_PLAN T2.13). */
+/** Snapshot cadence to the UI, in Hz (T2.13). */
 export const SNAPSHOT_HZ = 10;
 
 // ---------------------------------------------------------------------------
@@ -37,12 +37,12 @@ interface Cmd<K extends string> {
 export interface InitCmd extends Cmd<'init'> {
   protocol: typeof PROTOCOL_VERSION;
   diagramUrl: string;
-  /** Library documents the diagram `extends`, needed to re-resolve after patches. */
+  /** Any additional documents this diagram depends on. */
   libraryUrls: string[];
   /** `free` = free play (no end, no scrubber); `scenario` = story / replay timeline. */
   mode: 'free' | 'scenario';
   scenarioId?: string;
-  /** Overrides `simulation.seed` (tests only; share links never carry a seed). */
+  /** Overrides the document's default seed (tests only; share links never carry a seed). */
   seed?: string | number;
   /** Share-link restore: action log to replay, checkpoint answers, and the target time. */
   restore?: {
@@ -59,7 +59,7 @@ export type PauseCmd = Cmd<'pause'>;
 export interface SetSpeedCmd extends Cmd<'setSpeed'> {
   speed: Speed;
 }
-/** Back to the scenario's start state (Break It "Reset", §6.5). Clears the action log. */
+/** Back to the scenario's start state ("Reset"). Clears the action log. */
 export type ResetCmd = Cmd<'reset'>;
 
 /**
@@ -116,11 +116,11 @@ export interface ReadyMsg {
   metricKeys: string[];
   /** Row order for `frame.health` (node and link IDs). */
   healthIds: string[];
-  /** Bumped whenever a patch changes `metricKeys`/`healthIds`; frames carry the epoch they use. */
+  /** Bumped whenever `metricKeys`/`healthIds` change; frames carry the epoch they use. */
   keysEpoch: number;
 }
 
-/** Re-sent key tables after a patch added/removed nodes or links. */
+/** Re-sent key tables after the node/link set changes. */
 export interface KeysMsg {
   type: 'keys';
   metricKeys: string[];
@@ -150,7 +150,7 @@ export interface StatusMsg {
   playing: boolean;
   speed: Speed;
   t: number;
-  /** Scenario mode only (engine `RunnerStatus`). */
+  /** Scenario mode only. */
   runner?: 'running' | 'paused-checkpoint' | 'paused-caption' | 'done';
   /** Scenario mode only: total length in seconds, for the scrubber. */
   duration?: number;
@@ -171,7 +171,7 @@ export interface AckMsg {
 /**
  * `fatal: false` → the command was rejected, the run continues (bad target,
  * unknown intervention). `fatal: true` → the run is dead; the bridge restarts
- * the worker once and replays the log, then shows the error card (§6.16).
+ * the worker once and replays the log, then shows the error card.
  */
 export interface ErrorMsg {
   type: 'error';

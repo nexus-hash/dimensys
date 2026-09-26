@@ -5,7 +5,7 @@ import { PlayerStoreProvider, usePlayerStore } from './store/PlayerStoreProvider
 import type { PlayerBootstrap } from './types';
 
 /**
- * The player's single client boundary (docs/PLAYER_ARCHITECTURE.md §3).
+ * The player's single client boundary.
  *
  * Owns the per-player store (and, from T2.13, the worker bridge). Everything
  * passed as `children` is server-rendered and stays server-rendered: the

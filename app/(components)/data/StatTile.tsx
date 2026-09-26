@@ -18,7 +18,7 @@ export interface StatTileProps {
   value: string;
   unit?: string;
   delta?: StatTileDelta;
-  /** Drives the inset ring + glyph (§5.3/§3.4: severity is never color-only). */
+  /** Drives the inset ring + glyph. */
   severity?: Severity;
   sparkline?: {
     values: Array<number | null | undefined>;
@@ -39,12 +39,12 @@ const SEVERITY_RING: Record<2 | 1, string> = {
 };
 
 /**
- * StatTile (§8/§6.4): the form for a single live value — value + delta +
+ * StatTile: the form for a single live value — value + delta +
  * optional sparkline. Matches the approved prototype's HUD tile exactly: a
  * 2×2 grid (label + severity glyph top-left, delta top-right, the big mono
  * value bottom-left, the sparkline bottom-right), so it drops straight into
  * the HUD strip at native size. A live-updating value is `tabular-nums`
- * (§3.2) so digits don't jitter as it ticks.
+ * so digits don't jitter as it ticks.
  */
 export function StatTile({ label, value, unit, delta, severity = 0, sparkline, tooltip, className }: StatTileProps) {
   const ring = severity ? SEVERITY_RING[severity as 1 | 2] : '';

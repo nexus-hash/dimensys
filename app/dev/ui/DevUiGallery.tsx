@@ -251,7 +251,7 @@ export function DevUiGallery() {
             <Button variant="glass" size="sm">Hover me</Button>
           </Tooltip>
         </Row>
-        <Row label="avoid (§15.6)">
+        <Row label="avoid">
           <div className="relative flex h-24 w-72 items-center justify-center rounded-card border border-line-hairline">
             <div ref={avoidRef} className="h-10 w-24 rounded-node border border-signal-critical bg-signal-critical/10 text-center text-[11px] leading-10 text-ink-primary">
               selected node

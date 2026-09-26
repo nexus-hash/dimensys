@@ -1,7 +1,7 @@
 /**
- * Shared `<defs>` for one board instance (§5.1/§5.3/§5.4/§5.7): the 45° hatch
+ * Shared `<defs>` for one board instance: the 45° hatch
  * pattern used by `down` nodes, the link arrowheads (default / bad /
- * highlighted), and the LLD UML relation markers (§5.7). IDs are namespaced
+ * highlighted), and the LLD UML relation markers. IDs are namespaced
  * by `boardId` so two `<Board>`s on the same page never collide — `Board`
  * requires the caller to pass a unique `id` (see its docstring for why this
  * kit doesn't generate one itself).
@@ -44,7 +44,7 @@ export function CanvasDefs({ boardId }: { boardId: string }) {
         </marker>
       ))}
 
-      {/* LLD relations (§5.7, §8.5 `LldRelation`): `inherits` = hollow triangle
+      {/* LLD relations: `inherits` = hollow triangle
           (`implements` reuses it on a dashed line, drawn by the `Link`
           consumer), `composes` = filled diamond, `aggregates` = hollow
           diamond. `associates`/`depends` need no special marker (a plain or
@@ -99,7 +99,7 @@ export function arrowId(boardId: string, kind: ArrowKind = 'default'): string {
   return `${boardId}-arrow-${kind}`;
 }
 
-/** LLD relations with dedicated markers (§5.7). `implements`/`associates`/
+/** LLD relations with dedicated markers. `implements`/`associates`/
  * `depends` reuse `inherits`'s marker (dashed for `implements`) or none. */
 export type RelationMarkerKind = 'inherits' | 'composes' | 'aggregates';
 

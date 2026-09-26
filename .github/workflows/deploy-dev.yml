@@ -155,7 +155,7 @@ jobs:
 
           # sync-engine-v3.js keeps server-only diagram/puzzle data (interview
           # blocks, puzzle secrets) under server-data/, strictly outside
-          # public/ and data/engine/ (SCHEMA_V3 §23.1/§23.3). Fail if that
+          # public/ and data/engine/. Fail if that
           # split didn't hold: a server-data path anywhere in the deployable
           # output, or an "interview"/"secret" key inside the statically
           # served files, both indicate server-only data leaked into what

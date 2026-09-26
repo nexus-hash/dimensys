@@ -1,0 +1,10 @@
+{
+  "_comment": "Justified exceptions to check-public-boundary.mjs. Keep this near-empty. Each entry allows one forbidden pattern on one specific file (not a line range), because that file's job is to check FOR that string in build output, not to describe private internals.",
+  "allow": [
+    {
+      "file": ".github/workflows/deploy-dev.yml",
+      "pattern": "dms-engine/src",
+      "reason": "CI guard that fails the deploy if the private engine's source tree leaked into the deployable Vercel output; it must grep for this literal path to detect that."
+    }
+  ]
+}

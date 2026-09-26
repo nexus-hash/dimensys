@@ -8,7 +8,7 @@ import { useAvoidOffset, type AvoidTarget } from './avoid';
 export interface PopoverProps {
   trigger: React.ReactElement;
   children: React.ReactNode;
-  /** Element(s) or rect(s) this popover must never cover (§15.6, e.g. a selected node). */
+  /** Element(s) or rect(s) this popover must never cover. */
   avoid?: AvoidTarget | AvoidTarget[];
   side?: 'top' | 'right' | 'bottom' | 'left';
   align?: 'start' | 'center' | 'end';
@@ -18,7 +18,7 @@ export interface PopoverProps {
 }
 
 /**
- * Popover (§12; §15.6 collision-aware). Radix's Popper keeps it inside the
+ * Popover. Radix's Popper keeps it inside the
  * viewport; the `avoid` prop additionally nudges it clear of a given element
  * or rect (e.g. the selected canvas node) if the viewport-safe placement
  * would still overlap it.

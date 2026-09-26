@@ -13,6 +13,7 @@
     "lint": "eslint",
     "lint:colors": "node scripts/check-no-hex.mjs",
     "lint:contrast": "node scripts/check-contrast.mjs",
+    "lint:boundary": "node scripts/check-public-boundary.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
