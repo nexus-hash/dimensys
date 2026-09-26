@@ -62,6 +62,15 @@
   --color-signal-flow: var(--signal-flow);
   --color-signal-retry: var(--signal-retry);
 
+  /* ── Glyph ink — the health glyph (§5.3) sits on a small saturated fill
+     (the warn triangle, the ok/critical roundels), so it needs its own ink
+     rather than --ink-primary/--surface-page. Per-theme inverse of
+     --ink-primary for the ok/critical glyph strokes, plus a fixed dark tone
+     for the warn triangle (yellow needs dark, not light, ink in both
+     themes). Not in UI_UX_SPEC §3/§5.3 — see SPEC GAPS in the DS5 report. */
+  --color-ink-inverse: var(--ink-inverse);
+  --color-warn-ink: var(--warn-ink);
+
   /* ── Logo accent shades — tokens instead of literals in components ─────── */
   --color-logo-amber: var(--logo-amber);
   --color-logo-amber-light: var(--logo-amber-light);
@@ -196,6 +205,10 @@
     --signal-flow: #38bdf8;
     --signal-retry: #e11d48;
 
+    /* Glyph ink (§5.3, light) — see DS5 SPEC GAPS */
+    --ink-inverse: #ffffff;
+    --warn-ink: #1a1200;
+
     /* Logo accent shades — kept as tokens so component files hold no literal hex */
     --logo-amber: #ffaa00;
     --logo-amber-light: #ffbb00;
@@ -257,6 +270,10 @@
        surfaces (see the light-theme note above). */
     --signal-warn: #fab219;
     --brand-ink: #ff7a26;
+
+    /* Glyph ink (§5.3, dark) — see DS5 SPEC GAPS */
+    --ink-inverse: #121212;
+    --warn-ink: #1a1200;
 
     /* Mermaid concept-diagram palette (dark) */
     --mermaid-primary: #171717;
@@ -542,3 +559,94 @@
   transition-duration: 0.001ms !important;
   scroll-behavior: auto !important;
 }
+/* ============================================================================
+ * Canvas (§5) — DS5 node/link/subsystem states.
+ *
+ * Kept as plain classes (not Tailwind utilities) because these are stateful
+ * SVG selectors (`:hover`, `:focus-visible`, sibling/descendant combinators)
+ * that Tailwind's arbitrary-variant syntax makes unreadable at this density —
+ * the same reasoning as `.glass`/`.grid-bg` above. Every color is a token
+ * from §3 (or the DS5 additions above); no hex.
+ * ========================================================================= */
+
+.cv-node { cursor: pointer; outline: none; }
+.cv-node .cv-body { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); stroke-width: 1; transition: stroke var(--transition-duration-micro); }
+.cv-node .cv-stack { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-node:hover .cv-body { stroke: var(--color-line-strong); }
+.cv-node .cv-icon { color: var(--color-ink-secondary); }
+.cv-node .cv-label { font: 500 13px var(--font-sans); fill: var(--color-ink-primary); }
+.cv-node .cv-sub { font: 500 12px var(--font-mono); fill: var(--color-ink-muted); }
+.cv-node .cv-mtrack { fill: var(--color-line-hairline); }
+.cv-node .cv-mfill { fill: var(--color-ink-secondary); transition: fill var(--transition-duration-small); }
+.cv-node .cv-mtext { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
+.cv-node.cv-meter-warn .cv-mfill { fill: var(--color-signal-warn); }
+.cv-node.cv-meter-critical .cv-mfill { fill: var(--color-signal-critical); }
+.cv-node .cv-ring, .cv-node .cv-sel, .cv-node .cv-halo, .cv-node .cv-focus { fill: none; stroke: none; }
+.cv-node .cv-hatch { opacity: 0; transition: opacity 400ms; }
+.cv-node .cv-inner { transition: opacity 400ms; }
+.cv-node .cv-role rect { fill: none; stroke: var(--color-line-strong); }
+.cv-node .cv-role text { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
+
+.cv-node.cv-health-warn .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; }
+.cv-node.cv-health-critical .cv-ring { stroke: var(--color-signal-critical); stroke-width: 2; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-signal-critical) 35%, transparent)); }
+.cv-node.cv-health-critical.is-pulsing .cv-ring { animation: cv-ringpulse 1.2s ease-in-out infinite; }
+.cv-node.cv-health-down .cv-ring { stroke: var(--color-ink-muted); stroke-width: 1; stroke-dasharray: 4 3; }
+.cv-node.cv-health-down .cv-inner { opacity: .3; }
+.cv-node.cv-health-down .cv-hatch { opacity: 1; }
+.cv-node.cv-health-recovering .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; stroke-dasharray: 7 5; animation: cv-dashrot 1.8s linear infinite; }
+.cv-node.cv-health-warn .cv-role, .cv-node.cv-health-critical .cv-role, .cv-node.cv-health-down .cv-role, .cv-node.cv-health-recovering .cv-role { display: none; }
+
+.cv-node.is-selected .cv-sel { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-node.is-selected .cv-halo { stroke: var(--color-ink-primary); stroke-width: 8; stroke-opacity: .1; }
+.cv-node:focus-visible .cv-sel { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-node:focus-visible .cv-focus { stroke: var(--color-ink-primary); stroke-width: 1; stroke-dasharray: 2 3; }
+.cv-node.is-dimmed { opacity: .2; transition: opacity var(--transition-duration-panel); }
+
+.cv-node .cv-glyph { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.4); transition: opacity var(--transition-duration-small), transform 260ms cubic-bezier(.3,1.4,.4,1); }
+.cv-node.cv-health-warn .cv-glyph, .cv-node.cv-health-critical .cv-glyph, .cv-node.cv-health-down .cv-glyph, .cv-node.cv-health-recovering .cv-glyph { opacity: 1; transform: scale(1); }
+
+.cv-node .cv-chip { opacity: 0; transform: translateY(4px); transition: opacity var(--transition-duration-small), transform var(--transition-duration-small) var(--ease-emphasized); }
+.cv-node.cv-health-warn .cv-chip, .cv-node.cv-health-critical .cv-chip, .cv-node.cv-health-down .cv-chip, .cv-node.cv-health-recovering .cv-chip { opacity: 1; transform: none; }
+.cv-node .cv-chip rect { fill: var(--color-surface-glass); stroke: var(--color-line-strong); }
+.cv-node.cv-health-warn .cv-chip rect, .cv-node.cv-health-recovering .cv-chip rect { stroke: var(--color-signal-warn); }
+.cv-node.cv-health-critical .cv-chip rect { stroke: var(--color-signal-critical); }
+.cv-node .cv-chip text { font: 600 12px var(--font-mono); fill: var(--color-ink-primary); }
+
+.cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
+.cv-node .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
+
+@keyframes cv-ringpulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
+@keyframes cv-dashrot { to { stroke-dashoffset: -24; } }
+@keyframes cv-drift { to { stroke-dashoffset: -11; } }
+
+/* Links (§5.4, static parts only — particles are T3.3) */
+.cv-link { fill: none; stroke: var(--color-line-strong); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--transition-duration-small), opacity var(--transition-duration-small); }
+.cv-link.is-async { stroke-dasharray: 6 4; }
+.cv-link.is-stream { stroke-dasharray: 1.5 4; animation: cv-drift 1.6s linear infinite; }
+.cv-link.is-bad { stroke: color-mix(in srgb, var(--color-signal-critical) 60%, transparent); }
+.cv-link.is-hl { stroke: var(--color-ink-primary); }
+.cv-link-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
+.cv-linkgroup.is-dimmed { opacity: .25; }
+.cv-linkgroup.is-selected .cv-link { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-link-label rect { fill: var(--color-surface-glass); stroke: var(--color-line-hairline); }
+.cv-link-label text { font: 500 12px var(--font-mono); fill: var(--color-ink-secondary); }
+.cv-link-label.is-hot rect { stroke: color-mix(in srgb, var(--color-signal-critical) 55%, transparent); }
+.cv-link-cut text { font: 600 14px var(--font-sans); fill: var(--color-ink-primary); }
+.cv-link-cut circle { fill: var(--color-surface-canvas); stroke: var(--color-line-strong); }
+
+/* DSA cells (§5.7) */
+.cv-cell rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-cell text { font: 600 14px var(--font-mono); fill: var(--color-ink-primary); }
+.cv-cell.cv-cell-active rect { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-cell.cv-cell-compare rect { stroke: var(--color-signal-flow); stroke-width: 2; }
+.cv-cell.cv-cell-visited rect { fill: var(--color-surface-sunken); }
+.cv-cell.cv-cell-error rect { stroke: var(--color-signal-critical); stroke-width: 2; }
+.cv-marker rect { fill: var(--color-surface-overlay); stroke: var(--color-line-strong); }
+.cv-marker text { font: 600 11px var(--font-mono); fill: var(--color-ink-primary); }
+
+/* LLD cards (§5.7) */
+.cv-lld-card { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-lld-name { font: 600 13px var(--font-sans); fill: var(--color-ink-primary); }
+.cv-lld-stereotype { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
+.cv-lld-member { font: 500 12px var(--font-mono); fill: var(--color-ink-secondary); }
+.cv-lld-rule { stroke: var(--color-line-hairline); }
