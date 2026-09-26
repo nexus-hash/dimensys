@@ -57,7 +57,7 @@ function walk(dir, files = []) {
   return files;
 }
 
-function findViolations(filePath, relPath) {
+function findViolations(filePath) {
   const content = readFileSync(filePath, 'utf-8');
   const lines = content.split('\n');
   const violations = [];
@@ -82,7 +82,7 @@ function main() {
   for (const file of files) {
     const relPath = relative(APP_DIR, file);
     if (isExempt(relPath)) continue;
-    const violations = findViolations(file, relPath);
+    const violations = findViolations(file);
     if (violations.length > 0) {
       allViolations.push({ relPath, violations });
     }
