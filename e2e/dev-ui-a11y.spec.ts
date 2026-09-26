@@ -84,3 +84,20 @@ for (const theme of ['light', 'dark'] as const) {
     await runAxe(page);
   });
 }
+
+/**
+ * DS6: the motion gallery (every signature-moment preset with its
+ * full-motion and reduced-motion variant, the number-roll demo, and the
+ * view-transitions demo) is the a11y test surface for the motion layer.
+ * Same zero serious/critical bar, both themes.
+ */
+for (const theme of ['light', 'dark'] as const) {
+  test(`/dev/ui/motion has no serious/critical axe violations (${theme})`, async ({ page }) => {
+    await setTheme(page, theme);
+    await page.goto('/dev/ui/motion');
+    await assertThemeIsReal(page, theme);
+    await expect(page.getByRole('heading', { name: 'DS6 — Motion gallery' })).toBeVisible();
+
+    await runAxe(page);
+  });
+}
