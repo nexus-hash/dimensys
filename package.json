@@ -33,6 +33,7 @@
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "shiki": "4.4.3",
     "three": "^0.184.0"
   },
   "devDependencies": {
