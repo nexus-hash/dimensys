@@ -97,9 +97,27 @@ export const loadSimPayloadRef = cache(async (id: string): Promise<SimPayloadRef
   return { dataPath: rel, build: entry.build };
 });
 
-/** Hashed URL of the prebuilt worker bundle (manifest `staticAssets`), or `null`. */
+/** A `public`-scope manifest file entry whose path looks like the hashed worker bundle. */
+const RUNTIME_BUNDLE_RE = /^public\/runtime\/(sim-worker\..*\.js)$/;
+
+/**
+ * Hashed URL of the prebuilt worker bundle, or `null` when the synced
+ * manifest doesn't list one (an engine build predating T2.13, or a
+ * diagram-less build). Built from the manifest's own `files[]` (scope
+ * `public`) rather than a dedicated manifest field, so this works against
+ * any manifest 3.1 build regardless of whether it also stamps the optional
+ * `runtime` pointer.
+ *
+ * The path is `/engine/runtime/<filename>?h=<hash8>` — see
+ * `PlayerBootstrap.runtimeUrl`. No route serves that path yet (T3.13); the
+ * dev-only worker page (T2.13) serves the same synced bytes through its own
+ * dev-gated route instead of this one.
+ */
 export async function loadRuntimeUrl(): Promise<string | null> {
-  // TODO(T2.13): the runtime worker bundle isn't emitted by the engine build
-  // yet (manifest.staticAssets is always empty today).
-  return null;
+  const manifest = await loadManifest();
+  const entry = manifest.files.find((f) => f.scope === 'public' && RUNTIME_BUNDLE_RE.test(f.path));
+  if (!entry) return null;
+  const match = RUNTIME_BUNDLE_RE.exec(entry.path)!;
+  const shortHash = entry.hash.replace(/^sha256:/, '').slice(0, 8);
+  return `/engine/runtime/${match[1]}?h=${shortHash}`;
 }
