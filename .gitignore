@@ -46,3 +46,7 @@ next-env.d.ts
 /app/solutions/
 /public/engine/
 /app/(components)/diagram-assets
+
+# dms-engine v3 generated output (synced at build time by sync-engine-v3.js)
+/data/engine/
+/server-data/engine/

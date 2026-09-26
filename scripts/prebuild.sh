@@ -29,4 +29,14 @@ cd -
 node "$SCRIPT_DIR/sync-engine.js"
 
 echo ""
+echo "🔧 Building dms-engine v3..."
+cd "$ENGINE_DIR"
+npm run build:v3
+
+echo ""
+echo "🔄 Syncing v3 output to dimensys..."
+cd -
+node "$SCRIPT_DIR/sync-engine-v3.js"
+
+echo ""
 echo "✅ Prebuild complete."
