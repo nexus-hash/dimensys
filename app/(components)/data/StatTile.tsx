@@ -39,19 +39,21 @@ const SEVERITY_RING: Record<2 | 1, string> = {
 };
 
 /**
- * StatTile (§8): the form for a single live value — value + delta +
- * optional sparkline. A live-updating value is `tabular-nums` (§3.2) so
- * digits don't jitter as it ticks.
+ * StatTile (§8/§6.4): the form for a single live value — value + delta +
+ * optional sparkline. Matches the approved prototype's HUD tile exactly: a
+ * 2×2 grid (label + severity glyph top-left, delta top-right, the big mono
+ * value bottom-left, the sparkline bottom-right), so it drops straight into
+ * the HUD strip at native size. A live-updating value is `tabular-nums`
+ * (§3.2) so digits don't jitter as it ticks.
  */
 export function StatTile({ label, value, unit, delta, severity = 0, sparkline, tooltip, className }: StatTileProps) {
   const ring = severity ? SEVERITY_RING[severity as 1 | 2] : '';
 
   const body = (
     <div
-      className={`rounded-[10px] border border-line-hairline bg-surface-raised p-3 ${ring} ${className ?? ''}`.trim()}
+      className={`grid grid-cols-[auto_minmax(56px,1fr)] grid-rows-2 items-center gap-x-2.5 gap-y-px rounded-[10px] border border-line-hairline bg-surface-raised px-2.5 py-1.5 ${ring} ${className ?? ''}`.trim()}
     >
-      <div className="flex items-center justify-between gap-1.5">
-        <span className="text-caption text-ink-secondary">{label}</span>
+      <div className="col-start-1 row-start-1 flex items-center justify-start gap-1.5">
         {severity > 0 && (
           <HealthGlyph
             state={severity === 2 ? 'critical' : 'warn'}
@@ -59,15 +61,11 @@ export function StatTile({ label, value, unit, delta, severity = 0, sparkline, t
             ariaLabel={SEVERITY_LABEL[severity as 1 | 2]}
           />
         )}
+        <span className="whitespace-nowrap text-caption text-ink-secondary">{label}</span>
       </div>
-      <div className="mt-0.5 flex items-baseline gap-1">
-        <span className="font-mono text-mono-metric tabular-nums text-ink-primary" style={{ letterSpacing: '-0.01em' }}>
-          {value}
-        </span>
-        {unit && <small className="font-mono text-mono-sm text-ink-muted">{unit}</small>}
-      </div>
+
       {delta && (
-        <div className="mt-0.5 font-mono text-[12px] font-medium whitespace-nowrap text-ink-muted">
+        <div className="col-start-2 row-start-1 overflow-hidden text-right font-mono text-[11px] font-medium text-ellipsis whitespace-nowrap text-ink-muted">
           <span
             className="font-bold"
             style={{
@@ -84,12 +82,20 @@ export function StatTile({ label, value, unit, delta, severity = 0, sparkline, t
           {delta.text}
         </div>
       )}
+
+      <div className="col-start-1 row-start-2 flex items-baseline gap-1 whitespace-nowrap">
+        <span className="font-mono text-[16px] leading-[1.2] tabular-nums text-ink-primary" style={{ letterSpacing: '-0.01em' }}>
+          {value}
+        </span>
+        {unit && <small className="font-mono text-[11px] text-ink-muted">{unit}</small>}
+      </div>
+
       {sparkline && (
-        <div className="mt-1">
+        <div className="col-start-2 row-start-2 min-w-0">
           <Sparkline
             values={sparkline.values}
             window={sparkline.window}
-            height={24}
+            height={20}
             warnThreshold={sparkline.warnThreshold}
             severity={severity}
             title={`${label}, last ${sparkline.window ?? sparkline.values.length} samples, now ${value}${unit ? ` ${unit}` : ''}`}

@@ -51,3 +51,30 @@ for (const theme of ['light', 'dark'] as const) {
     expect(seriousOrCritical).toEqual([]);
   });
 }
+
+/**
+ * DS4: the data-display kit gallery (StatTile, Meter, Sparkline,
+ * DumbbellBars, HealthBadge, RequirementBadge — every state, plus a
+ * streaming sparkline demo) is the a11y test surface for the HUD/chart
+ * layer. Same zero serious/critical bar, both themes.
+ */
+for (const theme of ['light', 'dark'] as const) {
+  test(`/dev/ui/data has no serious/critical axe violations (${theme})`, async ({ page }) => {
+    await page.goto('/dev/ui/data');
+    await page.evaluate((t) => {
+      document.documentElement.setAttribute('data-theme', t);
+    }, theme);
+    await expect(page.getByRole('heading', { name: 'DS4 — Data-display kit gallery' })).toBeVisible();
+
+    const results = await new AxeBuilder({ page }).analyze();
+
+    const seriousOrCritical = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    );
+
+    if (seriousOrCritical.length > 0) {
+      console.log(JSON.stringify(seriousOrCritical, null, 2));
+    }
+    expect(seriousOrCritical).toEqual([]);
+  });
+}
