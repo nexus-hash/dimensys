@@ -216,7 +216,11 @@ function NumberRollDemo() {
 
 function ViewTransitionDemo({ reduced }: { reduced: boolean }) {
   const [on, setOn] = React.useState(false);
-  const supported = React.useMemo(() => supportsViewTransitions(), []);
+  // Starts `false` to match the server (which has no `document`), then reads
+  // the real client-side answer after mount — a `useMemo` reading it directly
+  // would mismatch whenever the browser actually supports the platform API.
+  const [supported, setSupported] = React.useState(false);
+  React.useEffect(() => setSupported(supportsViewTransitions()), []);
 
   return (
     <div className="rounded-card border border-line-hairline bg-surface-raised p-4">
