@@ -1,5 +1,5 @@
 /**
- * Worker bridge protocol (outline for T2.13).
+ * Worker bridge protocol (T2.13).
  *
  * The simulation runtime is a prebuilt, minified worker bundle served from
  * `/engine/runtime/` (never build-tool source in this repo). The app and
@@ -7,8 +7,10 @@
  * plus transferable typed arrays for the 10 Hz metric frames.
  *
  * This file is the app side of the contract. The producing side keeps a copy
- * and the two are tied together by `PROTOCOL_VERSION`, checked in the
- * `ready` handshake. Any breaking change bumps it.
+ * (`src/worker/protocol.ts` in the engine repo) and the two are tied
+ * together by `PROTOCOL_VERSION`, checked in the `ready` handshake. Any
+ * breaking change bumps it; a structural-parity test on the engine side
+ * compares the two files' shapes.
  */
 import type { RunnerEventLike, UserAction } from '../types';
 
@@ -31,14 +33,15 @@ interface Cmd<K extends string> {
 }
 
 /**
- * Starts (or restarts) a run. The worker fetches the document itself so the
- * full JSON never travels through React props or the RSC payload.
+ * Starts (or restarts) a run. The worker fetches the opaque sim payload
+ * itself (`simUrl`), so the full document never travels through React props
+ * or the RSC payload. `build` is checked against the payload's own build
+ * hash; a mismatch is a fatal `error` (stale cache or bad sync).
  */
 export interface InitCmd extends Cmd<'init'> {
   protocol: typeof PROTOCOL_VERSION;
-  diagramUrl: string;
-  /** Any additional documents this diagram depends on. */
-  libraryUrls: string[];
+  simUrl: string;
+  build: string;
   /** `free` = free play (no end, no scrubber); `scenario` = story / replay timeline. */
   mode: 'free' | 'scenario';
   scenarioId?: string;
@@ -85,6 +88,13 @@ export type ContinueCaptionCmd = Cmd<'continueCaption'>;
 export interface SeekCmd extends Cmd<'seek'> {
   t: number;
 }
+/** Evaluates one calculator: applies bound inputs/outputs as patches, answers `calcResult`. */
+export interface CalcCmd extends Cmd<'calc'> {
+  id: string;
+  values: { [inputId: string]: number };
+}
+/** Answers `headline` with the share headline rendered from live metrics, or `null` when none is authored. */
+export type RenderHeadlineCmd = Cmd<'renderHeadline'>;
 export type DisposeCmd = Cmd<'dispose'>;
 
 export type WorkerCommand =
@@ -98,6 +108,8 @@ export type WorkerCommand =
   | SkipCmd
   | ContinueCaptionCmd
   | SeekCmd
+  | CalcCmd
+  | RenderHeadlineCmd
   | DisposeCmd;
 
 // ---------------------------------------------------------------------------
@@ -109,7 +121,7 @@ export interface ReadyMsg {
   type: 'ready';
   protocol: number;
   engineVersion: string;
-  /** `compiled.hash` of the document actually loaded. */
+  /** Build hash of the document actually loaded. */
   hash: string;
   tickMs: number;
   /** Column order for `frame.metrics` (`node:<id>.<metric>`, `global.<metric>`, …). */
@@ -141,6 +153,8 @@ export interface FrameMsg {
   keysEpoch: number;
   metrics: Float64Array;
   health: Uint8Array;
+  /** Watch results this frame: `[id, pass]`. */
+  watches: Array<[string, boolean]>;
   /** Runner events emitted since the previous frame, in order. */
   events: RunnerEventLike[];
 }
@@ -163,6 +177,21 @@ export interface ActionAppliedMsg {
   action: UserAction;
 }
 
+/** Answers a `calc` command: computed outputs, keyed by output id. */
+export interface CalcResultMsg {
+  type: 'calcResult';
+  seq: number;
+  id: string;
+  outputs: { [outputId: string]: number };
+}
+
+/** Answers a `renderHeadline` command. `null` when the diagram authors no headline. */
+export interface HeadlineMsg {
+  type: 'headline';
+  seq: number;
+  text: string | null;
+}
+
 export interface AckMsg {
   type: 'ack';
   seq: number;
@@ -171,7 +200,9 @@ export interface AckMsg {
 /**
  * `fatal: false` → the command was rejected, the run continues (bad target,
  * unknown intervention). `fatal: true` → the run is dead; the bridge restarts
- * the worker once and replays the log, then shows the error card.
+ * the worker once and replays the log. A second failure shows the inline
+ * error card, and the static frame stays. A protocol or hash mismatch on
+ * `ready` is fatal and gets no restart.
  */
 export interface ErrorMsg {
   type: 'error';
@@ -181,7 +212,16 @@ export interface ErrorMsg {
   fatal: boolean;
 }
 
-export type WorkerMessage = ReadyMsg | KeysMsg | FrameMsg | StatusMsg | ActionAppliedMsg | AckMsg | ErrorMsg;
+export type WorkerMessage =
+  | ReadyMsg
+  | KeysMsg
+  | FrameMsg
+  | StatusMsg
+  | ActionAppliedMsg
+  | CalcResultMsg
+  | HeadlineMsg
+  | AckMsg
+  | ErrorMsg;
 
 /** Index order for `FrameMsg.health`. */
 export const HEALTH_CODES = ['ok', 'warn', 'critical', 'info', 'accent', 'muted'] as const;
@@ -192,6 +232,8 @@ const WORKER_MESSAGE_TYPES: ReadonlySet<string> = new Set<WorkerMessage['type']>
   'frame',
   'status',
   'actionApplied',
+  'calcResult',
+  'headline',
   'ack',
   'error',
 ]);
