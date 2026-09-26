@@ -1,23 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
+
+const STORAGE_KEY = 'dimensys_concept_progress';
+
+function readStoredProgress(conceptId: string): number {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      if (data[conceptId]) {
+        return data[conceptId];
+      }
+    }
+  } catch (e) {
+    console.error('Failed to read progress', e);
+  }
+  return 0;
+}
+
+// No external mutation of localStorage notifies listeners in this app, so the
+// store never changes out from under us — subscribe is a no-op.
+function subscribe() {
+  return () => {};
+}
+
+function getServerSnapshot() {
+  return 0;
+}
 
 export function useConceptProgress(conceptId: string) {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('dimensys_concept_progress');
-      if (stored) {
-        const data = JSON.parse(stored);
-        if (data[conceptId]) {
-          setProgress(data[conceptId]);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to read progress', e);
-    }
-  }, [conceptId]);
-
-  return progress;
+  return useSyncExternalStore(subscribe, () => readStoredProgress(conceptId), getServerSnapshot);
 }
 
 export function saveConceptProgress(conceptId: string, percentage: number) {

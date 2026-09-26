@@ -1,13 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ScrollReveal from './ScrollReveal';
 
-const milestones = [
-  { label: 'HLD' },
-  { label: 'LLD' },
-  { label: 'DSA' },
-];
+// Deterministic pseudo-random generator (mulberry32), seeded per particle
+// index. Unlike Math.random, this is a pure function of its seed, so it's
+// safe to call during render — same output on the server and the client.
+function seededRandom(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 export default function LearningPath() {
   const pathRef = useRef<SVGPathElement>(null);
@@ -33,15 +41,22 @@ export default function LearningPath() {
   }, []);
 
   /* Particle positions (static, CSS-animated) */
-  const particles = Array.from({ length: 12 }, (_, i) => ({
-    left: `${8 + Math.random() * 84}%`,
-    top: `${10 + Math.random() * 80}%`,
-    size: 2 + Math.random() * 3,
-    delay: `${i * 0.7}s`,
-    duration: `${4 + Math.random() * 4}s`,
-    driftX: `${-30 + Math.random() * 60}px`,
-    driftY: `${-40 + Math.random() * -30}px`,
-  }));
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 12 }, (_, i) => {
+        const rand = seededRandom(i + 1);
+        return {
+          left: `${8 + rand() * 84}%`,
+          top: `${10 + rand() * 80}%`,
+          size: 2 + rand() * 3,
+          delay: `${i * 0.7}s`,
+          duration: `${4 + rand() * 4}s`,
+          driftX: `${-30 + rand() * 60}px`,
+          driftY: `${-40 + rand() * -30}px`,
+        };
+      }),
+    []
+  );
 
   return (
     <section ref={sectionRef} id="learning-path" className="relative w-full px-6 py-24 sm:py-32 overflow-hidden bg-light-primary dark:bg-dark-primary z-10">

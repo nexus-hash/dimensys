@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 
 /* ── Inline SVG shape definitions ── */
 
@@ -121,21 +121,38 @@ interface ShapeData {
   reverse: boolean;
 }
 
-export default function FloatingShapes({ count = 18, opacity = 0.12 }: FloatingShapesProps) {
-  const [shapes, setShapes] = useState<ShapeData[]>([]);
+// Deterministic pseudo-random generator (mulberry32), seeded per shape index.
+// Unlike Math.random, this is a pure function of its seed: it produces the
+// same layout on the server and on the client, so there is nothing to defer
+// to an effect and no hydration mismatch to worry about.
+function seededRandom(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s |= 0;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-  useEffect(() => {
-    const generated: ShapeData[] = Array.from({ length: count }, () => ({
-      svg: shapesSVG[Math.floor(Math.random() * shapesSVG.length)],
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: 28 + Math.random() * 36,
-      duration: 12 + Math.random() * 18,
-      delay: Math.random() * -20,
-      reverse: Math.random() > 0.5,
-    }));
-    setShapes(generated);
-  }, [count]);
+function generateShapes(count: number): ShapeData[] {
+  return Array.from({ length: count }, (_, i) => {
+    const rand = seededRandom(i + 1);
+    return {
+      svg: shapesSVG[Math.floor(rand() * shapesSVG.length)],
+      x: rand() * 100,
+      y: rand() * 100,
+      size: 28 + rand() * 36,
+      duration: 12 + rand() * 18,
+      delay: rand() * -20,
+      reverse: rand() > 0.5,
+    };
+  });
+}
+
+export default function FloatingShapes({ count = 18, opacity = 0.12 }: FloatingShapesProps) {
+  const shapes = useMemo(() => generateShapes(count), [count]);
 
   if (shapes.length === 0) return null;
 

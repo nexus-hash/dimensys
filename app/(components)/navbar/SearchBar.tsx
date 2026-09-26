@@ -1,21 +1,33 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
+
+// Never notifies — the platform doesn't change during a session. This exists
+// only to read `navigator` on the client while returning the same default
+// the server used, so the first client render matches the SSR'd markup.
+function subscribeToPlatform() {
+  return () => {};
+}
+
+function getShortcutKeySnapshot() {
+  const platform = window.navigator?.userAgent?.toLowerCase() || '';
+  return platform.includes('mac') ? '⌘K' : 'Ctrl+K';
+}
+
+function getServerShortcutKeySnapshot() {
+  return '⌘K';
+}
 
 export default function SearchBar() {
   const [expanded, setExpanded] = useState(false);
-  const [shortcutKey, setShortcutKey] = useState('⌘K');
+  const shortcutKey = useSyncExternalStore(
+    subscribeToPlatform,
+    getShortcutKeySnapshot,
+    getServerShortcutKeySnapshot
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Detect OS for shortcut key display
-    const platform = window.navigator?.userAgent?.toLowerCase() || '';
-    if (platform.includes('mac')) {
-      setShortcutKey('⌘K');
-    } else {
-      setShortcutKey('Ctrl+K');
-    }
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
