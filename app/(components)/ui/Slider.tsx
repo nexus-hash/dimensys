@@ -50,7 +50,6 @@ export function Slider({
         value={[position]}
         onValueChange={([pos]) => onValueChange(positionToValue(pos, min, max, scale))}
         onValueCommit={([pos]) => onValueCommit?.(positionToValue(pos, min, max, scale))}
-        aria-label={aria['aria-label']}
       >
         <RadixSlider.Track className="relative h-[2px] flex-1 rounded-full bg-line-hairline">
           <RadixSlider.Range className="absolute h-full rounded-full bg-ink-secondary" />
