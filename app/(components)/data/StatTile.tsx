@@ -1,5 +1,6 @@
 import { Tooltip } from '@/app/(components)/ui';
 import { HealthGlyph } from '@/app/(components)/canvas';
+import { NumberRoll } from '@/app/(components)/motion';
 import { Sparkline } from './Sparkline';
 import type { Severity } from './format';
 
@@ -30,6 +31,13 @@ export interface StatTileProps {
   };
   tooltip?: string;
   className?: string;
+  /**
+   * Optional: renders the value as a rolling number instead of static text.
+   * `value` still controls what's shown at rest/on first paint (and SSR);
+   * this only wires up the animated ticks on later updates. Formatting stays
+   * the caller's job, same as `value`.
+   */
+  numberRoll?: { value: number; format: (v: number) => string };
 }
 
 const SEVERITY_LABEL: Record<2 | 1, string> = { 2: 'critical', 1: 'warning' };
@@ -46,7 +54,7 @@ const SEVERITY_RING: Record<2 | 1, string> = {
  * the HUD strip at native size. A live-updating value is `tabular-nums`
  * so digits don't jitter as it ticks.
  */
-export function StatTile({ label, value, unit, delta, severity = 0, sparkline, tooltip, className }: StatTileProps) {
+export function StatTile({ label, value, unit, delta, severity = 0, sparkline, tooltip, className, numberRoll }: StatTileProps) {
   const ring = severity ? SEVERITY_RING[severity as 1 | 2] : '';
 
   const body = (
@@ -84,9 +92,18 @@ export function StatTile({ label, value, unit, delta, severity = 0, sparkline, t
       )}
 
       <div className="col-start-1 row-start-2 flex items-baseline gap-1 whitespace-nowrap">
-        <span className="font-mono text-[16px] leading-[1.2] tabular-nums text-ink-primary" style={{ letterSpacing: '-0.01em' }}>
-          {value}
-        </span>
+        {numberRoll ? (
+          <NumberRoll
+            value={numberRoll.value}
+            format={numberRoll.format}
+            className="font-mono text-[16px] leading-[1.2] text-ink-primary"
+            style={{ letterSpacing: '-0.01em' }}
+          />
+        ) : (
+          <span className="font-mono text-[16px] leading-[1.2] tabular-nums text-ink-primary" style={{ letterSpacing: '-0.01em' }}>
+            {value}
+          </span>
+        )}
         {unit && <small className="font-mono text-[11px] text-ink-muted">{unit}</small>}
       </div>
 
