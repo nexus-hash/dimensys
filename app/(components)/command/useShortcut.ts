@@ -47,9 +47,17 @@ function subscribe(listener: () => void) {
   return shortcutRegistry.subscribe(listener);
 }
 
+// A stable reference for the (never-hydrated-differently) server snapshot —
+// `() => []` would allocate a new array every call, which useSyncExternalStore
+// treats as "the store changed" on every render and loops forever.
+const EMPTY_SHORTCUTS: ShortcutDef[] = [];
+function getServerSnapshot(): ShortcutDef[] {
+  return EMPTY_SHORTCUTS;
+}
+
 /** Live, grouped view of every currently-registered, currently-active shortcut (for the gallery / cheat sheet). */
 export function useRegisteredShortcuts(): { group: string; shortcuts: ShortcutDef[] }[] {
-  const entries = useSyncExternalStore(subscribe, () => shortcutRegistry.visible(), () => []);
+  const entries = useSyncExternalStore(subscribe, () => shortcutRegistry.visible(), getServerSnapshot);
   const groups = new Map<string, ShortcutDef[]>();
   for (const entry of entries) {
     const list = groups.get(entry.group) ?? [];

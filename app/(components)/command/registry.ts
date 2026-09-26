@@ -20,17 +20,34 @@ class ShortcutRegistry {
   private listeners = new Set<Listener>();
   private scopeCounts = new Map<string, number>();
 
+  // `list()`/`visible()` back `useSyncExternalStore` snapshots (in
+  // useShortcut.ts / CommandPalette.tsx), which require the *same*
+  // reference back between mutations — a fresh array on every call looks
+  // like a store change on every render and causes an infinite update loop.
+  // These caches are invalidated (`null`ed) on every mutation instead.
+  private listCache: ShortcutDef[] | null = null;
+  private visibleCache: ShortcutDef[] | null = null;
+
   register(def: ShortcutDef): () => void {
     if (process.env.NODE_ENV !== 'production') {
       this.warnOnConflict(def);
     }
     this.entries.set(def.id, def);
+    this.invalidateCaches();
     this.notify();
     return () => this.unregister(def.id);
   }
 
   unregister(id: string): void {
-    if (this.entries.delete(id)) this.notify();
+    if (this.entries.delete(id)) {
+      this.invalidateCaches();
+      this.notify();
+    }
+  }
+
+  private invalidateCaches(): void {
+    this.listCache = null;
+    this.visibleCache = null;
   }
 
   private warnOnConflict(def: ShortcutDef): void {
@@ -49,6 +66,7 @@ class ShortcutRegistry {
 
   pushScope(scope: string): void {
     this.scopeCounts.set(scope, (this.scopeCounts.get(scope) ?? 0) + 1);
+    this.visibleCache = null;
     this.notify();
   }
 
@@ -56,6 +74,7 @@ class ShortcutRegistry {
     const count = this.scopeCounts.get(scope) ?? 0;
     if (count <= 1) this.scopeCounts.delete(scope);
     else this.scopeCounts.set(scope, count - 1);
+    this.visibleCache = null;
     this.notify();
   }
 
@@ -66,12 +85,16 @@ class ShortcutRegistry {
   }
 
   list(): ShortcutDef[] {
-    return [...this.entries.values()];
+    if (!this.listCache) this.listCache = [...this.entries.values()];
+    return this.listCache;
   }
 
-  /** Grouped, cheat-sheet-ready view: only active scopes, hidden entries excluded, stable group order. */
+  /** Active-scope, non-hidden entries — the palette/cheat-sheet source list. Cached; see above. */
   visible(): ShortcutDef[] {
-    return this.list().filter((d) => !d.hidden && this.isScopeActive(d.when));
+    if (!this.visibleCache) {
+      this.visibleCache = this.list().filter((d) => !d.hidden && this.isScopeActive(d.when));
+    }
+    return this.visibleCache;
   }
 
   subscribe(listener: Listener): () => void {
