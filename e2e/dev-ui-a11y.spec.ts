@@ -84,3 +84,41 @@ for (const theme of ['light', 'dark'] as const) {
     await runAxe(page);
   });
 }
+
+/**
+ * DS7: the command palette gallery, with the palette OPEN — a modal
+ * combobox/listbox is a different a11y surface than the closed page (focus
+ * trap, aria-activedescendant, listbox semantics), so it needs its own
+ * axe pass rather than relying on the closed-page run above to cover it.
+ */
+for (const theme of ['light', 'dark'] as const) {
+  test(`/dev/ui/command (palette open) has no serious/critical axe violations (${theme})`, async ({ page }) => {
+    await setTheme(page, theme);
+    await page.goto('/dev/ui/command');
+    await assertThemeIsReal(page, theme);
+    await expect(page.getByRole('heading', { name: 'DS7 — Command palette gallery' })).toBeVisible();
+
+    await page.getByRole('button', { name: /open command palette/i }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('combobox')).toBeFocused();
+
+    await runAxe(page);
+  });
+}
+
+/**
+ * DS6: the motion gallery (every signature-moment preset with its
+ * full-motion and reduced-motion variant, the number-roll demo, and the
+ * view-transitions demo) is the a11y test surface for the motion layer.
+ * Same zero serious/critical bar, both themes.
+ */
+for (const theme of ['light', 'dark'] as const) {
+  test(`/dev/ui/motion has no serious/critical axe violations (${theme})`, async ({ page }) => {
+    await setTheme(page, theme);
+    await page.goto('/dev/ui/motion');
+    await assertThemeIsReal(page, theme);
+    await expect(page.getByRole('heading', { name: 'DS6 — Motion gallery' })).toBeVisible();
+
+    await runAxe(page);
+  });
+}

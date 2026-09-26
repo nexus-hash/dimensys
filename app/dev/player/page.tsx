@@ -9,12 +9,27 @@ export const metadata = {
 
 /** Hand-written stand-in for a view-data document, so the skeleton renders without synced output. */
 const FIXTURE: ViewData = {
+  fmt: 1,
+  build: `sha256:${'0'.repeat(64)}`,
   id: 'dev-fixture',
-  build: { version: '3.0.0', hash: `sha256:${'0'.repeat(64)}`, builtAt: '2026-09-26T00:00:00.000Z' },
-  layouts: { desktop: { canvas: { w: 640, h: 360 }, nodes: {}, links: {} } },
-  metadata: { title: 'Player skeleton fixture', revision: 1 },
-  walkthroughStates: {},
-  hasSimulation: false,
+  rev: 1,
+  family: 'hld',
+  head: { title: 'Player skeleton fixture', blurb: 'Fixture for the player skeleton.', grade: 'easy', labels: [] },
+  needs: [],
+  premises: [],
+  refs: [],
+  board: { size: [640, 360], blocks: [], wires: [] },
+  spares: { blocks: [], wires: [] },
+  pins: [],
+  stories: [],
+  plays: [],
+  remedies: [],
+  switches: [],
+  gauges: [],
+  calcs: [],
+  drills: [],
+  motifs: [],
+  live: false,
 };
 
 /**
