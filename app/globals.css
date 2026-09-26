@@ -39,6 +39,21 @@
   --color-brand-strong: var(--brand-strong);
   --color-brand-tertiary: var(--brand-tertiary);
   --color-brand-subtle: var(--brand-subtle);
+  /* Text/icon color on top of --brand-gradient (primary button, active states).
+     Fixed (not per-theme): the gradient itself is identical in both themes, and
+     this near-black tone is the only ink value that clears 4.5:1 text contrast
+     against it (white only clears ~3:1, the "large text/graphics" floor). Not
+     in UI_UX_SPEC §3.1 — see SPEC GAPS in the DS3 report. */
+  --color-on-brand: var(--on-brand);
+  /* Text color for brand-colored text/glyphs on a light `--brand-subtle` fill
+     (e.g. the `brand` Pill variant) — flat `--brand` (#ff6600) is only
+     ~2.6:1 there, short of the 4.5:1 text floor. Per-theme, darker/lighter
+     same-hue value; not in UI_UX_SPEC §3.1 — see SPEC GAPS in DS3 report. */
+  --color-brand-ink: var(--brand-ink);
+
+  /* ── Surfaces, cont. — a recessed surface for control tracks (segmented
+     control, sliders). Not in UI_UX_SPEC §3.1 — see SPEC GAPS in DS3 report. */
+  --color-surface-sunken: var(--surface-sunken);
 
   /* ── Signal (§3.1) ──────────────────────────────────────────────────────── */
   --color-signal-ok: var(--signal-ok);
@@ -143,6 +158,7 @@
     --surface-raised: #fafafa;
     --surface-overlay: #ffffff;
     --surface-glass: rgba(0, 0, 0, 0.03);
+    --surface-sunken: #f4f4f3;
 
     /* Ink & lines (§3.1, light) */
     --ink-primary: #121212;
@@ -163,6 +179,8 @@
     --brand-gradient: linear-gradient(135deg, #ff6600 0%, #ff5f15 50%, #ff8c42 100%);
     --brand-subtle: rgba(255, 102, 0, 0.1);
     --brand-glow: 0 0 30px rgba(255, 102, 0, 0.4);
+    --on-brand: #1a0800;
+    --brand-ink: #c24100;
 
     /* Signal — validated against #121212 and #ffffff (§3.1). §3.1 lists a single
        flat value per signal, but --signal-warn (#fab219) only clears ~1.8:1
@@ -221,6 +239,7 @@
     --surface-raised: #1a1a1a;
     --surface-overlay: #1f1f1f;
     --surface-glass: rgba(255, 255, 255, 0.04);
+    --surface-sunken: #0c0c0c;
 
     /* Ink & lines (§3.1, dark) */
     --ink-primary: #f0f0f0;
@@ -237,6 +256,7 @@
     /* Signal — the exact §3.1 value; passes ≥3:1 comfortably on this theme's
        surfaces (see the light-theme note above). */
     --signal-warn: #fab219;
+    --brand-ink: #ff7a26;
 
     /* Mermaid concept-diagram palette (dark) */
     --mermaid-primary: #171717;
@@ -471,4 +491,54 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+/* ─── UI primitive motion (DS3, §3.5/§7) ─── */
+
+@keyframes fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeout {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes riseOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(4px); }
+}
+
+/*
+ * §3.5 "Reduced motion: springs become 120ms fades..." and §9 "Reduced
+ * motion: per §3.5". Applied as one blanket rule rather than per-component,
+ * so every current and future transition/animation in the primitive layer
+ * (and the rest of the app) automatically complies — including the app's
+ * own future Motion setting, honored the same way as the OS preference via
+ * `data-motion="off"` on <html> (see `useReducedMotion`).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
