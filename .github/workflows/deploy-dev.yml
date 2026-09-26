@@ -102,6 +102,14 @@ jobs:
       - name: Sync engine output to dimensys
         run: node scripts/sync-engine.js
 
+      - name: Build dms-engine v3
+        run: |
+          cd ../dms-engine
+          npm run build:v3
+
+      - name: Sync v3 engine output to dimensys
+        run: node scripts/sync-engine-v3.js
+
       - name: Install dimensys dependencies
         run: npm ci
 
@@ -142,6 +150,38 @@ jobs:
 
           if grep -rIl "This software and its source code are proprietary and confidential" .vercel/output; then
             echo "::error::Found the dms-engine proprietary license header inside .vercel/output — engine source leaked into the deployable artifact."
+            exit 1
+          fi
+
+          # sync-engine-v3.js keeps server-only diagram/puzzle data (interview
+          # blocks, puzzle secrets) under server-data/, strictly outside
+          # public/ and data/engine/. Fail if that
+          # split didn't hold: a server-data path anywhere in the deployable
+          # output, or an "interview"/"secret" key inside the statically
+          # served files, both indicate server-only data leaked into what
+          # ships to the browser.
+          if find .vercel/output -path '*server-data*' | grep -q .; then
+            echo "::error::Found server-data path(s) inside .vercel/output:"
+            find .vercel/output -path '*server-data*'
+            exit 1
+          fi
+
+          # The engine build's *.compiled.json files (full compiled documents,
+          # server-only) must never end up anywhere in the deployable output
+          # either, regardless of directory — same leak, different filename.
+          if find .vercel/output -name '*.compiled.json' | grep -q .; then
+            echo "::error::Found *.compiled.json file(s) inside .vercel/output:"
+            find .vercel/output -name '*.compiled.json'
+            exit 1
+          fi
+
+          if [ -d .vercel/output/static ] && grep -rIl '"interview"' .vercel/output/static; then
+            echo "::error::Found an \"interview\" key inside .vercel/output/static — server-only diagram data leaked into the public build."
+            exit 1
+          fi
+
+          if [ -d .vercel/output/static ] && grep -rIl '"secret"' .vercel/output/static; then
+            echo "::error::Found a \"secret\" key inside .vercel/output/static — server-only puzzle data leaked into the public build."
             exit 1
           fi
 

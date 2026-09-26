@@ -1,4 +1,3 @@
-import HeroSection from './HeroSection';
 import ConceptsSection from './ConceptsSection';
 import LearningPath from './LearningPath';
 import StatsBar from './StatsBar';

@@ -1,15 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
+import { useHasMounted } from '../../(hooks)/useHasMounted';
 
 export default function ThemeButton() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHasMounted();
   const { resolvedTheme, setTheme } = useTheme();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!mounted) {
     return <div className="w-8 h-8" />;

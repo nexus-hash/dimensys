@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type ComponentType } from 'react';
 
 // Small seeded PRNG (mulberry32) — deterministic across server and client
 // renders, so the circuit layout never differs between SSR and hydration
@@ -52,7 +52,7 @@ const CIRCUITS = [Circuit1, Circuit2, Circuit3, Circuit4];
 
 interface NodeInstance {
   id: number;
-  Component: any;
+  Component: ComponentType<{ className?: string }>;
   top: number;
   left: number;
   opacity: number;

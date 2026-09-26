@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useRouter } from 'next/navigation';
+import { useHasMounted } from '../../(hooks)/useHasMounted';
 
 // ── Cube geometry constants ───────────────────────────────────────────────────
 const H  = 0.72;        // half-size of cube
@@ -224,12 +225,11 @@ export default function Logo3D({
   disableNavigation = false,
 }: Logo3DProps) {
   const router = useRouter();
-  const [mounted, setMounted]   = useState(false);
+  const mounted = useHasMounted();
   const [isZoomed, setIsZoomed] = useState(false);
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setMounted(true);
     return () => { if (clickTimer.current) clearTimeout(clickTimer.current); };
   }, []);
 

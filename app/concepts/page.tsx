@@ -5,12 +5,17 @@ import Navbar from '../(components)/navbar/Navbar';
 import Footer from '../(components)/footer/Footer';
 import CategoryFilter from '../(components)/problems/CategoryFilter';
 import CircuitBackground from '../(components)/problems/CircuitBackground';
-import ConceptAccordion from '../(components)/concepts/ConceptAccordion';
+import ConceptAccordion, { type Module } from '../(components)/concepts/ConceptAccordion';
+
+interface Category {
+  id: string;
+  title: string;
+}
 
 export default function ConceptsPage() {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
-  const [modules, setModules] = useState([]);
+  const [modules, setModules] = useState<Module[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -61,10 +66,10 @@ export default function ConceptsPage() {
       .then(data => {
         if (data.modules) {
           setModules(data.modules);
-          
+
           const tags = new Set<string>();
-          data.modules.forEach((mod: any) => {
-            mod.concepts?.forEach((c: any) => {
+          data.modules.forEach((mod: Module) => {
+            mod.concepts?.forEach((c) => {
               c.tags?.forEach((t: string) => tags.add(t));
             });
           });
@@ -73,7 +78,7 @@ export default function ConceptsPage() {
           setVisibleModulesCount(2);
         }
       })
-      .catch(err => {
+      .catch(() => {
          setModules([]);
          setAllTags([]);
       });
@@ -122,13 +127,13 @@ export default function ConceptsPage() {
           </div>
 
             <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CategoryFilter 
-              categories={categories.map((c: any) => c.title)} 
-              activeCategory={activeCategory === 'All' ? 'All' : categories.find((c:any) => c.id === activeCategory)?.title || 'All'} 
+            <CategoryFilter
+              categories={categories.map((c) => c.title)}
+              activeCategory={activeCategory === 'All' ? 'All' : categories.find((c) => c.id === activeCategory)?.title || 'All'}
               onSelect={(title: string) => {
-                 const cat = categories.find((c: any) => c.title === title);
+                 const cat = categories.find((c) => c.title === title);
                  if (cat) setActiveCategory(cat.id);
-              }} 
+              }}
             />
 
             <div className="pb-4 py-3">
@@ -183,7 +188,7 @@ export default function ConceptsPage() {
           )}
 
           <div className="space-y-6">
-            {visibleModules.map((mod: any) => (
+            {visibleModules.map((mod) => (
               <ConceptAccordion key={mod.id} mod={mod} categoryId={activeCategory === 'All' ? 'HLD' : activeCategory} activeTags={activeTags} />
             ))}
             

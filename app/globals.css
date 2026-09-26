@@ -15,18 +15,18 @@
   --color-orange-500: #ff6600;
   --color-orange-400: #FF5F15;
 
-  /* ── Fonts (§3.2) — Geist Sans for UI/prose, Geist Mono for machine text ── */
+  /* ── Fonts — Geist Sans for UI/prose, Geist Mono for machine text ── */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 
-  /* ── Surfaces (§3.1) ────────────────────────────────────────────────────── */
+  /* ── Surfaces ────────────────────────────────────────────────────── */
   --color-surface-page: var(--surface-page);
   --color-surface-canvas: var(--surface-canvas);
   --color-surface-raised: var(--surface-raised);
   --color-surface-overlay: var(--surface-overlay);
   --color-surface-glass: var(--surface-glass);
 
-  /* ── Ink & lines (§3.1) ─────────────────────────────────────────────────── */
+  /* ── Ink & lines ─────────────────────────────────────────────────── */
   --color-ink-primary: var(--ink-primary);
   --color-ink-secondary: var(--ink-secondary);
   --color-ink-muted: var(--ink-muted);
@@ -34,18 +34,42 @@
   --color-line-strong: var(--line-strong);
   --color-grid-dot: var(--grid-dot);
 
-  /* ── Brand — chrome only, never the canvas (§3.1 / §3.4) ───────────────── */
+  /* ── Brand — chrome only, never the canvas ───────────────── */
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-tertiary: var(--brand-tertiary);
   --color-brand-subtle: var(--brand-subtle);
+  /* Text/icon color on top of --brand-gradient (primary button, active states).
+     Fixed (not per-theme): the gradient itself is identical in both themes, and
+     this near-black tone is the only ink value that clears 4.5:1 text contrast
+     against it (white only clears ~3:1, the "large text/graphics" floor). Not
+     in the design spec — see SPEC GAPS in the DS3 report. */
+  --color-on-brand: var(--on-brand);
+  /* Text color for brand-colored text/glyphs on a light `--brand-subtle` fill
+     (e.g. the `brand` Pill variant) — flat `--brand` (#ff6600) is only
+     ~2.6:1 there, short of the 4.5:1 text floor. Per-theme, darker/lighter
+     same-hue value; not in the design spec — see SPEC GAPS in DS3 report. */
+  --color-brand-ink: var(--brand-ink);
 
-  /* ── Signal (§3.1) ──────────────────────────────────────────────────────── */
+  /* ── Surfaces, cont. — a recessed surface for control tracks (segmented
+     control, sliders). Not in the design spec — see SPEC GAPS in DS3 report. */
+  --color-surface-sunken: var(--surface-sunken);
+
+  /* ── Signal ──────────────────────────────────────────────────────── */
   --color-signal-ok: var(--signal-ok);
   --color-signal-warn: var(--signal-warn);
   --color-signal-critical: var(--signal-critical);
   --color-signal-flow: var(--signal-flow);
   --color-signal-retry: var(--signal-retry);
+
+  /* ── Glyph ink — the health glyph sits on a small saturated fill
+     (the warn triangle, the ok/critical roundels), so it needs its own ink
+     rather than --ink-primary/--surface-page. Per-theme inverse of
+     --ink-primary for the ok/critical glyph strokes, plus a fixed dark tone
+     for the warn triangle (yellow needs dark, not light, ink in both
+     themes). Not in the design spec — see SPEC GAPS in the DS5 report. */
+  --color-ink-inverse: var(--ink-inverse);
+  --color-warn-ink: var(--warn-ink);
 
   /* ── Logo accent shades — tokens instead of literals in components ─────── */
   --color-logo-amber: var(--logo-amber);
@@ -57,7 +81,7 @@
   --color-logo-body: var(--logo-body);
   --color-logo-emissive: var(--logo-emissive);
 
-  /* ── Type scale (§3.2) ──────────────────────────────────────────────────── */
+  /* ── Type scale ──────────────────────────────────────────────────── */
   --text-display-xl: 6rem;
   --text-display-xl--line-height: 1;
   --text-display-xl--letter-spacing: -0.03em;
@@ -101,18 +125,18 @@
   --text-mono-metric--line-height: 1.2;
   --text-mono-metric--font-weight: 600;
 
-  /* ── Radii (§3.3) ───────────────────────────────────────────────────────── */
+  /* ── Radii ───────────────────────────────────────────────────────── */
   --radius-control: 6px;
   --radius-node: 10px;
   --radius-card: 16px;
   --radius-pill: 9999px;
 
-  /* ── Elevation (§3.3) ───────────────────────────────────────────────────── */
+  /* ── Elevation ───────────────────────────────────────────────────── */
   --shadow-elevation-1: var(--elevation-1);
   --shadow-elevation-2: var(--elevation-2);
   --shadow-brand-glow: var(--brand-glow);
 
-  /* ── Z-layers (§3.3) — z-canvas, z-rail, z-chrome, z-sheet, z-dialog, … ──── */
+  /* ── Z-layers — z-canvas, z-rail, z-chrome, z-sheet, z-dialog, … ──── */
   --z-index-canvas: 0;
   --z-index-canvas-overlay: 10;
   --z-index-rail: 20;
@@ -122,7 +146,7 @@
   --z-index-toast: 60;
   --z-index-palette: 70;
 
-  /* ── Motion (§3.5) ──────────────────────────────────────────────────────── */
+  /* ── Motion ──────────────────────────────────────────────────────── */
   --transition-duration-micro: 120ms;
   --transition-duration-small: 200ms;
   --transition-duration-panel: 320ms;
@@ -137,14 +161,15 @@
     --background: var(--color-light-primary);
     --foreground: var(--color-light-secondary);
 
-    /* Surfaces (§3.1, light) */
+    /* Surfaces */
     --surface-page: #ffffff;
     --surface-canvas: #fcfcfb;
     --surface-raised: #fafafa;
     --surface-overlay: #ffffff;
     --surface-glass: rgba(0, 0, 0, 0.03);
+    --surface-sunken: #f4f4f3;
 
-    /* Ink & lines (§3.1, light) */
+    /* Ink & lines */
     --ink-primary: #121212;
     --ink-secondary: rgba(18, 18, 18, 0.64);
     --ink-muted: rgba(18, 18, 18, 0.60);
@@ -152,21 +177,23 @@
     --line-strong: rgba(0, 0, 0, 0.16);
     --grid-dot: rgba(0, 0, 0, 0.06);
 
-    /* Elevation (§3.3, light — soft shadows) */
+    /* Elevation */
     --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.06);
     --elevation-2: 0 8px 24px rgba(0, 0, 0, 0.08);
 
-    /* Brand — chrome only, same in both themes (§3.1 / §3.4) */
+    /* Brand — chrome only, same in both themes */
     --brand: #ff6600;
     --brand-strong: #ff5f15;
     --brand-tertiary: #ff8c42;
     --brand-gradient: linear-gradient(135deg, #ff6600 0%, #ff5f15 50%, #ff8c42 100%);
     --brand-subtle: rgba(255, 102, 0, 0.1);
     --brand-glow: 0 0 30px rgba(255, 102, 0, 0.4);
+    --on-brand: #1a0800;
+    --brand-ink: #c24100;
 
-    /* Signal — validated against #121212 and #ffffff (§3.1). §3.1 lists a single
+    /* Signal — validated against #121212 and #ffffff. The design spec lists a single
        flat value per signal, but --signal-warn (#fab219) only clears ~1.8:1
-       against a white/light surface (needs the §9 "UI graphics" ≥3:1 floor).
+       against a white/light surface (needs the design spec's "UI graphics" ≥3:1 floor).
        It is kept exactly as specified for the dark theme (~10:1 there, see the
        [data-theme="dark"] override below) and given a same-hue, darker
        light-theme value here so both themes pass; every other signal color
@@ -178,6 +205,10 @@
     --signal-flow: #38bdf8;
     --signal-retry: #e11d48;
 
+    /* Glyph ink — see DS5 SPEC GAPS */
+    --ink-inverse: #ffffff;
+    --warn-ink: #1a1200;
+
     /* Logo accent shades — kept as tokens so component files hold no literal hex */
     --logo-amber: #ffaa00;
     --logo-amber-light: #ffbb00;
@@ -188,7 +219,7 @@
     --logo-body: #ff4400;
     --logo-emissive: #ff2000;
 
-    /* Motion spring configs (§3.5) — consumed by JS (motion libs), not CSS */
+    /* Motion spring configs — consumed by JS (motion libs), not CSS */
     --spring-camera-stiffness: 170;
     --spring-camera-damping: 26;
     --spring-ui-stiffness: 400;
@@ -215,14 +246,15 @@
     --background: var(--color-dark-primary);
     --foreground: var(--color-dark-secondary);
 
-    /* Surfaces (§3.1, dark) */
+    /* Surfaces */
     --surface-page: #121212;
     --surface-canvas: #101010;
     --surface-raised: #1a1a1a;
     --surface-overlay: #1f1f1f;
     --surface-glass: rgba(255, 255, 255, 0.04);
+    --surface-sunken: #0c0c0c;
 
-    /* Ink & lines (§3.1, dark) */
+    /* Ink & lines */
     --ink-primary: #f0f0f0;
     --ink-secondary: rgba(240, 240, 240, 0.64);
     --ink-muted: rgba(240, 240, 240, 0.52);
@@ -230,13 +262,18 @@
     --line-strong: rgba(255, 255, 255, 0.16);
     --grid-dot: rgba(255, 255, 255, 0.04);
 
-    /* Elevation (§3.3, dark — hairline + inset highlight, not shadow) */
+    /* Elevation */
     --elevation-1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     --elevation-2: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
-    /* Signal — the exact §3.1 value; passes ≥3:1 comfortably on this theme's
+    /* Signal — the exact the design spec value; passes ≥3:1 comfortably on this theme's
        surfaces (see the light-theme note above). */
     --signal-warn: #fab219;
+    --brand-ink: #ff7a26;
+
+    /* Glyph ink — see DS5 SPEC GAPS */
+    --ink-inverse: #121212;
+    --warn-ink: #1a1200;
 
     /* Mermaid concept-diagram palette (dark) */
     --mermaid-primary: #171717;
@@ -472,3 +509,220 @@
     scrollbar-width: none;
   }
 }
+
+/* ─── UI primitive motion (DS3) ─── */
+
+@keyframes fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeout {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes riseOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(4px); }
+}
+
+/*
+ * The design spec's reduced-motion rule: springs become 120ms fades and non-essential
+ * animation is skipped. Applied as one blanket rule rather than per-component,
+ * so every current and future transition/animation in the primitive layer
+ * (and the rest of the app) automatically complies — including the app's
+ * own future Motion setting, honored the same way as the OS preference via
+ * `data-motion="off"` on <html> (see `useReducedMotion`).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+/* ============================================================================
+ * Canvas — DS5 node/link/subsystem states.
+ *
+ * Kept as plain classes (not Tailwind utilities) because these are stateful
+ * SVG selectors (`:hover`, `:focus-visible`, sibling/descendant combinators)
+ * that Tailwind's arbitrary-variant syntax makes unreadable at this density —
+ * the same reasoning as `.glass`/`.grid-bg` above. Every color is a token
+ * from the design spec (or the DS5 additions above); no hex.
+ * ========================================================================= */
+
+.cv-node { cursor: pointer; outline: none; }
+.cv-node .cv-body { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); stroke-width: 1; transition: stroke var(--transition-duration-micro); }
+.cv-node .cv-stack { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-node:hover .cv-body { stroke: var(--color-line-strong); }
+.cv-node .cv-icon { color: var(--color-ink-secondary); }
+.cv-node .cv-label { font: 500 13px var(--font-sans); fill: var(--color-ink-primary); }
+.cv-node .cv-sub { font: 500 12px var(--font-mono); fill: var(--color-ink-muted); }
+.cv-node .cv-mtrack { fill: var(--color-line-hairline); }
+.cv-node .cv-mfill { fill: var(--color-ink-secondary); transition: fill var(--transition-duration-small); }
+.cv-node .cv-mtext { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
+.cv-node.cv-meter-warn .cv-mfill { fill: var(--color-signal-warn); }
+.cv-node.cv-meter-critical .cv-mfill { fill: var(--color-signal-critical); }
+.cv-node .cv-ring, .cv-node .cv-sel, .cv-node .cv-halo, .cv-node .cv-focus { fill: none; stroke: none; }
+.cv-node .cv-hatch { opacity: 0; transition: opacity 400ms; }
+.cv-node .cv-inner { transition: opacity 400ms; }
+.cv-node .cv-role rect { fill: none; stroke: var(--color-line-strong); }
+.cv-node .cv-role text { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
+
+.cv-node.cv-health-warn .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; }
+.cv-node.cv-health-critical .cv-ring { stroke: var(--color-signal-critical); stroke-width: 2; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-signal-critical) 35%, transparent)); }
+.cv-node.cv-health-critical.is-pulsing .cv-ring { animation: cv-ringpulse 1.2s ease-in-out infinite; }
+.cv-node.cv-health-down .cv-ring { stroke: var(--color-ink-muted); stroke-width: 1; stroke-dasharray: 4 3; }
+.cv-node.cv-health-down .cv-inner { opacity: .3; }
+.cv-node.cv-health-down .cv-hatch { opacity: 1; }
+.cv-node.cv-health-recovering .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; stroke-dasharray: 7 5; animation: cv-dashrot 1.8s linear infinite; }
+.cv-node.cv-health-warn .cv-role, .cv-node.cv-health-critical .cv-role, .cv-node.cv-health-down .cv-role, .cv-node.cv-health-recovering .cv-role { display: none; }
+
+.cv-node.is-selected .cv-sel { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-node.is-selected .cv-halo { stroke: var(--color-ink-primary); stroke-width: 8; stroke-opacity: .1; }
+.cv-node:focus-visible .cv-sel { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-node:focus-visible .cv-focus { stroke: var(--color-ink-primary); stroke-width: 1; stroke-dasharray: 2 3; }
+.cv-node.is-dimmed { opacity: .2; transition: opacity var(--transition-duration-panel); }
+
+.cv-node .cv-glyph { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.4); transition: opacity var(--transition-duration-small), transform 260ms cubic-bezier(.3,1.4,.4,1); }
+.cv-node.cv-health-warn .cv-glyph, .cv-node.cv-health-critical .cv-glyph, .cv-node.cv-health-down .cv-glyph, .cv-node.cv-health-recovering .cv-glyph { opacity: 1; transform: scale(1); }
+
+.cv-node .cv-chip { opacity: 0; transform: translateY(4px); transition: opacity var(--transition-duration-small), transform var(--transition-duration-small) var(--ease-emphasized); }
+.cv-node.cv-health-warn .cv-chip, .cv-node.cv-health-critical .cv-chip, .cv-node.cv-health-down .cv-chip, .cv-node.cv-health-recovering .cv-chip { opacity: 1; transform: none; }
+.cv-node .cv-chip rect { fill: var(--color-surface-glass); stroke: var(--color-line-strong); }
+.cv-node.cv-health-warn .cv-chip rect, .cv-node.cv-health-recovering .cv-chip rect { stroke: var(--color-signal-warn); }
+.cv-node.cv-health-critical .cv-chip rect { stroke: var(--color-signal-critical); }
+.cv-node .cv-chip text { font: 600 12px var(--font-mono); fill: var(--color-ink-primary); }
+
+.cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
+.cv-node .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
+
+@keyframes cv-ringpulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
+@keyframes cv-dashrot { to { stroke-dashoffset: -24; } }
+@keyframes cv-drift { to { stroke-dashoffset: -11; } }
+
+/* Links */
+.cv-link { fill: none; stroke: var(--color-line-strong); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--transition-duration-small), opacity var(--transition-duration-small); }
+.cv-link.is-async { stroke-dasharray: 6 4; }
+.cv-link.is-stream { stroke-dasharray: 1.5 4; animation: cv-drift 1.6s linear infinite; }
+.cv-link.is-bad { stroke: color-mix(in srgb, var(--color-signal-critical) 60%, transparent); }
+.cv-link.is-hl { stroke: var(--color-ink-primary); }
+.cv-link-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
+.cv-linkgroup.is-dimmed { opacity: .25; }
+.cv-linkgroup.is-selected .cv-link { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-link-label rect { fill: var(--color-surface-glass); stroke: var(--color-line-hairline); }
+.cv-link-label text { font: 500 12px var(--font-mono); fill: var(--color-ink-secondary); }
+.cv-link-label.is-hot rect { stroke: color-mix(in srgb, var(--color-signal-critical) 55%, transparent); }
+.cv-link-cut text { font: 600 14px var(--font-sans); fill: var(--color-ink-primary); }
+.cv-link-cut circle { fill: var(--color-surface-canvas); stroke: var(--color-line-strong); }
+
+/* DSA cells */
+.cv-cell rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-cell text { font: 600 14px var(--font-mono); fill: var(--color-ink-primary); }
+.cv-cell.cv-cell-active rect { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-cell.cv-cell-compare rect { stroke: var(--color-signal-flow); stroke-width: 2; }
+.cv-cell.cv-cell-visited rect { fill: var(--color-surface-sunken); }
+.cv-cell.cv-cell-error rect { stroke: var(--color-signal-critical); stroke-width: 2; }
+.cv-marker rect { fill: var(--color-surface-overlay); stroke: var(--color-line-strong); }
+.cv-marker text { font: 600 11px var(--font-mono); fill: var(--color-ink-primary); }
+
+/* LLD cards */
+.cv-lld-card { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-lld-name { font: 600 13px var(--font-sans); fill: var(--color-ink-primary); }
+.cv-lld-stereotype { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
+.cv-lld-member { font: 500 12px var(--font-mono); fill: var(--color-ink-secondary); }
+
+/* ── Shiki (DS8) ─────────────────────────────────────────────────────────
+   CodeBlock/AnnotatedCode highlight with `themes: { light, dark },
+   defaultColor: false`, so every token gets a `--shiki-light` /
+   `--shiki-dark` custom property (a computed value, not a literal — this
+   file is exempt from lint:colors, but nothing here is a hex literal
+   either) instead of a fixed `color`. These rules pick the right one for
+   the active theme, using the same `[data-theme]` switch as the rest of
+   the token system. */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+}
+
+[data-theme="dark"] .shiki,
+[data-theme="dark"] .shiki span {
+  color: var(--shiki-dark);
+}
+
+.shiki-container .shiki {
+  background: transparent;
+  margin: 0;
+}
+
+.shiki-container .line {
+  display: inline-block;
+  width: 100%;
+}
+
+/* Optional line numbers (CodeBlock/AnnotatedCode `showLineNumbers`) — a
+   `shiki-line-numbers` class on <code>, added by a Shiki transformer, turns
+   on a CSS-counter gutter instead of rendering a separate number per line
+   in JS. */
+.shiki-line-numbers {
+  counter-reset: shiki-line;
+}
+
+.shiki-line-numbers .line::before {
+  counter-increment: shiki-line;
+  content: counter(shiki-line);
+  display: inline-block;
+  width: 2.5rem;
+  margin-right: 1rem;
+  text-align: right;
+  color: var(--color-ink-muted);
+  user-select: none;
+}
+
+/* AnnotatedCode `highlightLines` — 2px left bar + subtle background, added
+   as a line class by createLineDecorationTransformer. */
+.shiki-line-highlight {
+  background-color: var(--color-brand-subtle);
+  box-shadow: inset 2px 0 0 0 var(--color-brand);
+}
+
+.shiki-line-annotated {
+  box-shadow: inset 2px 0 0 0 var(--color-brand-strong);
+}
+
+.shiki-line-highlight.shiki-line-annotated {
+  box-shadow: inset 2px 0 0 0 var(--color-brand);
+}
+
+/* AnnotatedCode annotation markers — real, visible note text appended to
+   the line by createLineDecorationTransformer, not just a title/tooltip. */
+.shiki-annotation-marker {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-brand-subtle);
+  color: var(--color-brand-ink);
+  font-style: normal;
+  font-size: 0.75em;
+  vertical-align: middle;
+}
+.cv-lld-rule { stroke: var(--color-line-hairline); }

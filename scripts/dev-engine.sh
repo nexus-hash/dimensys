@@ -14,5 +14,5 @@ fi
 echo "👁️  Watching dms-engine for changes..."
 cd "$ENGINE_DIR"
 npx chokidar-cli 'src/**/*.ts' 'src/**/*.tsx' 'data/**/*.json' 'src/assets/data/**/*' \
-  -c "echo '🔄 Change detected...' && npm run build && node $SCRIPT_DIR/sync-engine.js" \
+  -c "echo '🔄 Change detected...' && npm run build && node $SCRIPT_DIR/sync-engine.js && npm run build:v3 && node $SCRIPT_DIR/sync-engine-v3.js" \
   --initial
