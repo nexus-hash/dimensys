@@ -1,6 +1,7 @@
 import { PlayerIsland } from './PlayerIsland';
 import { DrilldownBlueprint, subsystemLabelsById } from './blueprint';
 import { PlayerShell, buildElementIndex, modeAvailability } from './shell';
+import { buildInspectorPanels } from './inspector';
 import type { PlayerBootstrap, ViewData } from './types';
 
 export interface DiagramPlayerProps {
@@ -100,6 +101,10 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   const labelsById = subsystemLabelsById(board);
   const elementIndex = buildElementIndex(board);
   const availability = modeAvailability(diagram);
+  // Every node's/link's inspector body, rendered once here (server-side —
+  // see `buildInspectorPanels`'s own doc comment) rather than fetched or
+  // built client-side per selection.
+  const panels = buildInspectorPanels(board, elementIndex);
 
   // A plain `<div>`, not a labelled `<section>`: an accessibly-named
   // `<section>` is itself a landmark ("region"), and `PlayerShell` already
@@ -110,7 +115,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   return (
     <div data-player-variant={variant} className="h-full">
       <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
-        <PlayerShell title={diagram.head.title} labelsById={labelsById} elementIndex={elementIndex} modeAvailability={availability}>
+        <PlayerShell title={diagram.head.title} labelsById={labelsById} elementIndex={elementIndex} modeAvailability={availability} panels={panels}>
           {blueprint}
         </PlayerShell>
       </PlayerIsland>

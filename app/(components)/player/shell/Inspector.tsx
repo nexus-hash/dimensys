@@ -1,13 +1,17 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useShortcut, useShortcutScope } from '@/app/(components)/command';
 import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import type { ElementIndex } from './selection';
 import { selectionKindLabel, selectionTitle } from './selection';
 import { InspectorHeader, InspectorBodySlot } from './InspectorHeader';
+import { EmptyInspectorBody } from '../inspector';
 
 export interface InspectorProps {
   elementIndex: ElementIndex;
+  /** Every node's/link's inspector body, pre-rendered server-side (T3.6) — see `DiagramPlayer.tsx`. Keyed by element id; looked up by `selection.id`. */
+  panels: Record<string, ReactNode>;
 }
 
 /**
@@ -25,7 +29,7 @@ export interface InspectorProps {
  * bottom sheet's "Inspect" tab instead (`PhoneSheet.tsx`), so there is
  * exactly one selection→title→slot path, just two places it can render.
  */
-export function Inspector({ elementIndex }: InspectorProps) {
+export function Inspector({ elementIndex, panels }: InspectorProps) {
   const selection = usePlayerStore((s) => s.selection);
   const store = usePlayerStoreApi();
 
@@ -51,7 +55,7 @@ export function Inspector({ elementIndex }: InspectorProps) {
   return (
     <aside className="player-inspector" aria-label="Inspector">
       <InspectorHeader title={title} kindLabel={kindLabel} onClose={close} />
-      <InspectorBodySlot />
+      <InspectorBodySlot>{panels[selection.id] ?? <EmptyInspectorBody />}</InspectorBodySlot>
     </aside>
   );
 }

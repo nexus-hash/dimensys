@@ -17,6 +17,8 @@ export interface PlayerShellProps {
   labelsById: Record<string, string>;
   elementIndex: ElementIndex;
   modeAvailability: Record<PlayerMode, ModeAvailability>;
+  /** Every node's/link's pre-rendered inspector body (T3.6), handed to both `Inspector` and `PhoneSheet` — see `DiagramPlayer.tsx`. Defaults to `{}` for callers (and existing tests) that don't pass one. */
+  panels?: Record<string, React.ReactNode>;
   children: React.ReactNode;
 }
 
@@ -61,7 +63,7 @@ export interface PlayerShellProps {
  * bottom padding tracks the sheet's *actual* current height, not just its
  * lowest (12%) snap point.
  */
-export function PlayerShell({ title, labelsById, elementIndex, modeAvailability, children }: PlayerShellProps) {
+export function PlayerShell({ title, labelsById, elementIndex, modeAvailability, panels = {}, children }: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
   const selection = usePlayerStore((s) => s.selection);
   const [railOpen, setRailOpen] = React.useState(true);
@@ -102,9 +104,9 @@ export function PlayerShell({ title, labelsById, elementIndex, modeAvailability,
       >
         <LeftRail open={railDrawerOpen} onClose={toggleRail} />
         <HudTimelineFrame>{children}</HudTimelineFrame>
-        <Inspector elementIndex={elementIndex} />
+        <Inspector elementIndex={elementIndex} panels={panels} />
       </main>
-      <PhoneSheet elementIndex={elementIndex} snapIndex={snapIndex} onSnapIndexChange={setSnapIndex} />
+      <PhoneSheet elementIndex={elementIndex} panels={panels} snapIndex={snapIndex} onSnapIndexChange={setSnapIndex} />
     </div>
   );
 }
