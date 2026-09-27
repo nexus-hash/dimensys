@@ -2,11 +2,14 @@ import { NodeIcon } from './icons';
 import { HealthGlyph } from './HealthGlyph';
 import { hatchId } from './CanvasDefs';
 import type { HealthState } from './types';
-import { MONO_CHAR_EM, truncateToWidth } from './text';
+import { MONO_CHAR_EM, SANS_CHAR_EM, truncateToWidth } from './text';
 
 /** Matches `.cv-subsystem .cv-tab` in globals.css. */
 const TAB_FONT_SIZE = 11;
 const TAB_LETTER_SPACING_EM = 0.06;
+/** Matches `.cv-node .cv-label`/`.cv-sub` in globals.css — same classes `Node` uses. */
+const LABEL_FONT_SIZE = 13;
+const SUBLABEL_FONT_SIZE = 12;
 
 /**
  * The collapsed subsystem affordance: renders like a larger node,
@@ -45,6 +48,16 @@ export function SubsystemCollapsed({
   const ariaLabel = `${label} subsystem, ${nodeCount} nodes, ${health === 'ok' ? 'healthy' : health}${
     healthLabel ? `, ${healthLabel}` : ''
   }`;
+  // Same estimate-then-clip truncation `Node` uses for its label/sub-label
+  // (text.ts — no DOM to measure against server-side): a hard clipPath as
+  // the safety net, plus the full text in a native `<title>` tooltip
+  // regardless of what's visually truncated.
+  const subText = `${nodeCount} node${nodeCount === 1 ? '' : 's'}`;
+  const textClipId = `${boardId}-${id}-text-clip`;
+  const textAreaWidth = Math.max(0, width - 38 - 12);
+  const displayLabel = truncateToWidth(label, textAreaWidth, LABEL_FONT_SIZE * SANS_CHAR_EM);
+  const displaySub = truncateToWidth(subText, textAreaWidth, SUBLABEL_FONT_SIZE * MONO_CHAR_EM);
+  const titleText = `${label} — ${subText}`;
 
   return (
     <g
@@ -60,6 +73,7 @@ export function SubsystemCollapsed({
       role="button"
       aria-label={ariaLabel}
     >
+      <title>{titleText}</title>
       <rect className="cv-halo" x={-5} y={-5} width={width + 10} height={height + 10} rx={17} />
       <rect className="cv-focus" x={-8} y={-8} width={width + 16} height={height + 16} rx={20} />
       <g className="cv-inner">
@@ -67,12 +81,17 @@ export function SubsystemCollapsed({
         <g className="cv-icon" transform="translate(12, 12) scale(0.83)">
           <NodeIcon type="subSystem" />
         </g>
-        <text className="cv-label" x={38} y={27}>
-          {label}
-        </text>
-        <text className="cv-sub" x={38} y={45}>
-          {nodeCount} node{nodeCount === 1 ? '' : 's'}
-        </text>
+        <clipPath id={textClipId}>
+          <rect x={38} y={0} width={textAreaWidth} height={height} />
+        </clipPath>
+        <g clipPath={`url(#${textClipId})`}>
+          <text className="cv-label" x={38} y={27}>
+            {displayLabel}
+          </text>
+          <text className="cv-sub" x={38} y={45}>
+            {displaySub}
+          </text>
+        </g>
         <g className="cv-icon" transform={`translate(${width - 26}, ${height - 26})`} aria-hidden="true">
           <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
