@@ -2,6 +2,7 @@ import { PlayerIsland } from './PlayerIsland';
 import { DrilldownBlueprint, subsystemLabelsById } from './blueprint';
 import { PlayerShell, buildElementIndex, modeAvailability } from './shell';
 import { buildInspectorPanels } from './inspector';
+import type { ReactNode } from 'react';
 import type { PlayerBootstrap, ViewData } from './types';
 
 export interface DiagramPlayerProps {
@@ -17,6 +18,12 @@ export interface DiagramPlayerProps {
    * own aspect ratio.
    */
   variant?: 'full' | 'embed' | 'hero';
+  /**
+   * `hero` only: rendered right under the board, inside the player's client
+   * boundary, so a client component there can read the live store (e.g. the
+   * shared global-metrics feed).
+   */
+  heroFooter?: ReactNode;
 }
 
 /** Static JSON route for the full view-data document (T3.13). */
@@ -54,7 +61,7 @@ export function toBootstrap(diagram: ViewData, runtimeUrl: string | null): Playe
  * top of that same markup. A diagram with no board yet (catalog-only)
  * renders a placeholder instead.
  */
-export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: DiagramPlayerProps) {
+export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', heroFooter }: DiagramPlayerProps) {
   if (!diagram) {
     return (
       <section data-player-variant={variant} className="rounded-lg border border-line-hairline p-6 text-ink-secondary">
@@ -97,11 +104,12 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   // scrolls the page.
   if (variant === 'hero') {
     return (
-      <section data-player-variant={variant} aria-label={diagram.head.title} className="player-hero canvas-surface">
-        <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)} interactive={false}>
+      <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)} interactive={false}>
+        <section data-player-variant={variant} aria-label={diagram.head.title} className="player-hero canvas-surface">
           {blueprint}
-        </PlayerIsland>
-      </section>
+        </section>
+        {heroFooter}
+      </PlayerIsland>
     );
   }
 

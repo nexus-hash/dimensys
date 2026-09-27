@@ -42,7 +42,7 @@ export function ShowcaseSection({
   return (
     <section aria-labelledby={headingId} className="w-full">
       <Reveal className="mx-auto grid w-full max-w-[720px] items-center gap-7 px-4 py-[72px] sm:gap-10 sm:px-6 sm:py-24 lg:max-w-[1200px] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-[72px] lg:py-[120px]">
-        <div className={`max-w-[30em] ${flip ? 'lg:order-2' : ''}`}>
+        <div className={`max-w-[420px] ${flip ? 'lg:order-2' : ''}`}>
           <div className="flex items-center gap-2.5 font-mono text-[12px] font-medium uppercase leading-[1.4] tracking-[.06em] text-ink-muted">
             <span aria-hidden className="font-semibold text-brand-ink">
               {index}

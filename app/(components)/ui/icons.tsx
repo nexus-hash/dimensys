@@ -209,16 +209,6 @@ export function TrendingUpIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Two solid bars. */
-export function PauseIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <Base {...props}>
-      <rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none" />
-      <rect x="14" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none" />
-    </Base>
-  );
-}
-
 export function ExternalLinkIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>

@@ -10,6 +10,7 @@ import {
   TrendingUpIcon,
 } from '@/app/(components)/ui';
 import { DiagramPlayer } from '@/app/(components)/player';
+import { HeroMetricStrip } from './HeroMetricStrip';
 import { loadPlayerDiagram, loadRuntimeUrl } from '@/app/(server)/engine/publicData';
 
 /** The diagram the hero embeds, running at its healthy baseline. */
@@ -31,9 +32,9 @@ export const HERO_DIAGRAM_ID = 'url-shortener';
  * (`display: contents`) so the card can sit between the subhead and the
  * CTAs.
  *
- * "Kill the cache" / "10× traffic" and the meltdown they trigger, the pause
- * control, "Replay tour" and the metric strip's live numbers are not wired
- * yet. Every one of those slots is visible, `aria-disabled`, tooltipped
+ * The metric strip under the board reads the live global-metrics feed
+ * (`HeroMetricStrip`). "Kill the cache" / "10× traffic" and the meltdown
+ * they trigger, the pause control and "Replay tour" are not wired yet. Every one of those slots is visible, `aria-disabled`, tooltipped
  * "coming soon" and documented in `home/slots.ts` rather than faked or
  * hidden.
  */
@@ -113,28 +114,12 @@ export async function Hero() {
                 </div>
               </div>
 
-              <DiagramPlayer diagram={diagram} runtimeUrl={diagram.live ? runtimeUrl : null} variant="hero" />
-
-              {/* Metric strip — "—" until wired (home/slots.ts: hero-hud). */}
-              <div
-                data-slot="hero-hud"
-                className="flex flex-wrap items-center gap-x-[18px] gap-y-1.5 border-t border-line-hairline px-3.5 py-3 font-mono text-[14px] font-semibold tabular-nums text-ink-primary"
-              >
-                <span className="sr-only">Live metrics, coming soon:</span>
-                <span className="inline-flex items-center gap-1.5">
-                  p99 <span>—</span>
-                  <small className="text-[12px] font-medium text-ink-muted">ms</small>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  err <span>—</span>
-                  <small className="text-[12px] font-medium text-ink-muted">%</small>
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span>—</span>
-                  <small className="text-[12px] font-medium text-ink-muted">rps</small>
-                </span>
-                <small className="ml-auto text-[12px] font-medium text-ink-muted">retries —</small>
-              </div>
+              <DiagramPlayer
+                diagram={diagram}
+                runtimeUrl={diagram.live ? runtimeUrl : null}
+                variant="hero"
+                heroFooter={<HeroMetricStrip />}
+              />
 
               {/* Status line. */}
               <div className="mx-3.5 mb-3 flex min-h-16 flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl border border-line-hairline bg-surface-sunken px-3 py-2.5">

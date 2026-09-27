@@ -113,7 +113,7 @@ test.describe('Home hero card (1440)', () => {
     await page.goto('/');
     const hero = page.locator('[data-player-variant="hero"]');
     await expect(hero.locator('svg[aria-label]').first()).toBeVisible();
-    await page.waitForSelector('[data-player-variant="hero"] [data-sim-status]');
+    await page.waitForSelector('[data-hero-card] [data-sim-status]');
     await expect(hero.locator('.player-zoom-controls')).toHaveCount(0);
     await expect(hero.getByRole('button', { name: /zoom|fit/i })).toHaveCount(0);
     await expect(hero.locator('.player-tooltip')).toHaveCount(0);
@@ -123,7 +123,7 @@ test.describe('Home hero card (1440)', () => {
   test('clicking a node in the hero selects nothing', async ({ page }) => {
     await page.goto('/');
     const hero = page.locator('[data-player-variant="hero"]');
-    await page.waitForSelector('[data-player-variant="hero"] [data-sim-status]');
+    await page.waitForSelector('[data-hero-card] [data-sim-status]');
     const box = (await hero.locator('[data-node-id]').first().boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await expect(hero.locator('.is-selected')).toHaveCount(0);
@@ -133,7 +133,7 @@ test.describe('Home hero card (1440)', () => {
   test('a wheel over the hero scrolls the page', async ({ page }) => {
     await page.goto('/');
     const hero = page.locator('[data-player-variant="hero"]');
-    await page.waitForSelector('[data-player-variant="hero"] [data-sim-status]');
+    await page.waitForSelector('[data-hero-card] [data-sim-status]');
     const box = (await hero.boundingBox())!;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     const before = await page.evaluate(() => window.scrollY);
