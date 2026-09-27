@@ -1,5 +1,5 @@
 import { PlayerIsland } from './PlayerIsland';
-import { StaticBlueprint } from './blueprint';
+import { DrilldownBlueprint } from './blueprint';
 import type { PlayerBootstrap, ViewData } from './types';
 
 export interface DiagramPlayerProps {
@@ -32,9 +32,11 @@ export function toBootstrap(diagram: ViewData, runtimeUrl: string | null): Playe
  * `<DiagramPlayer>`: a Server Component.
  *
  * Renders the frame server-side and hands a small serialisable bootstrap to
- * the one client boundary, `<PlayerIsland>`. The static SVG blueprint (T3.2)
- * goes in as a server-rendered child, so a readable diagram needs no client
- * JS and is the LCP element. A diagram with no board yet (catalog-only)
+ * the one client boundary, `<PlayerIsland>`. The static SVG blueprint (T3.2),
+ * every subsystem level included (T3.4's `<DrilldownBlueprint>`), goes in as
+ * a server-rendered child, so a readable diagram needs no client JS and is
+ * the LCP element; drilling into a subsystem is progressive enhancement on
+ * top of that same markup. A diagram with no board yet (catalog-only)
  * renders a placeholder instead.
  */
 export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: DiagramPlayerProps) {
@@ -51,10 +53,10 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
       <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
         {/* TODO(T3.16): player shell (top bar, rails, inspector, timeline frame). */}
         {diagram.board ? (
-          <StaticBlueprint
+          <DrilldownBlueprint
             board={diagram.board}
             boardId={`blueprint-${diagram.id}`}
-            label={diagram.head.title}
+            rootLabel={diagram.head.title}
             className="w-full"
           />
         ) : (
