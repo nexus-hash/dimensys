@@ -64,13 +64,30 @@ jobs:
 
       - name: Determine engine ref
         id: engine_ref
+        env:
+          # Passed via env, not interpolated inline into the script, since a
+          # PR head branch name is attacker-controlled input (script-injection
+          # safety) — never echoed or otherwise printed below.
+          HEAD_REF: ${{ github.head_ref }}
+          DMS_ENGINE_REPO: ${{ secrets.DMS_ENGINE_REPO }}
+          DMS_ENGINE_PAT: ${{ secrets.DMS_ENGINE_PAT }}
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             echo "ref=${{ github.event.client_payload.sha }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            # A PR preview builds against the engine branch of the same name
+            # as this app PR's head branch, when one exists (so an app PR
+            # depending on unmerged engine work can preview against it);
+            # otherwise it falls back to engine main.
+            if git ls-remote --exit-code --heads "https://x-access-token:${DMS_ENGINE_PAT}@github.com/${DMS_ENGINE_REPO}.git" "$HEAD_REF" > /dev/null 2>&1; then
+              echo "ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+            else
+              echo "ref=main" >> "$GITHUB_OUTPUT"
+            fi
           else
             # Always the engine's main branch — this workflow intentionally
             # ignores DMS_ENGINE_REF (that secret is used by build.yml for
-            # other purposes); the dev site always tracks engine main.
+            # other purposes); push/dispatch always track engine main.
             echo "ref=main" >> "$GITHUB_OUTPUT"
           fi
 

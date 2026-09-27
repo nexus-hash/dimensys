@@ -16,7 +16,9 @@ build.
   engine `main`).
 - Pull requests **whose base branch is `main`**, from branches in this repo only (fork PRs
   are skipped — forks don't have access to the deploy secrets) → preview deploy, with the
-  preview URL posted/updated as a single PR comment.
+  preview URL posted/updated as a single PR comment. The preview builds against the engine
+  branch with the same name as the PR's head branch when one exists in the engine repo,
+  otherwise engine `main`.
 
 Nothing else triggers a deploy: pushes to any branch other than `main`, and PRs targeting
 any branch other than `main` (e.g. `task/* → v3`), are ignored by both the workflow's
@@ -54,9 +56,10 @@ Add under Settings → Secrets and variables → Actions:
 | `DMS_ENGINE_REPO` | Already exists for `build.yml` (e.g. `nexus-hash/dms-engine`) — reused by `deploy-dev.yml`. |
 | `DMS_ENGINE_PAT` | Already exists for `build.yml` — reused by `deploy-dev.yml` to check out the private engine. |
 
-Note: `deploy-dev.yml` does **not** use `DMS_ENGINE_REF` — it always builds engine `main`
-(or, for a dispatched run, the exact commit the engine push produced), by design, since the
-dev site is meant to track engine `main`.
+Note: `deploy-dev.yml` does **not** use `DMS_ENGINE_REF`. For `push`/`workflow_dispatch` it
+always builds engine `main`; for `repository_dispatch` it builds the exact commit the engine
+push produced; for a `pull_request` preview it builds the same-named engine branch when one
+exists (else engine `main`) — by design, since the dev site otherwise tracks engine `main`.
 
 ## 3. GitHub secret — dms-engine (`nexus-hash/dms-engine`)
 
