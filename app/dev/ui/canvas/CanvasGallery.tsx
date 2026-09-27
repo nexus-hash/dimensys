@@ -233,13 +233,23 @@ function DsaSection() {
 }
 
 function LldSection() {
+  // Rendered at 1:1 — a fixed pixel `style` (matching the viewBox exactly),
+  // not `className="w-full"`, so the board never gets CSS-stretched to the
+  // gallery's much wider content column the way the diagram sections above
+  // it deliberately are. That stretch was blowing this single small card up
+  // to several times its native size (huge text, rows overflowing even
+  // further past the already-too-narrow card). `width={250}` is wide enough
+  // for this card's longest row so the demo shows the untruncated happy
+  // path; `LldCard` itself still truncates defensively for any content that
+  // wouldn't fit.
   return (
-    <Board id="gallery-lld" label="LLD UML card" viewBox="0 0 260 220" className="w-full" style={{ minHeight: 220 }}>
+    <Board id="gallery-lld" label="LLD UML card" viewBox="0 0 270 220" style={{ width: 270, height: 220 }}>
       <LldCard
         id="card-url"
         name="UrlShortener"
-        x={20}
+        x={10}
         y={10}
+        width={250}
         fields={[
           { name: 'store', type: 'KeyValueStore', visibility: 'private' },
           { name: 'counter', type: 'int', visibility: 'protected', static: true },
