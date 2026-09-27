@@ -1,4 +1,5 @@
 import { PlayerIsland } from './PlayerIsland';
+import { StaticBlueprint } from './blueprint';
 import type { PlayerBootstrap, ViewData } from './types';
 
 export interface DiagramPlayerProps {
@@ -50,12 +51,20 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
     <section data-player-variant={variant} aria-label={diagram.head.title} className="rounded-lg border border-line-hairline">
       <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
         {/* TODO(T3.16): player shell (top bar, rails, inspector, timeline frame). */}
-        {/* TODO(T3.2): <StaticBlueprint board={diagram.board} /> server-rendered here. */}
-        <div className="p-6 text-ink-secondary">
-          <p role="status">
-            Player not implemented yet: <span className="text-ink-primary">{diagram.head.title}</span>
-          </p>
-        </div>
+        {diagram.board ? (
+          <StaticBlueprint
+            board={diagram.board}
+            boardId={`blueprint-${diagram.id}`}
+            label={diagram.head.title}
+            className="w-full"
+          />
+        ) : (
+          <div className="p-6 text-ink-secondary">
+            <p role="status">
+              No diagram yet: <span className="text-ink-primary">{diagram.head.title}</span>
+            </p>
+          </div>
+        )}
       </PlayerIsland>
     </section>
   );
