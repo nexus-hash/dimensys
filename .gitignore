@@ -42,11 +42,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# dms-engine generated output (synced at build time)
-/app/solutions/
+# dms-engine (old build) static assets — CS concept content only (T3.13
+# removed this script's `pages[]`/`sharedComponents[]` jobs, which is why
+# there's no longer an `/app/solutions/` or diagram-assets ignore here: the
+# generated-pages route is gone, replaced by the hand-written one below).
 /public/engine/
-/app/(components)/diagram-assets
 
-# dms-engine v3 generated output (synced at build time by sync-engine-v3.js)
+# dms-engine v3 output, synced at build time by sync-engine-v3.js. Never
+# commit these: `data/engine/` is the public view-data/runtime bytes,
+# `server-data/engine/` never leaves the server.
 /data/engine/
 /server-data/engine/
