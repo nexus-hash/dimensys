@@ -97,6 +97,7 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='dms-engine-checkout' \
+            --exclude='server-data' \
             ./ ${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}:${{ secrets.HOSTINGER_DEPLOY_PATH }}
 
       - name: Install Production Dependencies and Restart App via PM2
