@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-interface Problem {
+export interface Problem {
   id: string;
   title: string;
   type: string;
@@ -57,7 +57,7 @@ export default function ProblemCard({ problem, showType = true }: { problem: Pro
           )}
         </div>
         {problem.isAccessible && (
-          <Link href={`/2d/${problem.id}`} className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium rounded-lg transition-colors">
+          <Link href={`/solutions/${problem.id}`} className="px-4 py-2 bg-orange-500 hover:bg-orange-400 text-white text-sm font-medium rounded-lg transition-colors">
             View Solution
           </Link>
         )}
