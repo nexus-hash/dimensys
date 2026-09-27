@@ -5,7 +5,19 @@ import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider'
 import { enterSubsystem, exitSubsystem } from '../store/playerStore';
 import { useShortcut, useShortcutScope } from '@/app/(components)/command';
 import { drillKey } from './drill';
-import { cameraTransform, computeFitScale, fitCamera, panBy, clampPan, zoomAtPoint, zoomRange, ZOOM_STEP, DRAG_THRESHOLD_PX } from './camera';
+import {
+  cameraTransform,
+  computeFitScale,
+  fitCamera,
+  panBy,
+  clampPan,
+  zoomAtPoint,
+  zoomRange,
+  normalizeWheelDeltaY,
+  WHEEL_ZOOM_K,
+  ZOOM_STEP,
+  DRAG_THRESHOLD_PX,
+} from './camera';
 import type { Camera } from './camera';
 import { ZoomControls } from './ZoomControls';
 import type { XY } from '../types';
@@ -378,14 +390,14 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
       e.preventDefault();
       const [cx, cy] = stageXY(e.clientX, e.clientY);
       trackingRef.current.set(cur.key, false);
-      if (e.ctrlKey) {
-        // Trackpad pinch (synthesized as wheel+ctrlKey) or an actual ctrl+wheel: zoom about the cursor.
-        const factor = Math.exp(-e.deltaY * 0.01);
-        applyCamera(cur.key, zoomAtPoint(cur.camera, cx, cy, cur.camera.scale * factor, cur.fitScale));
-      } else {
-        // Plain wheel, and a bare trackpad two-finger scroll: pan.
-        applyCamera(cur.key, panBy(cur.camera, -e.deltaX, -e.deltaY));
-      }
+      // GEOM: every wheel gesture zooms about the cursor — plain mouse
+      // wheel, a bare trackpad two-finger scroll, and ctrl+wheel/a
+      // synthesized trackpad pinch alike (a real pinch reports as
+      // wheel+ctrlKey; there's nothing left for `ctrlKey` to distinguish
+      // once both zoom the same way). Panning is drag/arrow-keys only now.
+      const deltaY = normalizeWheelDeltaY(e.deltaY, e.deltaMode, stage!.clientHeight || undefined);
+      const factor = Math.exp(-deltaY * WHEEL_ZOOM_K);
+      applyCamera(cur.key, zoomAtPoint(cur.camera, cx, cy, cur.camera.scale * factor, cur.fitScale));
     }
 
     stage.addEventListener('pointerdown', onPointerDown);

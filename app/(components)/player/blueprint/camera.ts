@@ -68,7 +68,7 @@ export function zoomByFactor(camera: Camera, cx: number, cy: number, factor: num
   return zoomAtPoint(camera, cx, cy, camera.scale * factor, fitScale);
 }
 
-/** Plain translation — dragging, wheel-pan, arrow-key pan. */
+/** Plain translation — dragging, arrow-key pan (GEOM: the wheel zooms now, it no longer pans). */
 export function panBy(camera: Camera, dx: number, dy: number): Camera {
   return { ...camera, x: camera.x + dx, y: camera.y + dy };
 }
@@ -114,3 +114,27 @@ export function cameraTransform(camera: Camera): string {
 export const ZOOM_STEP = 1.25;
 /** Below this, a pointer gesture reads as a click/tap, not a drag/pan (px, in stage space). */
 export const DRAG_THRESHOLD_PX = 4;
+
+/**
+ * Wheel-to-zoom rate (GEOM): every wheel event zooms about the cursor —
+ * plain mouse wheel, a bare two-finger trackpad scroll, and ctrl+wheel /a
+ * synthesized trackpad pinch alike — scaling by `exp(-deltaY * WHEEL_ZOOM_K)`
+ * so it feels smooth and speed-proportional rather than stepped. Panning is
+ * drag (pointer) or arrow keys only; the wheel no longer pans.
+ */
+export const WHEEL_ZOOM_K = 0.01;
+
+/**
+ * Normalizes a `WheelEvent`'s `deltaY` to pixel units regardless of
+ * `deltaMode` (browsers report line- or page-granularity deltas for some
+ * input devices/settings, not just pixels) — `WHEEL_ZOOM_K` above is tuned
+ * against pixel deltas. `DOM_DELTA_LINE` (1) uses a typical 16px line
+ * height; `DOM_DELTA_PAGE` (2) uses `pageSize` (the stage's own box, when
+ * known — falls back to a nominal 800px otherwise, only ever relevant for
+ * the rare page-mode delta).
+ */
+export function normalizeWheelDeltaY(deltaY: number, deltaMode: number, pageSize = 800): number {
+  if (deltaMode === 1) return deltaY * 16;
+  if (deltaMode === 2) return deltaY * pageSize;
+  return deltaY;
+}

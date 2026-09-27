@@ -9,6 +9,8 @@ import {
   panBy,
   clampPan,
   cameraTransform,
+  normalizeWheelDeltaY,
+  WHEEL_ZOOM_K,
 } from '../camera';
 
 describe('computeFitScale', () => {
@@ -120,5 +122,26 @@ describe('clampPan', () => {
 describe('cameraTransform', () => {
   it('renders a translate+scale CSS transform', () => {
     expect(cameraTransform({ x: 12, y: -4, scale: 2 })).toBe('translate(12px, -4px) scale(2)');
+  });
+});
+
+describe('normalizeWheelDeltaY (GEOM: every wheel gesture zooms now)', () => {
+  it('passes a pixel-mode delta through unchanged', () => {
+    expect(normalizeWheelDeltaY(-120, 0)).toBe(-120);
+  });
+  it('scales a line-mode delta by a 16px line height', () => {
+    expect(normalizeWheelDeltaY(-3, 1)).toBe(-48);
+  });
+  it('scales a page-mode delta by the given page size', () => {
+    expect(normalizeWheelDeltaY(-1, 2, 700)).toBe(-700);
+  });
+  it('falls back to a nominal 800px page size when none is given', () => {
+    expect(normalizeWheelDeltaY(-1, 2)).toBe(-800);
+  });
+  it('zooms in for a negative deltaY and out for a positive one, at the tuned rate', () => {
+    const factorIn = Math.exp(-normalizeWheelDeltaY(-120, 0) * WHEEL_ZOOM_K);
+    const factorOut = Math.exp(-normalizeWheelDeltaY(120, 0) * WHEEL_ZOOM_K);
+    expect(factorIn).toBeGreaterThan(1);
+    expect(factorOut).toBeLessThan(1);
   });
 });

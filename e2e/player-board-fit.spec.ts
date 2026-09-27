@@ -314,6 +314,26 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
     expect(after.y - before.y).toBeLessThanOrEqual(dy + TOLERANCE_PX);
   });
 
+  test('a plain wheel (no ctrl) zooms about the cursor too (GEOM: the wheel no longer pans)', async ({ page }) => {
+    await page.goto('/solutions/url-shortener');
+    await settle(page);
+    const node = page.locator('[data-node-id]').first();
+    const nodeBoxBefore = (await node.boundingBox())!;
+    const cursor = { x: nodeBoxBefore.x + nodeBoxBefore.width / 2, y: nodeBoxBefore.y + nodeBoxBefore.height / 2 };
+
+    await page.mouse.move(cursor.x, cursor.y);
+    await page.mouse.wheel(0, -120); // negative deltaY, no ctrl: still zooms in.
+    await settle(page);
+
+    const nodeBoxAfter = (await node.boundingBox())!;
+    const centerBefore = { x: nodeBoxBefore.x + nodeBoxBefore.width / 2, y: nodeBoxBefore.y + nodeBoxBefore.height / 2 };
+    const centerAfter = { x: nodeBoxAfter.x + nodeBoxAfter.width / 2, y: nodeBoxAfter.y + nodeBoxAfter.height / 2 };
+    expect(Math.abs(centerAfter.x - centerBefore.x)).toBeLessThanOrEqual(4);
+    expect(Math.abs(centerAfter.y - centerBefore.y)).toBeLessThanOrEqual(4);
+    // Actually zoomed (not a no-op, and not a pan — the node grew, its center didn't just shift).
+    expect(nodeBoxAfter.width).toBeGreaterThan(nodeBoxBefore.width * 1.05);
+  });
+
   test('ctrl+wheel zooms about the cursor: the point under it stays put', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await settle(page);
