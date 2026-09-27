@@ -99,6 +99,28 @@ function expectFit({ nativeW, nativeH, wrapBox, boardBox, canvasBox }: Awaited<R
   expect(canvasBox.height).toBeLessThanOrEqual(boardBox.height + 1);
 }
 
+/**
+ * Every visible node's own rendered rect sits inside the free area (not
+ * just the board's own bounding box, which is derived from the same
+ * `viewBox` math — this checks the actual painted geometry). A few px of
+ * slack accounts for stroke width around a node's rect extending past its
+ * layout box, not layout error.
+ */
+async function expectNodesInsideFreeArea(page: Page, wrapBox: FreeBox) {
+  const nodeTolerance = 4;
+  const nodes = page.locator('[data-drill-key=""] [data-node-id]');
+  const count = await nodes.count();
+  expect(count).toBeGreaterThan(0);
+  for (let i = 0; i < count; i++) {
+    const box = await nodes.nth(i).boundingBox();
+    if (!box) continue;
+    expect(box.x, `node ${i} left`).toBeGreaterThanOrEqual(wrapBox.x - nodeTolerance);
+    expect(box.y, `node ${i} top`).toBeGreaterThanOrEqual(wrapBox.y - nodeTolerance);
+    expect(box.x + box.width, `node ${i} right`).toBeLessThanOrEqual(wrapBox.x + wrapBox.width + nodeTolerance);
+    expect(box.y + box.height, `node ${i} bottom`).toBeLessThanOrEqual(wrapBox.y + wrapBox.height + nodeTolerance);
+  }
+}
+
 /** A settle wait matching how the orchestrator's own review measured (≥1.5s after the last interaction) — the fit effect and the canvas resize observer are both async (rAF/microtask-batched), and the panel-open transitions are 320ms. */
 async function settle(page: Page) {
   await page.waitForTimeout(1500);
@@ -169,7 +191,8 @@ test.describe('player board fit — tablet (834x1112)', () => {
     await page.goto('/solutions/url-shortener');
     const before = await measureFit(page);
     await page.locator('[data-node-id]').first().click();
-    await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeVisible();
+    const inspector = page.getByRole('complementary', { name: 'Inspector' });
+    await expect(inspector).toBeVisible();
 
     // The inspector is a *visual* overlay (doesn't participate in layout on
     // its own), but the canvas area reserves its width anyway (`globals.css`)
@@ -177,8 +200,19 @@ test.describe('player board fit — tablet (834x1112)', () => {
     // everywhere else — not literally "the full canvas width" regardless of
     // the inspector, which the review comment offered as the simpler
     // alternative.
-    const inspBox = await page.getByRole('complementary', { name: 'Inspector' }).boundingBox();
+    const inspBox = await inspector.boundingBox();
     expect(inspBox).not.toBeNull();
+    // `toBeVisible()` alone doesn't catch a panel pushed off-screen by its
+    // own `transform` (still has a box, isn't `display:none` — Playwright
+    // counts that as "visible") — this is exactly the bug a dropped CSS
+    // rule caused here once already: the panel technically "visible" per
+    // that definition while sitting past the viewport's right edge.
+    if (inspBox) {
+      expect(inspBox.x, 'inspector must be within the viewport, not pushed off by a stray transform').toBeLessThan(
+        page.viewportSize()!.width,
+      );
+      expect(inspBox.width).toBeGreaterThan(200);
+    }
     // The canvas area's reserved-width transition (320ms, `globals.css`) needs
     // to settle before measuring, same as the rail-collapse case above.
     await expect
@@ -188,6 +222,7 @@ test.describe('player board fit — tablet (834x1112)', () => {
     const after = await measureFit(page);
     expect(after.wrapBox.width).toBeLessThan(before.wrapBox.width - 100);
     expectFit(after);
+    await expectNodesInsideFreeArea(page, after.wrapBox);
     if (inspBox) {
       expect(after.boardBox.x + after.boardBox.width).toBeLessThanOrEqual(inspBox.x + TOLERANCE_PX);
       expect(after.canvasBox.x + after.canvasBox.width).toBeLessThanOrEqual(inspBox.x + TOLERANCE_PX);

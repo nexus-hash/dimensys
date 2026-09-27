@@ -852,6 +852,7 @@
     transition: transform var(--transition-duration-panel) var(--ease-emphasized);
     visibility: visible !important; transform: translateX(102%);
   }
+  .player-body[data-inspector-open="true"] .player-inspector { transform: none; }
   /* An overlay doesn't push layout on its own — reserve its width from the
      canvas area's own box (not just visually slide over it) so the board
      re-fits to stay clear of it too, matching "nothing overlaps the
