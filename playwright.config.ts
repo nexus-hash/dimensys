@@ -15,7 +15,8 @@ export default defineConfig({
     command: 'npm run dev:next',
     // Readiness probe: a page that needs no synced engine data, so jobs
     // that only exercise the dev-only UI gallery (no engine build) can start.
-    url: 'http://localhost:3000/dev/ui',
+    // `/dev/ui` 404s in production builds, so e2e-prod.sh points this at `/`.
+    url: process.env.PW_READY_URL ?? 'http://localhost:3000/dev/ui',
     reuseExistingServer: !process.env.CI,
   },
 

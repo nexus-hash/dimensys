@@ -49,6 +49,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Let Playwright reuse this server: its default probe is a dev-only page.
+export PW_READY_URL=http://localhost:3000/
+
 echo "== wait for server =="
 for i in $(seq 1 60); do
   if curl -sf http://localhost:3000/ > /dev/null; then
