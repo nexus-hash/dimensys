@@ -121,3 +121,17 @@ export async function loadRuntimeUrl(): Promise<string | null> {
   const shortHash = entry.hash.replace(/^sha256:/, '').slice(0, 8);
   return `/engine/runtime/${match[1]}?h=${shortHash}`;
 }
+
+/**
+ * Every known runtime worker bundle filename in the synced manifest (usually
+ * zero or one). Used by the production route (T3.13, `app/engine/runtime/`)
+ * both to enumerate `generateStaticParams` and to validate an incoming
+ * filename against the manifest before reading it off disk — never trust
+ * the requested path alone.
+ */
+export async function listRuntimeBundleFilenames(): Promise<string[]> {
+  const manifest = await loadManifest();
+  return manifest.files
+    .filter((f): f is typeof f & { path: string } => f.scope === 'public' && RUNTIME_BUNDLE_RE.test(f.path))
+    .map((f) => RUNTIME_BUNDLE_RE.exec(f.path)![1]);
+}
