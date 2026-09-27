@@ -19,7 +19,8 @@
     "lint:boundary": "node scripts/check-public-boundary.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:prod": "./scripts/e2e-prod.sh"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
