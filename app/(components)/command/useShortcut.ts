@@ -8,8 +8,19 @@ import type { ShortcutDef, ShortcutRegistration } from './types';
  * Registers a shortcut for the lifetime of the calling component. The
  * handler is kept in a ref so callers can pass an inline closure without
  * re-registering (and re-triggering conflict detection) on every render.
+ *
+ * `enabled` (default `true`): when `false`, this call registers nothing at
+ * all — not even a no-op entry. The registry keys its live entries by `id`
+ * alone (`ShortcutRegistry.entries` is a `Map<string, ShortcutDef>`), so two
+ * mounted callers passing the *same* `id` (e.g. a component reused in two
+ * places at once, only one of which should own the key binding — see
+ * `PlaybackControls`) would otherwise both register, and whichever mounts
+ * or re-renders last silently wins the map slot, regardless of `hidden`
+ * (which only affects the cheat-sheet listing, not dispatch). Passing
+ * `enabled: false` from the non-owning caller avoids that race entirely
+ * instead of relying on registration order.
  */
-export function useShortcut(def: ShortcutRegistration, handler: (event: KeyboardEvent) => void): void {
+export function useShortcut(def: ShortcutRegistration, handler: (event: KeyboardEvent) => void, enabled = true): void {
   const autoId = useId();
   const id = def.id ?? autoId;
   const handlerRef = useRef(handler);
@@ -20,6 +31,7 @@ export function useShortcut(def: ShortcutRegistration, handler: (event: Keyboard
   const { keys, label, group, when, allowWhileTyping, hidden } = def;
 
   useEffect(() => {
+    if (!enabled) return;
     const entry: ShortcutDef = {
       id,
       keys,
@@ -31,7 +43,7 @@ export function useShortcut(def: ShortcutRegistration, handler: (event: Keyboard
       handler: (event) => handlerRef.current(event),
     };
     return shortcutRegistry.register(entry);
-  }, [id, keys, label, group, when, allowWhileTyping, hidden]);
+  }, [id, keys, label, group, when, allowWhileTyping, hidden, enabled]);
 }
 
 /** Pushes a shortcut scope active for as long as `active` is true (and the component is mounted). */
