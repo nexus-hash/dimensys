@@ -72,6 +72,7 @@ npx playwright test \
   e2e/player-board-fit.spec.ts \
   e2e/player-inspector.spec.ts \
   e2e/player-label-geometry.spec.ts \
+  e2e/player-hud-timeline.spec.ts \
   --project=chromium --project="Mobile Chrome" --workers=4 \
   2>&1 | tee "$LOGDIR/playwright.log"
 

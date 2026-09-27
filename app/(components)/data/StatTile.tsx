@@ -4,7 +4,7 @@ import { NumberRoll } from '@/app/(components)/motion';
 import { Sparkline } from './Sparkline';
 import type { Severity } from './format';
 
-interface StatTileDelta {
+export interface StatTileDelta {
   /** `1` = worse than baseline, `-1` = better, `0` = ≈ baseline. */
   direction: 1 | -1 | 0;
   /** Rendered delta text, e.g. "1.8×", "2.4 pts", "≈ baseline". */

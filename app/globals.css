@@ -843,6 +843,25 @@
 .player-hud-slot { display: flex; gap: 6px; flex: 1; min-width: 0; min-height: 56px; }
 .player-canvas-toolbar-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 32px; }
 
+/* HUD tiles (T3.8): each tile is the data-display kit's own `StatTile`
+   (`app/(components)/data`, DS6, all Tailwind) — this row just lays out up
+   to 4 of them; the tiles bring their own look. */
+.hud-tile { flex: 1 1 0; min-width: 0; max-width: 230px; }
+
+/* Requirement badges (T3.8): the data-display kit's own `RequirementBadge`
+   (list row: glyph, requirement text, observed value), a flex-wrapping
+   column under the HUD tiles — reused verbatim in the phone Metrics tab
+   (`HudStrip` renders both places). */
+.hud-req-badges { display: flex; flex-direction: column; gap: 8px; }
+
+/* Playback controls (T3.8): play/pause + speed sit in the timeline
+   slot's own flex row (`.player-timeline-slot`, globals.css above); the
+   scrubber/time readout fills the remaining width. */
+.player-scrubber { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.player-scrubber-slider { flex: 1; min-width: 0; }
+.player-time { font: 500 12px var(--font-mono); color: var(--color-ink-secondary); white-space: nowrap; }
+.player-time-total { color: var(--color-ink-muted); }
+
 /* 24px inner padding (T3.16 board-fit follow-up): without it the board sits
    flush against the rail's border and the far viewport edge whenever it's
    wide enough to be width-bound — `.player-drill-stage`'s `width/height:
@@ -975,7 +994,16 @@
      the zoom cluster need to clear its peek height (same value the canvas
      area's own bottom padding above already tracks). */
   .player-zoom-controls { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
+  /* Tiles stay in one row and scroll horizontally rather than wrapping to a
+     second row: the board-fit effect (`DrillStage`) sizes the free area off
+     `.player-board-wrap`'s measured box, which shrinks whenever this strip
+     grows taller — a wrap would keep shrinking the board every time a 5th+
+     gauge or a longer label pushed a second row in. One row keeps the
+     strip's height fixed regardless of tile count/label length. */
   .player-hud-strip { padding: 6px 8px; gap: 6px; }
+  .player-hud-slot { overflow-x: auto; scrollbar-width: none; }
+  .player-hud-slot::-webkit-scrollbar { display: none; }
+  .hud-tile { max-width: none; min-width: 132px; flex: 0 0 auto; }
   .player-timeline-dock { padding: 6px 8px; gap: 6px; }
   .player-timeline-dock .player-narration-slot { display: none; }
 }

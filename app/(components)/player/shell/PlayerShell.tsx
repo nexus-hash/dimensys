@@ -11,6 +11,7 @@ import { HudTimelineFrame } from './HudTimelineFrame';
 import { PhoneSheet, SNAP_PERCENTS } from './PhoneSheet';
 import type { ElementIndex } from './selection';
 import type { ModeAvailability } from './modes';
+import type { GaugeView, NeedView } from '../types';
 
 export interface PlayerShellProps {
   title: string;
@@ -19,6 +20,10 @@ export interface PlayerShellProps {
   modeAvailability: Record<PlayerMode, ModeAvailability>;
   /** Every node's/link's pre-rendered inspector body (T3.6), handed to both `Inspector` and `PhoneSheet` — see `DiagramPlayer.tsx`. Defaults to `{}` for callers (and existing tests) that don't pass one. */
   panels?: Record<string, React.ReactNode>;
+  /** HUD tiles source (T3.8) — up to 4 shown; defaults to `[]` for callers/tests that don't pass one. */
+  gauges?: readonly GaugeView[];
+  /** Requirement badges source (T3.8); defaults to `[]`. */
+  needs?: readonly NeedView[];
   children: React.ReactNode;
 }
 
@@ -63,7 +68,16 @@ export interface PlayerShellProps {
  * bottom padding tracks the sheet's *actual* current height, not just its
  * lowest (12%) snap point.
  */
-export function PlayerShell({ title, labelsById, elementIndex, modeAvailability, panels = {}, children }: PlayerShellProps) {
+export function PlayerShell({
+  title,
+  labelsById,
+  elementIndex,
+  modeAvailability,
+  panels = {},
+  gauges = [],
+  needs = [],
+  children,
+}: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
   const selection = usePlayerStore((s) => s.selection);
   const [railOpen, setRailOpen] = React.useState(true);
@@ -102,11 +116,18 @@ export function PlayerShell({ title, labelsById, elementIndex, modeAvailability,
         data-rail-drawer-open={railDrawerOpen}
         data-inspector-open={selection !== null}
       >
-        <LeftRail open={railDrawerOpen} onClose={toggleRail} />
-        <HudTimelineFrame>{children}</HudTimelineFrame>
+        <LeftRail open={railDrawerOpen} onClose={toggleRail} needs={needs} />
+        <HudTimelineFrame gauges={gauges}>{children}</HudTimelineFrame>
         <Inspector elementIndex={elementIndex} panels={panels} />
       </main>
-      <PhoneSheet elementIndex={elementIndex} panels={panels} snapIndex={snapIndex} onSnapIndexChange={setSnapIndex} />
+      <PhoneSheet
+        elementIndex={elementIndex}
+        panels={panels}
+        gauges={gauges}
+        needs={needs}
+        snapIndex={snapIndex}
+        onSnapIndexChange={setSnapIndex}
+      />
     </div>
   );
 }

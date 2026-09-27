@@ -38,6 +38,14 @@ export interface SimSlice {
   frame: SimFrame | null;
   /** Increments on every frame; cheap equality key for selectors. */
   frameNo: number;
+  /**
+   * Latest pass/fail per watch id (T3.8), merged in from `FrameMsg.watches`
+   * (`[id, pass]` pairs the worker re-evaluates every tick). Keyed by the
+   * watch id a `NeedView.alarm` names — the requirement badges' one source
+   * of truth. A watch id absent here hasn't reported yet (no badge state
+   * flip until it does).
+   */
+  watches: Readonly<Record<string, boolean>>;
   errorCode?: string;
 }
 
@@ -98,6 +106,7 @@ export function initialPlayerState(bootstrap: Pick<PlayerBootstrap, 'diagramId' 
       healthIds: [],
       frame: null,
       frameNo: 0,
+      watches: {},
     },
     story: { scenarioId: null, runner: null, duration: null },
     walkthrough: { id: null, stepIndex: 0 },

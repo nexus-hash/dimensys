@@ -115,7 +115,15 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   return (
     <div data-player-variant={variant} className="h-full">
       <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
-        <PlayerShell title={diagram.head.title} labelsById={labelsById} elementIndex={elementIndex} modeAvailability={availability} panels={panels}>
+        <PlayerShell
+          title={diagram.head.title}
+          labelsById={labelsById}
+          elementIndex={elementIndex}
+          modeAvailability={availability}
+          panels={panels}
+          gauges={diagram.gauges}
+          needs={diagram.needs}
+        >
           {blueprint}
         </PlayerShell>
       </PlayerIsland>

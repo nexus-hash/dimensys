@@ -126,6 +126,11 @@ export function severityOf(kind: ThresholdMetricKind, value: number | null | und
   return value >= t[1] ? 2 : value >= t[0] ? 1 : 0;
 }
 
+/** The warn cutoff for a threshold kind (a `Sparkline`'s `warnThreshold` line). */
+export function warnThresholdOf(kind: ThresholdMetricKind): number {
+  return HEALTH_THRESHOLDS[kind][0];
+}
+
 /** Severity from explicit warn/critical thresholds (for a `Meter`'s own scale). */
 export function severityFromThresholds(
   value: number | null | undefined,

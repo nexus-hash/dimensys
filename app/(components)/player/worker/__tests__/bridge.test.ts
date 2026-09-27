@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createPlayerStore, initialPlayerState } from '../../store/playerStore';
 import type { PlayerStore } from '../../store/playerStore';
 import { WorkerBridge, type WorkerLike } from '../bridge';
+import { getBridge } from '../bridgeRegistry';
 import { PROTOCOL_VERSION, type WorkerCommand, type WorkerMessage } from '../protocol';
 
 /** A fake `Worker`: records every posted command and lets the test dispatch messages/errors back. */
@@ -271,5 +272,35 @@ describe('WorkerBridge', () => {
     expect(init.type).toBe('init');
     if (init.type === 'init') expect(init.scenarioId).toBe('cache-outage');
     bridge.dispose();
+  });
+
+  it('merges frame.watches into sim.watches instead of replacing it, and skips the merge (keeps the same object) when a frame reports none', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'b', mode: 'free', store, createWorker, visibility: makeVisibility().api });
+    const worker = workers[0];
+
+    worker.emit({ type: 'frame', t: 0.1, keysEpoch: 0, metrics: new Float64Array(0), health: new Uint8Array(0), watches: [['w0', true]], events: [] });
+    expect(store.getState().sim.watches).toEqual({ w0: true });
+
+    worker.emit({ type: 'frame', t: 0.2, keysEpoch: 0, metrics: new Float64Array(0), health: new Uint8Array(0), watches: [['w1', false]], events: [] });
+    expect(store.getState().sim.watches).toEqual({ w0: true, w1: false });
+
+    const withBoth = store.getState().sim.watches;
+    worker.emit({ type: 'frame', t: 0.3, keysEpoch: 0, metrics: new Float64Array(0), health: new Uint8Array(0), watches: [], events: [] });
+    expect(store.getState().sim.watches).toBe(withBoth); // same reference: no spurious re-render for selectors keyed on it
+
+    worker.emit({ type: 'frame', t: 0.4, keysEpoch: 0, metrics: new Float64Array(0), health: new Uint8Array(0), watches: [['w0', false]], events: [] });
+    expect(store.getState().sim.watches).toEqual({ w0: false, w1: false });
+
+    bridge.dispose();
+  });
+
+  it('registers itself in the bridge registry on construction and removes itself on dispose', () => {
+    const store = makeStore();
+    expect(getBridge(store)).toBeUndefined();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'b', mode: 'free', store, createWorker, visibility: makeVisibility().api });
+    expect(getBridge(store)).toBe(bridge);
+    bridge.dispose();
+    expect(getBridge(store)).toBeUndefined();
   });
 });

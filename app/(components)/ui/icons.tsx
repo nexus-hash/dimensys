@@ -45,6 +45,25 @@ export function CheckIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Play (timeline transport). */
+export function PlayIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props} fill="currentColor" stroke="none">
+      <path d="M7 4.5v15l13-7.5-13-7.5Z" />
+    </Base>
+  );
+}
+
+/** Pause (timeline transport). */
+export function PauseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props} fill="currentColor" stroke="none">
+      <path d="M7 4.5h3.4v15H7z" />
+      <path d="M13.6 4.5H17v15h-3.4z" />
+    </Base>
+  );
+}
+
 export function InfoIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>

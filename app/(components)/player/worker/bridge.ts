@@ -23,6 +23,7 @@ import {
   type WorkerCommand,
   type WorkerMessage,
 } from './protocol';
+import { registerBridge, unregisterBridge } from './bridgeRegistry';
 
 /** The subset of the real `Worker` API the bridge needs — small enough for tests to fake without a real Worker thread. */
 export interface WorkerLike {
@@ -81,6 +82,10 @@ export class WorkerBridge {
     this.visibility = options.visibility ?? defaultVisibility;
     this.startWorker();
     this.stopVisibility = this.visibility.onChange(() => this.onVisibilityChange());
+    // Registered synchronously, before any worker message can land — see
+    // `bridgeRegistry.ts` for why that ordering is the whole point (T3.8's
+    // HUD/timeline commands read this store's bridge without owning it).
+    registerBridge(this.opts.store, this);
   }
 
   // -------------------------------------------------------------------------
@@ -145,6 +150,7 @@ export class WorkerBridge {
       this.worker = null;
     }
     this.disposed = true;
+    unregisterBridge(this.opts.store, this);
   }
 
   // -------------------------------------------------------------------------
@@ -214,6 +220,11 @@ export class WorkerBridge {
             ...s.sim,
             frame: { t: msg.t, keysEpoch: msg.keysEpoch, metrics: msg.metrics, health: msg.health },
             frameNo: s.sim.frameNo + 1,
+            // Merged, not replaced: a watch id already known keeps its last
+            // reported value between frames that don't re-evaluate it
+            // (`msg.watches` may be the full current set or just this
+            // tick's changes — merging is correct either way).
+            watches: msg.watches.length ? { ...s.sim.watches, ...Object.fromEntries(msg.watches) } : s.sim.watches,
           },
         }));
         return;

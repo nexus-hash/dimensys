@@ -7,7 +7,9 @@ import type { ElementIndex } from './selection';
 import { selectionKindLabel, selectionTitle } from './selection';
 import { InspectorHeader, InspectorBodySlot } from './InspectorHeader';
 import { HudStrip, TimelineDock } from './HudTimelineFrame';
+import { RequirementBadges } from '../hud/RequirementBadges';
 import { EmptyInspectorBody } from '../inspector';
+import type { GaugeView, NeedView } from '../types';
 
 /** The spec's phone snap points, exported so `PlayerShell` can size the canvas area's reserved bottom space to match the *current* one, not just the lowest. */
 export const SNAP_PERCENTS = [12, 50, 92];
@@ -16,6 +18,10 @@ export interface PhoneSheetProps {
   elementIndex: ElementIndex;
   /** Same pre-rendered bodies `Inspector` gets (T3.6) — the phone sheet's "Inspect" tab shows the identical content, just in this container instead of the desktop/tablet aside. */
   panels: Record<string, React.ReactNode>;
+  /** HUD tiles source (T3.8), for this sheet's "Metrics" tab — same data `HudTimelineFrame` gets. */
+  gauges?: readonly GaugeView[];
+  /** Requirement badges source (T3.8), for the same tab. */
+  needs?: readonly NeedView[];
   /** Controlled snap index — lifted to `PlayerShell` (T3.16) so it can also drive `--player-sheet-peek`, keeping the board-fit effect's measured free area in step with the sheet's *actual* current height instead of only its lowest snap point. */
   snapIndex: number;
   onSnapIndexChange: (index: number) => void;
@@ -51,7 +57,7 @@ export interface PhoneSheetProps {
  * and the selected element's name still shows up visibly, just scoped to
  * the "Inspect" tab's own `<InspectorHeader>` instead of a sheet-wide banner.
  */
-export function PhoneSheet({ elementIndex, panels, snapIndex, onSnapIndexChange }: PhoneSheetProps) {
+export function PhoneSheet({ elementIndex, panels, gauges = [], needs = [], snapIndex, onSnapIndexChange }: PhoneSheetProps) {
   const selection = usePlayerStore((s) => s.selection);
   const store = usePlayerStoreApi();
   const [tab, setTab] = React.useState<'inspect' | 'hud'>('hud');
@@ -91,8 +97,9 @@ export function PhoneSheet({ elementIndex, panels, snapIndex, onSnapIndexChange 
         ]}
       >
         <TabsContent value="hud">
-          <HudStrip />
-          <TimelineDock />
+          <HudStrip gauges={gauges} />
+          {needs.length > 0 ? <RequirementBadges needs={needs} /> : null}
+          <TimelineDock registerShortcuts={false} />
         </TabsContent>
         <TabsContent value="inspect">
           {selection ? (
