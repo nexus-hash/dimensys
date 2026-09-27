@@ -78,7 +78,7 @@ test.describe('production runtime assets are servable and the worker actually ru
     // Not `locator('svg').first()`: the player shell (T3.16) renders a few
     // small UI icons before the board itself in DOM order.
     await page.goto(`/solutions/${DIAGRAM_ID}`);
-    await expect(page.locator('[data-player-root] svg[aria-label]').first()).toBeVisible();
+    await expect(page.locator('[data-player-root] [data-drill-key=""] svg[aria-label]').first()).toBeVisible();
 
     // Drive the real worker bundle with the documented protocol: init -> ready -> play -> frame.
     const frameCount = await page.evaluate(
