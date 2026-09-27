@@ -23,6 +23,16 @@ import { test, expect, type Page } from '@playwright/test';
  *   - Theme is seeded via localStorage before navigation — see
  *     dev-ui-a11y.spec.ts's file comment for why this (not poking
  *     `data-theme` post-navigation) is the only way that actually sticks.
+ *   - `preparePage` also force-hides `<nextjs-portal>`, the Next.js
+ *     dev-tools indicator/issues overlay, which is `position: fixed` on
+ *     `<body>` — with `fullPage: true` a tall page's screenshot can catch it
+ *     pinned partway down the bitmap instead of in its usual corner,
+ *     wherever its fixed viewport offset happened to land in the full
+ *     capture. It used to show up as a stray "N … Issue" badge baked into
+ *     a few baselines. Each test below also asserts zero `console.error`
+ *     calls during the whole page lifecycle, so a real underlying issue
+ *     (the kind that overlay exists to report) fails loudly instead of
+ *     just getting visually hidden.
  *
  * Baselines are platform-suffixed by Playwright's default snapshot naming
  * (`{arg}-{projectName}-{platform}{ext}`) and were generated on this
@@ -55,7 +65,17 @@ async function assertThemeIsReal(page: Page, theme: 'light' | 'dark') {
   await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 }
 
-/** Freezes the things `reducedMotion: 'reduce'` doesn't reach. */
+/**
+ * Freezes the things `reducedMotion: 'reduce'` doesn't reach, and hides the
+ * Next.js dev-tools portal (the floating "N" indicator/issues badge — see
+ * the file comment) so it can never land in a baseline bitmap again. It's a
+ * custom element (`<nextjs-portal>`) with its own shadow root mounted
+ * directly on `<body>`, so a plain `display: none` on the host from the
+ * outer document's stylesheet hides the whole thing — no shadow-DOM
+ * piercing needed. This only affects what the screenshot captures; the dev
+ * overlay itself (and any real build/runtime error it would still surface)
+ * is untouched.
+ */
 async function preparePage(page: Page) {
   await page.addStyleTag({
     content: `
@@ -65,6 +85,9 @@ async function preparePage(page: Page) {
       ::selection {
         background: transparent !important;
       }
+      nextjs-portal {
+        display: none !important;
+      }
     `,
   });
   await page.evaluate(() => document.fonts.ready);
@@ -73,6 +96,14 @@ async function preparePage(page: Page) {
 for (const { path, heading, name } of GALLERY_PAGES) {
   for (const theme of ['light', 'dark'] as const) {
     test(`${name} gallery screenshot (${theme})`, async ({ page }) => {
+      // Attached before navigation so it catches anything logged during the
+      // initial load/hydration, not just after — see the file comment on
+      // the Next.js dev-tools indicator this suite used to capture.
+      const consoleErrors: string[] = [];
+      page.on('console', (msg) => {
+        if (msg.type() === 'error') consoleErrors.push(msg.text());
+      });
+
       await setTheme(page, theme);
       await page.goto(path);
       await assertThemeIsReal(page, theme);
@@ -101,7 +132,22 @@ for (const { path, heading, name } of GALLERY_PAGES) {
       await expect(page).toHaveScreenshot(`${name}-${theme}.png`, {
         fullPage: true,
         maxDiffPixelRatio: 0.02,
+        // Playwright's own default (`caret: 'hide'`) transiently inserts and
+        // removes its own caret-hiding stylesheet right around the capture.
+        // On DS3 specifically (the only gallery with real `<input>`s, plus a
+        // Radix `Slider`, which mounts a hidden native "bubble input" — see
+        // app/(components)/ui/Slider.tsx — to mirror value changes as native
+        // DOM events), that transient extra style churn reliably triggered a
+        // real React hydration-consistency warning on the bubble input's
+        // `style` attribute, logged as a `console.error` (and, on a human's
+        // screen, the Next.js dev-tools "Issues" indicator this suite used
+        // to also capture). `preparePage` already freezes carets with its
+        // own permanent stylesheet rule, so Playwright's redundant transient
+        // one is disabled here rather than worked around.
+        caret: 'initial',
       });
+
+      expect(consoleErrors).toEqual([]);
     });
   }
 }
