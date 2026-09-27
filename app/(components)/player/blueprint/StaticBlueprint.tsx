@@ -14,6 +14,16 @@ import type { ColorByMode, HealthLookup } from './colorBy';
 
 export type { ColorByMode, HealthLookup, ElementHealth } from './colorBy';
 
+/**
+ * Gutter between an expanded subsystem's frame and the content it encloses.
+ * The synced layout sizes a subsystem's inner content flush against its own
+ * bounding box (no border allowance), so drawing the frame at that exact
+ * size puts its dashed edge right on the first/last inner node's own
+ * corner. This inset keeps the frame reading as a boundary drawn around its
+ * contents, not through them.
+ */
+const SUBSYSTEM_FRAME_PADDING = 12;
+
 export interface StaticBlueprintProps {
   /** The graph level to draw — `ViewData.board` for the top level. */
   board: BoardView;
@@ -135,21 +145,26 @@ function renderSubsystem(
   }
 
   const inner = block.inner!;
-  const [width, height] = inner.size;
+  const [innerWidth, innerHeight] = inner.size;
+  const width = innerWidth + SUBSYSTEM_FRAME_PADDING * 2;
+  const height = innerHeight + SUBSYSTEM_FRAME_PADDING * 2;
   const frameX = cx - width / 2;
   const frameY = cy - height / 2;
+  const contentOffset: XY = [frameX + SUBSYSTEM_FRAME_PADDING, frameY + SUBSYSTEM_FRAME_PADDING];
   const nodeCount = inner.blocks.length;
 
   return (
-    <g key={block.id}>
+    <g key={block.id} data-subsystem-id={block.id}>
       <SubsystemFrame
+        boardId={boardId}
+        id={block.id}
         label={`${block.text} · ${nodeCount} node${nodeCount === 1 ? '' : 's'}`}
         x={frameX}
         y={frameY}
         width={width}
         height={height}
       />
-      {renderLevel(inner, boardId, [frameX, frameY], mode, health)}
+      {renderLevel(inner, boardId, contentOffset, mode, health)}
     </g>
   );
 }

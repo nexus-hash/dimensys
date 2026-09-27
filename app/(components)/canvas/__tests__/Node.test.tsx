@@ -107,4 +107,79 @@ describe('Node', () => {
     );
     expect(container.querySelectorAll('.cv-stack').length).toBe(2);
   });
+
+  it('truncates a long label with an ellipsis instead of overflowing, keeping the full text in aria-label and a <title>', () => {
+    const longLabel = 'Billing DB (MySQL, Multi-AZ Replica Set)';
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="db" label={longLabel} />
+      </svg>,
+    );
+    const g = container.querySelector('[data-node-id="n1"]');
+    const labelText = g?.querySelector('.cv-label')?.textContent ?? '';
+    expect(labelText).toMatch(/…$/);
+    expect(labelText.length).toBeLessThan(longLabel.length);
+    // Full text always ships regardless of what's visually truncated.
+    expect(g?.getAttribute('aria-label')).toContain(longLabel);
+    expect(g?.querySelector('title')?.textContent).toContain(longLabel);
+  });
+
+  it('truncates a long sub-label the same way', () => {
+    const longSublabel = 'server · api-gateway-canary-region-us-east-1';
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="server" label="API" sublabel={longSublabel} />
+      </svg>,
+    );
+    const subText = container.querySelector('[data-node-id="n1"] .cv-sub')?.textContent ?? '';
+    expect(subText).toMatch(/…$/);
+    expect(subText.length).toBeLessThan(longSublabel.length);
+  });
+
+  it('does not truncate a label/sub-label that already fits', () => {
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="server" label="API" sublabel="server · api" />
+      </svg>,
+    );
+    expect(container.querySelector('[data-node-id="n1"] .cv-label')?.textContent).toBe('API');
+    expect(container.querySelector('[data-node-id="n1"] .cv-sub')?.textContent).toBe('server · api');
+  });
+
+  it('renders a <title> tooltip combining label and sub-label', () => {
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="server" label="API Service" sublabel="server · api" />
+      </svg>,
+    );
+    expect(container.querySelector('[data-node-id="n1"] > title')?.textContent).toBe('API Service — server · api');
+  });
+
+  it('reserves the role pill width in the truncation budget, so the label/sub-label never run under the chip', () => {
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="lb" label="API Service" sublabel="lb · ×2" role="primary" health="ok" />
+      </svg>,
+    );
+    const clipRect = container.querySelector(`clipPath rect`);
+    // Same budget the pill's own transform (`translate(w - 54, 8)`, 46px wide) leaves clear: w - 38 - 60.
+    expect(clipRect?.getAttribute('width')).toBe('46');
+    const labelText = container.querySelector('[data-node-id="n1"] .cv-label')?.textContent ?? '';
+    const subText = container.querySelector('[data-node-id="n1"] .cv-sub')?.textContent ?? '';
+    expect(labelText).toMatch(/…$/);
+    expect(subText).toMatch(/…$/);
+  });
+
+  it('the down state keeps the label/sub-label legible (not folded into the heavily-dimmed inner group)', () => {
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="cache" label="Redis Cache" sublabel="cache · redis" health="down" />
+      </svg>,
+    );
+    // The text layer is its own sibling, outside `.cv-inner` (which is dimmed to .3 for `down`).
+    const inner = container.querySelector('[data-node-id="n1"] .cv-inner');
+    expect(inner?.querySelector('.cv-label')).toBeNull();
+    const text = container.querySelector('[data-node-id="n1"] .cv-text');
+    expect(text?.querySelector('.cv-label')?.textContent).toBe('Redis Cache');
+  });
 });

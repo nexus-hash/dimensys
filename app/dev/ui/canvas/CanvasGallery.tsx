@@ -203,7 +203,7 @@ function SubsystemSection() {
         y={80}
       />
 
-      <SubsystemFrame label="cluster" x={60} y={190} width={780} height={130} />
+      <SubsystemFrame boardId="gallery-subsystem" id="frame-cluster" label="cluster" x={60} y={190} width={780} height={130} />
       <Node boardId="gallery-subsystem" id="sub-inner-1" type="server" label="Node A" x={200} y={255} />
       <Node boardId="gallery-subsystem" id="sub-inner-2" type="server" label="Node B" x={420} y={255} />
       <Node boardId="gallery-subsystem" id="sub-inner-3" type="db" label="Node C" x={640} y={255} />

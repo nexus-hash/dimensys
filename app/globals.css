@@ -584,6 +584,7 @@
 .cv-node .cv-ring, .cv-node .cv-sel, .cv-node .cv-halo, .cv-node .cv-focus { fill: none; stroke: none; }
 .cv-node .cv-hatch { opacity: 0; transition: opacity 400ms; }
 .cv-node .cv-inner { transition: opacity 400ms; }
+.cv-node .cv-text { transition: opacity 400ms; }
 .cv-node .cv-role rect { fill: none; stroke: var(--color-line-strong); }
 .cv-node .cv-role text { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
 
@@ -593,6 +594,14 @@
 .cv-node.cv-health-down .cv-ring { stroke: var(--color-ink-muted); stroke-width: 1; stroke-dasharray: 4 3; }
 .cv-node.cv-health-down .cv-inner { opacity: .3; }
 .cv-node.cv-health-down .cv-hatch { opacity: 1; }
+/* The label stays its own, separately-dimmed layer (not part of `.cv-inner`) so a
+   `down` node still reads its name at a legible contrast — .6 opacity clears
+   3:1 against the canvas background in both themes with margin. `.cv-sub`
+   swaps its usual (already semi-transparent) muted ink for the opaque
+   primary ink here, because that alpha would otherwise compound with this
+   opacity below the legibility floor. */
+.cv-node.cv-health-down .cv-text { opacity: .6; }
+.cv-node.cv-health-down .cv-sub { fill: var(--color-ink-primary); }
 .cv-node.cv-health-recovering .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; stroke-dasharray: 7 5; animation: cv-dashrot 1.8s linear infinite; }
 .cv-node.cv-health-warn .cv-role, .cv-node.cv-health-critical .cv-role, .cv-node.cv-health-down .cv-role, .cv-node.cv-health-recovering .cv-role { display: none; }
 
@@ -613,7 +622,7 @@
 .cv-node .cv-chip text { font: 600 12px var(--font-mono); fill: var(--color-ink-primary); }
 
 .cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
-.cv-node .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
+.cv-node .cv-tab, .cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
 
 @keyframes cv-ringpulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
 @keyframes cv-dashrot { to { stroke-dashoffset: -24; } }

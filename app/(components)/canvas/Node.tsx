@@ -3,6 +3,11 @@ import { HealthGlyph } from './HealthGlyph';
 import { hatchId } from './CanvasDefs';
 import { NODE_HEIGHT, NODE_WIDTH } from './types';
 import type { HealthState, HldNodeType, NodeMeter, NodeRole } from './types';
+import { MONO_CHAR_EM, SANS_CHAR_EM, truncateToWidth } from './text';
+
+/** Matches `.cv-node .cv-label`/`.cv-sub` in globals.css — kept in sync by hand, see `text.ts`. */
+const LABEL_FONT_SIZE = 13;
+const SUBLABEL_FONT_SIZE = 12;
 
 export type LeafNodeType = Exclude<HldNodeType, 'subSystem'>;
 
@@ -96,9 +101,16 @@ export function Node({
   const ariaLabel = `${label}, ${type}${variant ? ` · ${variant}` : ''}, ${healthSentence(health, healthLabel)}`;
   // Label/sub-label are clipped to the space left of the health glyph / role
   // pill so a long label never overlaps them (the design spec: "truncated with a full
-  // tooltip" — the tooltip itself is an interactive concern, T3.3).
+  // tooltip"). The visible glyphs are truncated with an ellipsis at an estimated
+  // width (`text.ts` — there's no DOM to measure against server-side); the
+  // clipPath stays as a hard safety net for whatever that estimate gets wrong,
+  // and the full text always ships in `aria-label` above plus a native `<title>`
+  // tooltip below, regardless of what's visually truncated.
   const textClipId = `${boardId}-${id}-text-clip`;
   const textAreaWidth = w - 38 - (showRolePill ? 60 : 12);
+  const displayLabel = truncateToWidth(label, textAreaWidth, LABEL_FONT_SIZE * SANS_CHAR_EM);
+  const displaySublabel = sublabel ? truncateToWidth(sublabel, textAreaWidth, SUBLABEL_FONT_SIZE * MONO_CHAR_EM) : undefined;
+  const titleText = sublabel ? `${label} — ${sublabel}` : label;
 
   return (
     <g
@@ -115,6 +127,7 @@ export function Node({
       role={interactive ? 'button' : 'img'}
       aria-label={ariaLabel}
     >
+      <title>{titleText}</title>
       <rect className="cv-halo" x={-5} y={-5} width={w + 10} height={h + 10} rx={15} />
       <rect className="cv-focus" x={-8} y={-8} width={w + 16} height={h + 16} rx={18} />
 
@@ -132,16 +145,6 @@ export function Node({
         <clipPath id={textClipId}>
           <rect x={38} y={0} width={Math.max(0, textAreaWidth)} height={h} />
         </clipPath>
-        <g clipPath={`url(#${textClipId})`}>
-          <text className="cv-label" x={38} y={27}>
-            {label}
-          </text>
-          {sublabel && (
-            <text className="cv-sub" x={38} y={45}>
-              {sublabel}
-            </text>
-          )}
-        </g>
         {meter && (
           <>
             <rect className="cv-mtrack" x={12} y={57} width={w - 60} height={2} rx={1} />
@@ -161,6 +164,23 @@ export function Node({
       </g>
 
       <rect className="cv-hatch" width={w} height={h} rx={10} fill={`url(#${hatchId(boardId)})`} />
+
+      {/* Text sits above the hatch/dimmed body as its own layer (not inside
+          `.cv-inner`) so the `down` state's heavy dimming never drops label
+          legibility below a readable contrast — glyphs, labels and hatch
+          textures are the non-color channel the design spec leans on, so
+          the label can't be the part that fades away. */}
+      <g className="cv-text" clipPath={`url(#${textClipId})`}>
+        <text className="cv-label" x={38} y={27}>
+          {displayLabel}
+        </text>
+        {displaySublabel && (
+          <text className="cv-sub" x={38} y={45}>
+            {displaySublabel}
+          </text>
+        )}
+      </g>
+
       <rect className="cv-ring" x={-3} y={-3} width={w + 6} height={h + 6} rx={13} />
       <rect className="cv-sel" x={-3} y={-3} width={w + 6} height={h + 6} rx={13} />
 

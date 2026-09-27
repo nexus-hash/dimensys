@@ -66,10 +66,28 @@ describe('Subsystem', () => {
   it('renders the expanded frame with a tab label', () => {
     const { getByText } = render(
       <svg>
-        <SubsystemFrame label="cluster" width={400} height={300} />
+        <SubsystemFrame boardId="b1" id="frame1" label="cluster" width={400} height={300} />
       </svg>,
     );
     expect(getByText('CLUSTER')).toBeTruthy();
+  });
+
+  it('truncates a long frame tab label with an ellipsis instead of overflowing', () => {
+    const { container, queryByText } = render(
+      <svg>
+        <SubsystemFrame
+          boardId="b1"
+          id="frame2"
+          label="a very long subsystem name that will not fit the tab"
+          width={200}
+          height={100}
+        />
+      </svg>,
+    );
+    const tab = container.querySelector('.cv-tab');
+    expect(tab?.textContent).toMatch(/…$/);
+    expect(tab?.textContent?.length).toBeLessThan('A VERY LONG SUBSYSTEM NAME THAT WILL NOT FIT THE TAB'.length);
+    expect(queryByText('A VERY LONG SUBSYSTEM NAME THAT WILL NOT FIT THE TAB')).toBeNull();
   });
 });
 

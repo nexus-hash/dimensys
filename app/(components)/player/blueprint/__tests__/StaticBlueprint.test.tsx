@@ -29,11 +29,12 @@ describe('StaticBlueprint', () => {
   it('appends a replica count to the sub-label once stack > 1', () => {
     const board: Board = {
       size: [400, 200],
-      blocks: [{ id: 'api', form: 'server', flavor: 'go', text: 'API', box: [100, 80, 144, 72], stack: 4 }],
+      // Short enough that this fits without truncation kicking in (that's covered separately below).
+      blocks: [{ id: 'api', form: 'server', flavor: 'x', text: 'API', box: [100, 80, 144, 72], stack: 4 }],
       wires: [],
     };
     const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
-    expect(container.querySelector('[data-node-id="api"] .cv-sub')?.textContent).toBe('server · go ×4');
+    expect(container.querySelector('[data-node-id="api"] .cv-sub')?.textContent).toBe('server · x ×4');
   });
 
   it('skips a spare node with no box yet', () => {

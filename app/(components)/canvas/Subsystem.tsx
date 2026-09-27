@@ -2,6 +2,11 @@ import { NodeIcon } from './icons';
 import { HealthGlyph } from './HealthGlyph';
 import { hatchId } from './CanvasDefs';
 import type { HealthState } from './types';
+import { MONO_CHAR_EM, truncateToWidth } from './text';
+
+/** Matches `.cv-subsystem .cv-tab` in globals.css. */
+const TAB_FONT_SIZE = 11;
+const TAB_LETTER_SPACING_EM = 0.06;
 
 /**
  * The collapsed subsystem affordance: renders like a larger node,
@@ -89,27 +94,45 @@ export function SubsystemCollapsed({
 /**
  * The expanded subsystem boundary: a dashed frame with a top-left
  * mono tab label. Purely decorative — it draws around whatever `Node`s the
- * caller places inside `width`×`height`, it doesn't lay them out.
+ * caller places inside `width`×`height`, it doesn't lay them out (padding
+ * between the frame and its contents, if any, is also the caller's call).
+ *
+ * `boardId`/`id` namespace the tab's clip id, same as `Node` — needed so two
+ * frames on one board (or two boards on one page) never collide.
  */
 export function SubsystemFrame({
+  boardId,
+  id,
   label,
   x = 0,
   y = 0,
   width,
   height,
 }: {
+  boardId: string;
+  id: string;
   label: string;
   x?: number;
   y?: number;
   width: number;
   height: number;
 }) {
+  const tabClipId = `${boardId}-${id}-tab-clip`;
+  // A little inset from the frame's own edges/corners on both sides.
+  const tabAreaWidth = Math.max(0, width - 4);
+  const displayLabel = truncateToWidth(label.toUpperCase(), tabAreaWidth, TAB_FONT_SIZE * (MONO_CHAR_EM + TAB_LETTER_SPACING_EM));
+
   return (
     <g className="cv-subsystem" transform={`translate(${x}, ${y})`} aria-hidden="true">
       <rect className="cv-body" width={width} height={height} rx={16} />
-      <text className="cv-tab" x={2} y={-8}>
-        {label.toUpperCase()}
-      </text>
+      <clipPath id={tabClipId}>
+        <rect x={2} y={-20} width={tabAreaWidth} height={20} />
+      </clipPath>
+      <g clipPath={`url(#${tabClipId})`}>
+        <text className="cv-tab" x={2} y={-8}>
+          {displayLabel}
+        </text>
+      </g>
     </g>
   );
 }
