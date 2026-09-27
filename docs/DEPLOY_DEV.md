@@ -53,8 +53,8 @@ Add under Settings → Secrets and variables → Actions:
 | `VERCEL_TOKEN` | A Vercel personal access token (Account Settings → Tokens). Scope it to this project/team if possible. |
 | `VERCEL_ORG_ID` | `orgId` from `.vercel/project.json`. |
 | `VERCEL_PROJECT_ID` | `projectId` from `.vercel/project.json`. |
-| `DMS_ENGINE_REPO` | Already exists for `build.yml` (e.g. `nexus-hash/dms-engine`) — reused by `deploy-dev.yml`. |
-| `DMS_ENGINE_PAT` | Already exists for `build.yml` — reused by `deploy-dev.yml` to check out the private engine. |
+| `DMS_ENGINE_REPO` | Already exists (also used by `deploy.yml`) (e.g. `nexus-hash/dms-engine`) — reused by `deploy-dev.yml`. |
+| `DMS_ENGINE_PAT` | Already exists (also used by `deploy.yml`) — reused by `deploy-dev.yml` to check out the private engine. |
 
 Note: `deploy-dev.yml` does **not** use `DMS_ENGINE_REF`. For `push`/`workflow_dispatch` it
 always builds engine `main`; for `repository_dispatch` it builds the exact commit the engine

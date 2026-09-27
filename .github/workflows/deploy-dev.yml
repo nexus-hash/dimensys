@@ -86,7 +86,7 @@ jobs:
             fi
           else
             # Always the engine's main branch — this workflow intentionally
-            # ignores DMS_ENGINE_REF (that secret is used by build.yml for
+            # ignores DMS_ENGINE_REF (that secret is used by deploy.yml for
             # other purposes); push/dispatch always track engine main.
             echo "ref=main" >> "$GITHUB_OUTPUT"
           fi
