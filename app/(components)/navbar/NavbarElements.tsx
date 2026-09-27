@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import ThemeButton from '../theme/ThemeButton';
 import Avatar from './Avatar';
 import SearchBar from './SearchBar';
@@ -15,9 +16,17 @@ export default function NavbarElements() {
       <div className="flex items-center justify-between h-full w-full">
         {/* Left: Brand / Logo */}
         <div className="flex items-center justify-start flex-1 md:flex-none">
-          <div className="flex items-center group" aria-label="Home">
+          <Link href="/" className="flex items-center gap-2 group" aria-label="Dimensys home">
             <Logo3D size={36} />
-          </div>
+            {/*
+              Neutral wordmark, brand typography (S4.6a): the mark itself is
+              being redesigned for trademark reasons, so the home page reads
+              the brand as text here rather than switching to a new mark.
+            */}
+            <span className="text-title-3 font-semibold tracking-tight text-ink-primary" aria-hidden="true">
+              Dimensys
+            </span>
+          </Link>
         </div>
 
         {/* Center: Desktop Navigation Links */}

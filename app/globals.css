@@ -1058,3 +1058,21 @@
   vertical-align: middle;
 }
 .cv-lld-rule { stroke: var(--color-line-hairline); }
+
+/* ============================================================================
+ * Home (S4.6a): the below-the-fold showcase sections' settle-in transition.
+ *
+ * "Scroll-reveal from a visible resting state" (the design intent) means
+ * exactly that: content is fully opaque and legible the whole time — never
+ * `opacity: 0` (that would fail contrast checks on anything not yet
+ * scrolled into view, and would leave a no-JS/pre-hydration visitor unable
+ * to read a section at all). Only position settles in, a few pixels, on
+ * top of content that was already readable at rest.
+ * ========================================================================= */
+.home-reveal {
+  transform: translateY(24px);
+  transition: transform var(--transition-duration-scene) var(--ease-emphasized);
+}
+.home-reveal.is-visible {
+  transform: none;
+}

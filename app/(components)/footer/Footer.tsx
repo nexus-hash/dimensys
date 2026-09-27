@@ -85,10 +85,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-light-secondary/10 dark:border-dark-secondary/10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-light-secondary/50 dark:text-dark-secondary/50">
-            © 2026 dimensys. All rights reserved.
-          </p>
-          <p className="text-xs text-light-secondary/40 dark:text-dark-secondary/40">
-            Built with Next.js
+            © 2026 dimensys · non-commercial · the simulation is a model, not a benchmark
           </p>
         </div>
       </div>

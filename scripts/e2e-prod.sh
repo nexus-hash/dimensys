@@ -61,6 +61,7 @@ done
 echo "== playwright (production-servable specs, both projects, <=4 workers) =="
 npx playwright test \
   e2e/smoke.spec.ts \
+  e2e/home-page.spec.ts \
   e2e/solutions-page.spec.ts \
   e2e/server-only-paths-unreachable.spec.ts \
   e2e/production-runtime-assets.spec.ts \
