@@ -86,7 +86,7 @@ describe('StaticBlueprint', () => {
           line: 'sync',
           text: 'Write/Read DB',
           route: [[0, 0], [50, 0], [50, 100], [100, 100]],
-          cap: { pt: [50, 40], axis: 'v' },
+          cap: { pt: [50, 40], axis: 'v', sz: [113.4, 20] },
         },
       ],
     };

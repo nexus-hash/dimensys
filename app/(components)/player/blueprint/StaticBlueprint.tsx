@@ -193,6 +193,7 @@ function renderLink(wire: LinkView, boardId: string, offset: XY) {
       bidirectional={!!wire.two}
       label={wire.text}
       labelPosition={labelPosition ? { x: labelPosition[0], y: labelPosition[1] } : undefined}
+      labelSize={wire.cap?.sz}
     />
   );
 }

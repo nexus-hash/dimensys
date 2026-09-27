@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { Link } from '../Link';
+import { Link, estimatePillSize } from '../Link';
 import { SubsystemCollapsed, SubsystemFrame } from '../Subsystem';
 import { DsaCell } from '../DsaCell';
 import { PointerMarker } from '../PointerMarker';
@@ -29,6 +29,27 @@ describe('Link', () => {
     );
     expect(getByText('write path')).toBeTruthy();
   });
+
+  it('draws the pill rect at exactly `labelSize` when given (GEOM: the route\'s `cap.sz`), not a re-derived estimate', () => {
+    const { container } = render(
+      <svg>
+        <Link boardId="b1" id="l1" d="M0,0 L100,0" protocol="sync" label="Write/Read DB" labelPosition={{ x: 50, y: 0 }} labelSize={[123.4, 20]} />
+      </svg>,
+    );
+    const rect = container.querySelector('.cv-link-label rect');
+    expect(rect?.getAttribute('width')).toBe('123.4');
+    expect(rect?.getAttribute('height')).toBe('20');
+    expect(rect?.getAttribute('x')).toBe(String(-123.4 / 2));
+  });
+
+  it(
+    "estimatePillSize (GEOM: this player's own pill-drawing constants — the layout engine's label-geometry module is its named counterpart) matches 7.3px/char, 7px pad each side, 20px tall, 80px floor",
+    () => {
+      expect(estimatePillSize('ok')).toEqual([80, 20]);
+      expect(estimatePillSize('Write/Read DB')).toEqual(['Write/Read DB'.length * 7.3 + 14, 20]);
+      expect(estimatePillSize('Get New Key')).toEqual(['Get New Key'.length * 7.3 + 14, 20]);
+    },
+  );
 
   it('renders a partitioned link with the cut glyph', () => {
     const { getByText } = render(

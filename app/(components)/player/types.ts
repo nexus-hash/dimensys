@@ -131,13 +131,17 @@ export interface LinkView {
   flux?: Flux;
   /**
    * Collision-free label anchor: the label pill's centre, in route
-   * coordinates, plus which segment it sits on (`h` horizontal, `v`
-   * vertical — the pill itself always renders horizontal regardless).
-   * Present whenever both `text` and `route` are; a link with `text` but no
-   * `cap` (an older/unsynced document) falls back to the route's own
-   * arc-length midpoint.
+   * coordinates, which segment it sits on (`h` horizontal, `v` vertical —
+   * the pill itself always renders horizontal regardless), and the pill's
+   * own size (`sz`, `[w, h]`) to draw it at — calibrated against this
+   * player's real pill geometry (see `LABEL_PILL` in `canvas/Link.tsx`), so
+   * this component draws the pill at exactly this size instead of
+   * re-estimating it from `text.length` with its own numbers. Present
+   * whenever both `text` and `route` are; a link with `text` but no `cap`
+   * (an older/unsynced document) falls back to the route's own arc-length
+   * midpoint, sized from `text.length` the old way.
    */
-  cap?: { pt: XY; axis: 'h' | 'v' };
+  cap?: { pt: XY; axis: 'h' | 'v'; sz: XY };
 }
 
 /** One graph level. */
