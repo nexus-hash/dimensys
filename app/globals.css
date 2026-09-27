@@ -773,6 +773,7 @@
 .player-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 0 12px;
   border-bottom: 1px solid var(--color-line-hairline);

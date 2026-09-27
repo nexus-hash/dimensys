@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { IconButton, Button, Kbd } from '@/app/(components)/ui';
 import { PanelLeftIcon, ShareIcon, SettingsIcon } from '@/app/(components)/ui/icons';
-import { useCommandPalette } from '@/app/(components)/command';
+import { useCommandPalette, usePlatformModKey } from '@/app/(components)/command';
 import type { PlayerMode } from '../store/playerStore';
 import { ModeSwitcher } from './ModeSwitcher';
 import { PlayerBreadcrumbs } from './PlayerBreadcrumbs';
@@ -24,6 +24,8 @@ export interface TopBarProps {
  */
 export function TopBar({ title, labelsById, modeAvailability, railOpen, onToggleRail }: TopBarProps) {
   const { openPalette } = useCommandPalette();
+  const modKey = usePlatformModKey();
+
   return (
     <header className="player-topbar">
       <IconButton
@@ -49,7 +51,7 @@ export function TopBar({ title, labelsById, modeAvailability, railOpen, onToggle
         <PlayerBreadcrumbs rootLabel={title} labelsById={labelsById} />
       </nav>
 
-      <div className="ml-auto flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         <ModeSwitcher availability={modeAvailability} />
       </div>
 
@@ -63,7 +65,7 @@ export function TopBar({ title, labelsById, modeAvailability, railOpen, onToggle
           <ShareIcon />
         </IconButton>
         <Button variant="ghost" size="sm" className="player-desktop-only gap-1.5" onClick={openPalette} aria-label="Command palette">
-          <Kbd>⌘</Kbd>
+          <Kbd>{modKey}</Kbd>
           <Kbd>K</Kbd>
         </Button>
         <IconButton aria-label="Settings" disabled title="Settings (coming soon)">
