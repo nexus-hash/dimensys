@@ -135,3 +135,61 @@ export async function listRuntimeBundleFilenames(): Promise<string[]> {
     .filter((f): f is typeof f & { path: string } => f.scope === 'public' && RUNTIME_BUNDLE_RE.test(f.path))
     .map((f) => RUNTIME_BUNDLE_RE.exec(f.path)![1]);
 }
+
+// ---------------------------------------------------------------------------
+// Concepts: the CS-curriculum content `app/concepts/**` renders. Synced
+// (like everything above) into `data/engine/concepts/`, byte-for-byte from
+// the engine's `src/assets/data/concepts/`. Read server-side only, at
+// build/render time — never fetched raw by the browser.
+// ---------------------------------------------------------------------------
+
+export interface ConceptsCategoryEntry {
+  id: string;
+  title: string;
+  description?: string;
+  file: string;
+}
+
+export interface ConceptsIndex {
+  categories: ConceptsCategoryEntry[];
+}
+
+export interface ConceptEntry {
+  id: string;
+  title: string;
+  readTime: string;
+  tags: string[];
+  contentFile?: string;
+}
+
+export interface ConceptModule {
+  id: string;
+  title: string;
+  concepts: ConceptEntry[];
+}
+
+export interface ConceptsCategoryData {
+  modules: ConceptModule[];
+}
+
+/** `data/engine/concepts/index.json` — the list of concept categories. Cached. */
+export const loadConceptsIndex = cache(async (): Promise<ConceptsIndex> => {
+  return readJson<ConceptsIndex>(dataPath('concepts', 'index.json'));
+});
+
+/** One category's modules (`data/engine/concepts/<categoryId>.json`, e.g. `hld.json`). Cached per category. */
+export const loadConceptsCategory = cache(async (categoryId: string): Promise<ConceptsCategoryData> => {
+  return readJson<ConceptsCategoryData>(dataPath('concepts', `${categoryId}.json`));
+});
+
+/**
+ * One concept article's raw Markdown (`data/engine/concepts/content/<contentFile>`).
+ * `contentFile` must be a value already present in a synced category JSON
+ * (`ConceptEntry.contentFile`) — never taken from an unvalidated request
+ * path. Both static routes that call this (`/concepts` detail page) enumerate
+ * every valid pair via `generateStaticParams` with `dynamicParams = false`,
+ * so no runtime `fs` access happens for an id that isn't already known.
+ */
+export async function loadConceptContent(contentFile: string): Promise<string> {
+  return fs.readFile(dataPath('concepts', 'content', contentFile), 'utf-8');
+}
