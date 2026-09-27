@@ -1,4 +1,4 @@
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import { DrillStage } from '../DrillStage';
@@ -110,20 +110,9 @@ describe('DrillStage', () => {
     expect(screen.getByTestId('drill-probe')).toHaveTextContent('');
   });
 
-  it('shows working breadcrumbs and lets a breadcrumb jump back', async () => {
-    const user = userEvent.setup();
-    renderStage();
-    await user.click(screen.getByText('Key Generation Service'));
-    await user.click(screen.getByText('nested tab'));
-
-    const nav = within(screen.getByRole('navigation', { name: 'Subsystem breadcrumbs' }));
-    expect(nav.getByText('URL shortener')).toBeTruthy();
-    expect(nav.getByText('Key Generation Service')).toBeTruthy();
-    expect(nav.getByText('Nested')).toHaveAttribute('aria-current', 'location');
-
-    await user.click(nav.getByRole('button', { name: 'URL shortener' }));
-    expect(screen.getByTestId('drill-probe')).toHaveTextContent('');
-  });
+  // Breadcrumb rendering moved to the shell's top bar (T3.16, `PlayerBreadcrumbs`) —
+  // see `shell/__tests__/PlayerBreadcrumbs.test.tsx` for the "shows the trail /
+  // jump back" coverage. `DrillStage` only owns the drill-path state changes now.
 
   it('moves focus into the child level on entry, and announces it', async () => {
     const user = userEvent.setup();

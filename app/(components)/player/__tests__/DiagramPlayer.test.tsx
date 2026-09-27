@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+
+// The shell's ⌘K button reaches `CommandPalette`, which calls `useRouter()`.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 import { DiagramPlayer, diagramJsonUrl } from '../DiagramPlayer';
+import { CommandProvider } from '@/app/(components)/command';
 import type { ViewData } from '../types';
+
+/** The shell's top bar reads `useCommandPalette()` (the ⌘K button) — every `full`-variant render needs this ancestor, same as the real app shell (`app/layout.tsx`). */
+function renderPlayer(ui: ReactElement) {
+  return render(<CommandProvider navItems={[]}>{ui}</CommandProvider>);
+}
 
 const diagram: ViewData = {
   fmt: 2,
@@ -29,7 +40,7 @@ const diagram: ViewData = {
 
 describe('DiagramPlayer', () => {
   it('renders the static blueprint inside the client island', () => {
-    const { container } = render(<DiagramPlayer diagram={diagram} />);
+    const { container } = renderPlayer(<DiagramPlayer diagram={diagram} />);
     const svg = container.querySelector('svg[aria-label="URL shortener"]');
     expect(svg).toBeTruthy();
     expect(svg).toHaveAttribute('viewBox', '0 0 800 400');
@@ -51,7 +62,7 @@ describe('DiagramPlayer', () => {
         wires: [{ id: 'l1', a: 'a', b: 'b', line: 'sync', route: [[144, 100], [300, 100]] }],
       },
     };
-    const { container } = render(<DiagramPlayer diagram={withBoard} />);
+    const { container } = renderPlayer(<DiagramPlayer diagram={withBoard} />);
     expect(container.querySelector('[data-node-id="a"]')).toBeTruthy();
     expect(container.querySelector('[data-node-id="b"]')).toBeTruthy();
     expect(container.querySelector('[data-link-id="l1"]')).toBeTruthy();
