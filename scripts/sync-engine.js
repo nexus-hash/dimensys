@@ -1,12 +1,24 @@
 #!/usr/bin/env node
 
 /**
- * sync-engine.js — Manifest-driven sync tool
+ * sync-engine.js — Manifest-driven sync tool for the (old, pre-v3)
+ * dms-engine build's `staticAssets[]` only.
  *
- * Reads dms-engine's dist/manifest.json and synchronizes:
- * 1. Generated pages → app/solutions/
- * 2. Static assets → public/engine/
- * 3. Peer dependencies → checks package.json, installs if missing
+ * T3.13 removed this script's other two jobs along with the TSX-codegen
+ * route it fed:
+ *   - `manifest.pages[]` (generated diagram routes, copied into
+ *     `app/solutions/<id>/`) — that route is now hand-written
+ *     (`app/solutions/[id]/page.tsx`) and reads `data/engine/` instead,
+ *     synced by `sync-engine-v3.js`.
+ *   - `manifest.sharedComponents[]` (3D diagram-asset templates, copied into
+ *     `app/(components)/diagram-assets/`) — those templates existed only to
+ *     support the generated pages above.
+ *
+ * What's left, `staticAssets[]`, copies content unrelated to diagrams: CS
+ * concept articles (`src/assets/data/concepts/**`) that `app/concepts/**`
+ * fetches at runtime from `public/engine/data/concepts/`, plus a leftover
+ * icon set nothing currently imports. This keeps running until that content
+ * moves to a synced-data source of its own (outside this task's scope).
  */
 
 const fs = require('fs');
@@ -28,39 +40,7 @@ if (!fs.existsSync(MANIFEST_PATH)) {
 const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
 console.log(`📋 Syncing dms-engine v${manifest.version} (built ${manifest.generatedAt})`);
 
-// --- 2. Sync pages → app/solutions/ ---
-// NOTE: We do in-place updates (overwrite files, remove stale ones)
-// instead of deleting the directory. Deleting breaks Next.js hot reload
-// because the file watcher loses the route registration.
-console.log('\n📄 Syncing pages...');
-for (const page of manifest.pages) {
-  const src = path.join(ENGINE_DIST, page.source);
-  const dest = path.join(DIMENSYS_ROOT, 'app', page.route);
-
-  if (!fs.existsSync(src)) {
-    console.log(`   ⚠️  Source not found: ${src}`);
-    continue;
-  }
-
-  fs.mkdirSync(dest, { recursive: true });
-
-  // Overwrite all source files into destination
-  const srcFiles = fs.readdirSync(src);
-  for (const file of srcFiles) {
-    fs.copyFileSync(path.join(src, file), path.join(dest, file));
-  }
-
-  // Remove stale files that no longer exist in source
-  const destFiles = fs.readdirSync(dest);
-  for (const file of destFiles) {
-    if (!srcFiles.includes(file)) {
-      fs.rmSync(path.join(dest, file), { force: true });
-    }
-  }
-  console.log(`   ✅ ${page.name} → app/${page.route}/ (${srcFiles.length} files)`);
-}
-
-// --- 3. Sync static assets → public/ ---
+// --- 2. Sync static assets → public/ ---
 console.log('\n🖼️  Syncing static assets...');
 for (const asset of manifest.staticAssets) {
   const src = path.join(ENGINE_DIST, asset.source);
@@ -91,53 +71,7 @@ for (const asset of manifest.staticAssets) {
   console.log(`   ✅ ${asset.source} → ${asset.target}`);
 }
 
-// --- 3b. Sync shared components → app/(components)/ ---
-if (manifest.sharedComponents && manifest.sharedComponents.length > 0) {
-  console.log('\n🧩 Syncing shared components...');
-  for (const comp of manifest.sharedComponents) {
-    const src = path.join(ENGINE_DIST, comp.source);
-    const dest = path.join(DIMENSYS_ROOT, comp.target);
-
-    if (!fs.existsSync(src)) {
-      console.log(`   ⚠️  Source not found: ${src}`);
-      continue;
-    }
-
-    const copyRecursive = (srcDir, destDir) => {
-      fs.mkdirSync(destDir, { recursive: true });
-      const entries = fs.readdirSync(srcDir, { withFileTypes: true });
-      for (const entry of entries) {
-        const srcPath = path.join(srcDir, entry.name);
-        const destPath = path.join(destDir, entry.name);
-        if (entry.isDirectory()) {
-          copyRecursive(srcPath, destPath);
-        } else {
-          fs.copyFileSync(srcPath, destPath);
-        }
-      }
-    };
-
-    const cleanRecursive = (srcDir, destDir) => {
-      if (!fs.existsSync(destDir)) return;
-      const destEntries = fs.readdirSync(destDir, { withFileTypes: true });
-      for (const entry of destEntries) {
-        const srcPath = path.join(srcDir, entry.name);
-        const destPath = path.join(destDir, entry.name);
-        if (!fs.existsSync(srcPath)) {
-          fs.rmSync(destPath, { recursive: true, force: true });
-        } else if (entry.isDirectory()) {
-          cleanRecursive(srcPath, destPath);
-        }
-      }
-    };
-
-    copyRecursive(src, dest);
-    cleanRecursive(src, dest);
-    console.log(`   ✅ ${comp.source} → ${comp.target} (recursively synced)`);
-  }
-}
-
-// --- 4. Check & sync peer dependencies ---
+// --- 3. Check & sync peer dependencies ---
 console.log('\n📦 Checking peer dependencies...');
 const pkg = JSON.parse(fs.readFileSync(PKG_PATH, 'utf-8'));
 const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };

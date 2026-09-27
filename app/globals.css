@@ -619,6 +619,28 @@
 
 .cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
 .cv-node .cv-tab, .cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
+/* The expanded frame's tab is a drill-down entry point (T3.4) — the rest of
+   `.cv-subsystem` stays decorative/non-interactive. */
+.cv-tab-hit { cursor: pointer; outline: none; }
+.cv-tab-hit:hover .cv-tab { fill: var(--color-ink-primary); }
+.cv-tab-hit:focus-visible { outline: 2px solid var(--color-ink-primary); outline-offset: 2px; }
+
+/* ============================================================================
+ * Player — subsystem drill-down (T3.4).
+ *
+ * Every level (the top board and each subsystem's own board, any depth) is
+ * pre-rendered server-side; only the active one is un-hidden. Both stack in
+ * the same grid cell so entering/leaving can briefly overlap for the
+ * crossfade instead of the page jumping height. The blanket reduced-motion
+ * rule above already collapses both animations to a near-instant cut under
+ * `prefers-reduced-motion`/`data-motion="off"`.
+ * ========================================================================= */
+.player-drill-stage { display: grid; }
+.player-drill-level { grid-area: 1 / 1; outline: none; }
+.player-drill-level.is-entering { animation: player-drill-in var(--transition-duration-scene) var(--ease-emphasized) both; }
+.player-drill-level.is-leaving { animation: player-drill-out var(--transition-duration-small) var(--ease-exit) both; }
+@keyframes player-drill-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes player-drill-out { from { opacity: 1; } to { opacity: 0; } }
 
 @keyframes cv-ringpulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
 @keyframes cv-dashrot { to { stroke-dashoffset: -24; } }
