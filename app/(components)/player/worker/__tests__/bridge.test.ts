@@ -117,9 +117,9 @@ describe('WorkerBridge', () => {
     });
     const worker = workers[0];
 
-    worker.emit({ type: 'ready', protocol: 1, engineVersion: '3.0.0', hash: 'sha256:x', tickMs: 100, metricKeys: ['global.p99Ms'], healthIds: ['a'], keysEpoch: 0 });
+    worker.emit({ type: 'ready', protocol: 1, engineVersion: '3.0.0', hash: 'sha256:x', tickMs: 100, metricKeys: ['g.e'], healthIds: ['a'], keysEpoch: 0 });
     expect(store.getState().sim.status).toBe('ready');
-    expect(store.getState().sim.metricKeys).toEqual(['global.p99Ms']);
+    expect(store.getState().sim.metricKeys).toEqual(['g.e']);
 
     worker.emit({ type: 'frame', t: 0.1, keysEpoch: 0, metrics: new Float64Array([1]), health: new Uint8Array([0]), watches: [], events: [] });
     expect(store.getState().sim.frame?.t).toBeCloseTo(0.1);

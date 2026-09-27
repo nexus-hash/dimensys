@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { createPlayerStore, initialPlayerState } from '@/app/(components)/player/store/playerStore';
 import type { PlayerState } from '@/app/(components)/player/store/playerStore';
 import { WorkerBridge } from '@/app/(components)/player/worker/bridge';
+import { globalMetricKey, metricCodeLabel } from '@/app/(components)/player/metricKeys';
 
 export interface DevWorkerClientProps {
   simUrl: string;
@@ -13,8 +14,9 @@ export interface DevWorkerClientProps {
 }
 
 const KILL_TARGET = 'cache-redis';
-/** A handful of representative metrics; the full column set is in `sim.metricKeys`. */
-const HEADLINE_METRICS = ['global.throughputRps', 'global.p99Ms', 'global.errorRate', 'global.availability', 'global.costPerMonth'];
+/** A handful of representative global metrics (neutral keys); the full column set is in `sim.metricKeys`. */
+const HEADLINE_CODES = ['q', 'e', 'f', 's', 'm'];
+const HEADLINE_METRICS = HEADLINE_CODES.map(globalMetricKey);
 
 /** Live text readout + play/pause + one Break It action, driven entirely by `WorkerBridge` against the real worker bundle. */
 export function DevWorkerClient({ simUrl, build, runtimeUrl, title }: DevWorkerClientProps) {
@@ -85,8 +87,8 @@ export function DevWorkerClient({ simUrl, build, runtimeUrl, title }: DevWorkerC
       )}
 
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-        {HEADLINE_METRICS.map((key) => (
-          <MetricRow key={key} label={key} value={metricValue(sim, key)} />
+        {HEADLINE_METRICS.map((key, i) => (
+          <MetricRow key={key} label={`${metricCodeLabel(HEADLINE_CODES[i])} (${key})`} value={metricValue(sim, key)} />
         ))}
       </dl>
 

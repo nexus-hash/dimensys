@@ -9,7 +9,7 @@ export const metadata = {
 
 /** Hand-written stand-in for a view-data document, so the skeleton renders without synced output. */
 const FIXTURE: ViewData = {
-  fmt: 1,
+  fmt: 2,
   build: `sha256:${'0'.repeat(64)}`,
   id: 'dev-fixture',
   rev: 1,

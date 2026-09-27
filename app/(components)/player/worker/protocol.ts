@@ -124,7 +124,7 @@ export interface ReadyMsg {
   /** Build hash of the document actually loaded. */
   hash: string;
   tickMs: number;
-  /** Column order for `frame.metrics` (`node:<id>.<metric>`, `global.<metric>`, …). */
+  /** Column order for `frame.metrics`: neutral metric keys (`n:<id>.<code>`, `l:<id>.<code>`, `f:<id>.<code>`, `g.<code>`; see `metricKeys.ts`). */
   metricKeys: string[];
   /** Row order for `frame.health` (node and link IDs). */
   healthIds: string[];

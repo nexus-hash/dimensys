@@ -30,7 +30,7 @@
  */
 
 /** Version of the view-data / manifest format this app was built against. */
-export const RUNTIME_FORMAT = 1;
+export const RUNTIME_FORMAT = 2;
 
 // ---------------------------------------------------------------------------
 // Shared small shapes
@@ -174,7 +174,11 @@ export interface RisksPart extends PartBase {
 }
 export interface SparkPart extends PartBase {
   shape: 'spark';
-  /** Node metric names to plot for this node, e.g. `utilization`. */
+  /**
+   * Metric codes to plot for this node (see `parseMetricKey`/`metricCodeLabel`
+   * in `metricKeys.ts`), e.g. `c` (utilization). The sparkline column is this
+   * node's own neutral metric key, `n:<nodeId>.<code>`.
+   */
   series: string[];
   /** Window in seconds. */
   span?: number;
@@ -316,7 +320,12 @@ export interface KitView {
 }
 
 export interface GaugeView {
-  /** Metric key the worker publishes, e.g. `global.p99Ms`. */
+  /**
+   * Neutral metric key the worker publishes, e.g. `g.e` (a global metric) or
+   * `n:api.c` (a per-node metric). Parse with `parseMetricKey` in
+   * `metricKeys.ts`; never derive the display label from the key itself —
+   * that's `text`/`suffix` below.
+   */
   probe: string;
   text: string;
   suffix: string;
@@ -438,7 +447,7 @@ export interface ViewData {
   /** Whether a sim payload exists for this diagram. */
   live: boolean;
   start?: { play?: string; story?: string };
-  /** `teaser`: a share headline exists (the worker renders it). */
+  /** `probes`: neutral metric keys (see `GaugeView.probe`). `teaser`: a share headline exists (the worker renders it). */
   social?: { probes: string[]; still?: { play: string; t: number }; teaser: boolean };
   embedding?: { on: boolean; full: boolean };
   film?: { on: boolean; cam: Array<{ t: number; aim: string; magnify?: number; pitch?: number }> };

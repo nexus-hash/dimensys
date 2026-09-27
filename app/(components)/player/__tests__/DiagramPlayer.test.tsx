@@ -4,7 +4,7 @@ import { DiagramPlayer, diagramJsonUrl } from '../DiagramPlayer';
 import type { ViewData } from '../types';
 
 const diagram: ViewData = {
-  fmt: 1,
+  fmt: 2,
   build: `sha256:${'ab'.repeat(32)}`,
   id: 'url-shortener',
   rev: 1,

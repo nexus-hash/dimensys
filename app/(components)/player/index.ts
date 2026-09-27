@@ -7,3 +7,15 @@ export type { PlayerMode, PlayerState, PlayerStore, Selection, SimFrame } from '
 export { PROTOCOL_VERSION, SNAPSHOT_HZ, HEALTH_CODES, isWorkerMessage } from './worker/protocol';
 export type { WorkerCommand, WorkerMessage, Speed } from './worker/protocol';
 export * from './types';
+export {
+  parseMetricKey,
+  nodeMetricKey,
+  linkMetricKey,
+  flowMetricKey,
+  globalMetricKey,
+  metricCodeLabel,
+  metricCodeUnit,
+  REPLICA_CODE,
+  UTILIZATION_CODE,
+} from './metricKeys';
+export type { MetricScope, ParsedMetricKey } from './metricKeys';
