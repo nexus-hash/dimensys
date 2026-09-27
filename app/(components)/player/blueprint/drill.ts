@@ -8,7 +8,7 @@
  * in" means switching which level's board is on screen, not zooming the
  * shared canvas.
  */
-import type { Board, NodeView } from '../types';
+import type { Board, NodeView, XY } from '../types';
 
 export interface DrillLevel {
   /** Subsystem ids from the root, in order. `[]` never appears here (the root level is the caller's job to add). */
@@ -47,6 +47,21 @@ export function subsystemLabelsById(root: Board): Record<string, string> {
     labelsById[level.path[level.path.length - 1]] = level.label;
   }
   return labelsById;
+}
+
+/**
+ * Drill key → that level's own native pixel size (`Board.size`), for every
+ * level including the root (key `""`). The board-fit effect (T3.16,
+ * `DrillStage`) needs each level's own native size to compute its scale —
+ * a subsystem's `inner` board is its own coordinate space, not scaled from
+ * the parent, so this can't be derived from the root's size alone.
+ */
+export function boardSizesByDrillKey(root: Board): Record<string, XY> {
+  const sizes: Record<string, XY> = { '': root.size };
+  for (const level of collectDrillLevels(root)) {
+    sizes[drillKey(level.path)] = level.board.size;
+  }
+  return sizes;
 }
 
 /**

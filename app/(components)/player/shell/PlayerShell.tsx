@@ -8,7 +8,7 @@ import { TopBar } from './TopBar';
 import { LeftRail } from './LeftRail';
 import { Inspector } from './Inspector';
 import { HudTimelineFrame } from './HudTimelineFrame';
-import { PhoneSheet } from './PhoneSheet';
+import { PhoneSheet, SNAP_PERCENTS } from './PhoneSheet';
 import type { ElementIndex } from './selection';
 import type { ModeAvailability } from './modes';
 
@@ -52,12 +52,21 @@ export interface PlayerShellProps {
  * URL state (T3.12) hook: that task reads/writes `mode` (and `drill`,
  * `selection`) through the same store this shell reads — it doesn't need
  * anything from this file beyond the store already being there.
+ *
+ * `snapIndex` (the phone sheet's current snap point) is owned here, not by
+ * `PhoneSheet`, so it can also drive `--player-sheet-peek` on this root —
+ * the board-fit effect (`DrillStage`) measures the canvas area's free space
+ * via a plain `ResizeObserver`, and that free space only shrinks correctly
+ * when the sheet is dragged up to 50%/92% if the canvas area's own reserved
+ * bottom padding tracks the sheet's *actual* current height, not just its
+ * lowest (12%) snap point.
  */
 export function PlayerShell({ title, labelsById, elementIndex, modeAvailability, children }: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
   const selection = usePlayerStore((s) => s.selection);
   const [railOpen, setRailOpen] = React.useState(true);
   const [railDrawerOpen, setRailDrawerOpen] = React.useState(false);
+  const [snapIndex, setSnapIndex] = React.useState(0);
 
   function toggleRail() {
     setRailOpen((open) => !open);
@@ -73,8 +82,10 @@ export function PlayerShell({ title, labelsById, elementIndex, modeAvailability,
     },
   );
 
+  const sheetPeek = { '--player-sheet-peek': `${SNAP_PERCENTS[snapIndex]}dvh` } as React.CSSProperties;
+
   return (
-    <div className="player-shell" data-player-mode={mode}>
+    <div className="player-shell" data-player-mode={mode} style={sheetPeek}>
       <TopBar
         title={title}
         labelsById={labelsById}
@@ -93,7 +104,7 @@ export function PlayerShell({ title, labelsById, elementIndex, modeAvailability,
         <HudTimelineFrame>{children}</HudTimelineFrame>
         <Inspector elementIndex={elementIndex} />
       </main>
-      <PhoneSheet elementIndex={elementIndex} />
+      <PhoneSheet elementIndex={elementIndex} snapIndex={snapIndex} onSnapIndexChange={setSnapIndex} />
     </div>
   );
 }

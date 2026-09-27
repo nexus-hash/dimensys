@@ -647,7 +647,13 @@
    on — a percentage height only resolves against a *definite* parent
    height, and "auto" (content-based) doesn't count as definite. */
 .player-drill-root { display: contents; }
-.player-drill-stage { display: grid; width: 100%; height: 100%; min-width: 0; min-height: 0; }
+/* `grid-template-columns/rows: 1fr` (T3.16): with no explicit track sizing, a
+   grid's implicit single track sizes to its *content* even when the grid
+   container itself has a definite 100% size — so without this, every level
+   sat in a cell shrunk to whatever size the pre-JS-fit CSS fallback gave it,
+   not the stage's true full box, and the board-fit effect below measured
+   that shrunk cell instead of the real free area. */
+.player-drill-stage { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; width: 100%; height: 100%; min-width: 0; min-height: 0; }
 /* `display: flex` + centering (T3.16): each level's own `StaticBlueprint` wrapper
    sizes itself to at most its native pixel size on both axes (see that
    component's own style block) — centering it here is what keeps a board
@@ -749,6 +755,19 @@
   min-height: 0;
   position: relative;
 }
+/* Collapsing a column reclaims its space for the canvas (matches the
+   prototype's `.pbody.no-rail`/`.no-insp`/`.no-rail.no-insp`) rather than
+   just hiding its content — desktop only (≥1024px; `min-width` here, not
+   `max-width`, so it can't win a specificity fight with the tablet/phone
+   `@media (max-width: 1023px)` block below, which resets
+   `grid-template-columns` on the bare `.player-body` selector — a lower
+   specificity than these attribute-qualified rules would otherwise beat
+   regardless of source order). */
+@media (min-width: 1024px) {
+  .player-body[data-rail-open="false"] { grid-template-columns: 0 minmax(0, 1fr) 360px; }
+  .player-body[data-inspector-open="false"] { grid-template-columns: 280px minmax(0, 1fr) 0; }
+  .player-body[data-rail-open="false"][data-inspector-open="false"] { grid-template-columns: 0 minmax(0, 1fr) 0; }
+}
 .player-rail {
   overflow: auto;
   border-right: 1px solid var(--color-line-hairline);
@@ -827,7 +846,16 @@
     transition: transform var(--transition-duration-panel) var(--ease-emphasized);
     visibility: visible !important; transform: translateX(102%);
   }
-  .player-body[data-inspector-open="true"] .player-inspector { transform: none; }
+  /* An overlay doesn't push layout on its own — reserve its width from the
+     canvas area's own box (not just visually slide over it) so the board
+     re-fits to stay clear of it too, matching "nothing overlaps the
+     diagram" everywhere else. The board-fit effect (`DrillStage`) picks
+     this up for free via its `ResizeObserver` on `.player-board-wrap`. */
+  .player-canvas-area {
+    padding-right: 0;
+    transition: padding-right var(--transition-duration-panel) var(--ease-emphasized);
+  }
+  .player-body[data-inspector-open="true"] .player-canvas-area { padding-right: 340px; }
 }
 
 /* Phone (<640px): the rail and the static inspector both leave the layout —

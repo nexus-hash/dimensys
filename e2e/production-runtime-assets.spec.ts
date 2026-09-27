@@ -75,8 +75,10 @@ test.describe('production runtime assets are servable and the worker actually ru
     });
 
     // The static blueprint (T3.2) is the LCP element: no client JS needed to see it.
+    // Not `locator('svg').first()`: the player shell (T3.16) renders a few
+    // small UI icons before the board itself in DOM order.
     await page.goto(`/solutions/${DIAGRAM_ID}`);
-    await expect(page.locator('svg').first()).toBeVisible();
+    await expect(page.locator('[data-player-root] svg[aria-label]').first()).toBeVisible();
 
     // Drive the real worker bundle with the documented protocol: init -> ready -> play -> frame.
     const frameCount = await page.evaluate(

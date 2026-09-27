@@ -4,12 +4,15 @@ import { useEffect, useRef, type KeyboardEvent, type MouseEvent, type ReactNode 
 import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { enterSubsystem, exitSubsystem } from '../store/playerStore';
 import { drillKey } from './drill';
+import type { XY } from '../types';
 
 export interface DrillStageProps {
   /** The top level's own label — used only for the live-region announcement. */
   rootLabel: string;
   /** Subsystem id → label, for every drillable subsystem anywhere in the diagram (any depth). */
   labelsById: Record<string, string>;
+  /** Drill key → that level's own native pixel size (`boardSizesByDrillKey`), for the board-fit effect. */
+  boardSizes: Record<string, XY>;
   className?: string;
   /**
    * One `<div data-drill-key="…">` per level (root's key is `""`), each
@@ -45,7 +48,7 @@ const EXIT_FALLBACK_MS = 700; // safety net if `animationend` never fires (anima
  * which is an acceptable trade for keeping the crumb trail out of the canvas
  * area per the layout decision that nothing overlaps the diagram.
  */
-export function DrillStage({ rootLabel, labelsById, className, children }: DrillStageProps) {
+export function DrillStage({ rootLabel, labelsById, boardSizes, className, children }: DrillStageProps) {
   const drill = usePlayerStore((s) => s.drill);
   const store = usePlayerStoreApi();
   const stageRef = useRef<HTMLDivElement>(null);
@@ -135,6 +138,52 @@ export function DrillStage({ rootLabel, labelsById, className, children }: Drill
     // effect's real trigger is `activeKey` (derived from `drill`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey]);
+
+  // Board fit (T3.16): contain-fit the active level's board within whatever
+  // free area the stage actually has — both axes, capped at 1 (never
+  // upscale past native size), centered (`.player-drill-level`'s own flex
+  // centering). A CSS-only "shrink to fit both max-width/max-height" attempt
+  // here didn't hold up under measurement (a plain, non-replaced box's
+  // aspect-ratio doesn't reliably get the same "auto" two-axis contain
+  // behaviour a real replaced element like `<img>` gets), so this computes
+  // the scale directly from the stage's own measured box and writes it as
+  // an explicit pixel width/height straight onto the active level's board
+  // element (its `<CanvasBoard>` div, the level wrapper's only child) —
+  // recomputed on every resize of the stage itself via `ResizeObserver`,
+  // which fires for *any* layout-driven change to that box (window resize,
+  // the rail collapsing, the inspector opening/closing, the phone sheet's
+  // snap height changing the canvas area's reserved bottom padding — none
+  // of those need special-casing here, `ResizeObserver` doesn't care why
+  // the box changed size). The CSS `aspect-ratio`/`max-width`/`max-height`
+  // still set on that element (`StaticBlueprint`'s own style) stay as the
+  // server-rendered, pre-hydration approximation this refines, not a
+  // fallback this replaces.
+  useEffect(() => {
+    const stage = stageRef.current;
+    const size = boardSizes[activeKey];
+    if (!stage || !size) return;
+    const [nativeW, nativeH] = size;
+
+    function apply() {
+      const stageEl = stageRef.current;
+      if (!stageEl) return;
+      const freeW = stageEl.clientWidth;
+      const freeH = stageEl.clientHeight;
+      if (freeW <= 0 || freeH <= 0) return;
+      const levels = Array.from(stageEl.querySelectorAll<HTMLElement>('[data-drill-key]'));
+      const levelEl = levels.find((el) => el.dataset.drillKey === activeKey);
+      const boardEl = levelEl?.firstElementChild as HTMLElement | null;
+      if (!boardEl) return;
+      const scale = Math.min(1, freeW / nativeW, freeH / nativeH);
+      boardEl.style.width = `${nativeW * scale}px`;
+      boardEl.style.height = `${nativeH * scale}px`;
+    }
+
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(stage);
+    return () => ro.disconnect();
+  }, [activeKey, boardSizes]);
 
   function enter(id: string, trigger: HTMLElement) {
     triggerRef.current.set(id, trigger);

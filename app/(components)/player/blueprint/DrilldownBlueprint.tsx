@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { StaticBlueprint } from './StaticBlueprint';
 import type { ColorByMode, HealthLookup } from './StaticBlueprint';
 import { DrillStage } from './DrillStage';
-import { collectDrillLevels, drillKey, subsystemLabelsById } from './drill';
+import { boardSizesByDrillKey, collectDrillLevels, drillKey, subsystemLabelsById } from './drill';
 import type { Board } from '../types';
 
 export interface DrilldownBlueprintProps {
@@ -35,9 +35,10 @@ export interface DrilldownBlueprintProps {
 export function DrilldownBlueprint({ board, boardId, rootLabel, className, style, mode, health }: DrilldownBlueprintProps) {
   const levels = [{ path: [] as string[], label: rootLabel, board }, ...collectDrillLevels(board)];
   const labelsById = subsystemLabelsById(board);
+  const boardSizes = boardSizesByDrillKey(board);
 
   return (
-    <DrillStage rootLabel={rootLabel} labelsById={labelsById}>
+    <DrillStage rootLabel={rootLabel} labelsById={labelsById} boardSizes={boardSizes}>
       {levels.map((level) => {
         const key = drillKey(level.path);
         const levelBoardId = level.path.length ? `${boardId}-${level.path.join('-')}` : boardId;

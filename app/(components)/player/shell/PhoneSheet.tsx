@@ -8,10 +8,14 @@ import { selectionKindLabel, selectionTitle } from './selection';
 import { InspectorHeader, InspectorBodySlot } from './InspectorHeader';
 import { HudStrip, TimelineDock } from './HudTimelineFrame';
 
-const SNAP_PERCENTS = [12, 50, 92];
+/** The spec's phone snap points, exported so `PlayerShell` can size the canvas area's reserved bottom space to match the *current* one, not just the lowest. */
+export const SNAP_PERCENTS = [12, 50, 92];
 
 export interface PhoneSheetProps {
   elementIndex: ElementIndex;
+  /** Controlled snap index — lifted to `PlayerShell` (T3.16) so it can also drive `--player-sheet-peek`, keeping the board-fit effect's measured free area in step with the sheet's *actual* current height instead of only its lowest snap point. */
+  snapIndex: number;
+  onSnapIndexChange: (index: number) => void;
 }
 
 /**
@@ -19,8 +23,11 @@ export interface PhoneSheetProps {
  * static inspector both leave the layout (`globals.css`), and this single
  * bottom sheet holds what they held instead — the inspector and the HUD —
  * as tabs, at the spec's 12/50/92% snap points. The diagram itself is
- * scaled to fit above it via `--player-sheet-peek` (kept at the lowest snap
- * point's height: the sheet's lowest point must never cover a node).
+ * scaled to fit above it via `--player-sheet-peek`, which `PlayerShell` (the
+ * one that owns `snapIndex`, passed down here as a controlled prop) keeps
+ * at the *current* snap point's height — not just the lowest one — so the
+ * board re-fits to stay clear of the sheet at 50%/92% too, not only at the
+ * 12% peek.
  *
  * `scrim={false}`: this sheet is permanent phone chrome, not a transient
  * drawer — its 12% peek must never dim the diagram underneath. It ignores
@@ -41,17 +48,20 @@ export interface PhoneSheetProps {
  * and the selected element's name still shows up visibly, just scoped to
  * the "Inspect" tab's own `<InspectorHeader>` instead of a sheet-wide banner.
  */
-export function PhoneSheet({ elementIndex }: PhoneSheetProps) {
+export function PhoneSheet({ elementIndex, snapIndex, onSnapIndexChange }: PhoneSheetProps) {
   const selection = usePlayerStore((s) => s.selection);
   const store = usePlayerStoreApi();
   const [tab, setTab] = React.useState<'inspect' | 'hud'>('hud');
-  const [snapIndex, setSnapIndex] = React.useState(0);
 
   React.useEffect(() => {
     if (selection) {
       setTab('inspect');
-      setSnapIndex((i) => Math.max(i, 1));
+      onSnapIndexChange(Math.max(snapIndex, 1));
     }
+    // Only react to a *new* selection, not to `snapIndex`/`onSnapIndexChange`
+    // themselves — this bumps the snap point once when something gets
+    // selected, it doesn't keep forcing it back up on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selection]);
 
   const title = selection ? (selectionTitle(elementIndex, selection) ?? selection.id) : 'Player';
@@ -66,7 +76,7 @@ export function PhoneSheet({ elementIndex }: PhoneSheetProps) {
       title={title}
       snapPoints={SNAP_PERCENTS}
       snapIndex={snapIndex}
-      onSnapIndexChange={setSnapIndex}
+      onSnapIndexChange={onSnapIndexChange}
     >
       <Tabs
         aria-label="Player details"

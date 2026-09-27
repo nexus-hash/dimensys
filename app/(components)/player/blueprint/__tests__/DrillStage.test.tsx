@@ -46,7 +46,11 @@ function renderStage() {
   return render(
     <PlayerStoreProvider bootstrap={boot}>
       <DrillProbe />
-      <DrillStage rootLabel="URL shortener" labelsById={{ 'kgs-service': 'Key Generation Service', 'kgs-worker-sub': 'Nested' }}>
+      <DrillStage
+        rootLabel="URL shortener"
+        labelsById={{ 'kgs-service': 'Key Generation Service', 'kgs-worker-sub': 'Nested' }}
+        boardSizes={{}}
+      >
         <Levels />
       </DrillStage>
     </PlayerStoreProvider>,

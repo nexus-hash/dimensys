@@ -16,7 +16,10 @@ test.describe('/solutions/[id]', () => {
   test('a published diagram renders the static SVG blueprint', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await expect(page).toHaveTitle(/URL Shortener/i);
-    await expect(page.locator('svg').first()).toBeVisible();
+    // Not `locator('svg').first()`: the player shell (T3.16) renders a few
+    // small UI icons (the rail toggle, etc.) before the board itself in DOM
+    // order — this targets the actual diagram SVG specifically.
+    await expect(page.locator('[data-player-root] svg[aria-label]').first()).toBeVisible();
     expect(await page.locator('[data-node-id]').count()).toBeGreaterThan(0);
   });
 
