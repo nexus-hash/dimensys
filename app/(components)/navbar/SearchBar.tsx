@@ -39,7 +39,7 @@ export default function SearchBar() {
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
         <span className="hidden text-sm sm:inline">Search...</span>
-        <span className="hidden items-center justify-center whitespace-nowrap rounded border border-light-secondary/20 px-1.5 py-0.5 font-mono text-[10px] text-light-secondary/50 sm:flex dark:border-dark-secondary/20 dark:text-dark-secondary/50">
+        <span className="hidden items-center justify-center whitespace-nowrap rounded border border-line-hairline px-1.5 py-0.5 font-mono text-[10px] text-ink-muted sm:flex">
           {shortcutLabel}
         </span>
       </button>
