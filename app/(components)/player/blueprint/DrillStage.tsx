@@ -266,15 +266,31 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
       return { key, camera, fitScale: fitScaleRef.current.get(key) ?? 1 };
     }
 
+    /** Defensive: a synthetic pointer id (tests dispatching their own `PointerEvent`s), or a browser quirk on an already-released id, throws here — real capture is a nicety (keeps receiving move events once the pointer leaves the stage's box mid-drag), not something the gesture logic depends on to function. */
+    function tryCapture(pointerId: number) {
+      try {
+        stage!.setPointerCapture(pointerId);
+      } catch {
+        // no-op
+      }
+    }
+
     function onPointerDown(e: PointerEvent) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (!currentCamera()) return;
       pointers.set(e.pointerId, [e.clientX, e.clientY]);
-      stage!.setPointerCapture(e.pointerId);
       if (pointers.size === 1) {
+        // Capture is deliberately *not* taken here: a plain click (no
+        // movement) must keep hitting its real target (a node, a subsystem
+        // tab) for selection/drill-in to work — `setPointerCapture`
+        // retargets the mouse-event chain (`mouseup`/`click` included) onto
+        // the capturing element, which would break exactly that. It's taken
+        // lazily in `onPointerMove`, once a drag is confirmed.
         drag = { moved: false, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastY: e.clientY };
         pinch = null;
       } else if (pointers.size === 2) {
+        // A second pointer down is never a click regardless of movement, so capturing both immediately is safe.
+        tryCapture(e.pointerId);
         const [a, b] = Array.from(pointers.values());
         const { dist } = pointerGeometry(a, b);
         const cur = currentCamera();
@@ -311,6 +327,7 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
             return;
           }
           drag.moved = true;
+          tryCapture(e.pointerId);
         }
         drag.lastX = e.clientX;
         drag.lastY = e.clientY;
