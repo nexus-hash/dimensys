@@ -7,7 +7,7 @@ import type { Problem } from '../(components)/problems/ProblemCard';
 import { loadCatalog } from '../(server)/engine/publicData';
 
 export const metadata: Metadata = {
-  title: 'Problems — Dimensys',
+  title: 'Explore — Dimensys',
   description:
     'Deep dive into comprehensive solutions for High-Level Design, Low-Level Design, and Data Structures to understand the core patterns behind scalable systems.',
 };
@@ -43,7 +43,7 @@ async function loadProblems(): Promise<Problem[]> {
   }
 }
 
-export default async function ProblemsPage() {
+export default async function ExplorePage() {
   const problems = await loadProblems();
   const categories = Array.from(new Set(problems.map((p) => p.type))).sort();
 
@@ -58,7 +58,7 @@ export default async function ProblemsPage() {
         <div className="w-full xl:max-w-7xl">
           <div className="mb-12">
             <h1 className="text-4xl md:text-5xl font-extrabold text-light-secondary dark:text-dark-secondary mb-4 tracking-tight scroll-visible-up">
-              Explore <span className="text-orange-500">Problems</span>
+              Explore <span className="text-orange-500">systems</span>
             </h1>
             <p className="text-lg text-gray-400 max-w-2xl mb-8 scroll-visible-up" style={{ animationDelay: '0.1s' }}>
               Deep dive into comprehensive solutions for High-Level Design, Low-Level Design, and Data Structures to

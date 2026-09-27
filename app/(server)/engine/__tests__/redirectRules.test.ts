@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAliasRedirects, legacy2dRedirect } from '../redirectRules';
+import { buildAliasRedirects, legacy2dRedirect, problemsRedirect } from '../redirectRules';
 
 describe('buildAliasRedirects', () => {
   it('emits one permanent redirect per formerly id, to the canonical /solutions/<id>', () => {
@@ -33,6 +33,16 @@ describe('legacy2dRedirect', () => {
     expect(legacy2dRedirect()).toEqual({
       source: '/2d/:problemId',
       destination: '/solutions/:problemId',
+      permanent: true,
+    });
+  });
+});
+
+describe('problemsRedirect', () => {
+  it('rewrites the old /problems catalog route to /explore, needing no catalog data', () => {
+    expect(problemsRedirect()).toEqual({
+      source: '/problems',
+      destination: '/explore',
       permanent: true,
     });
   });

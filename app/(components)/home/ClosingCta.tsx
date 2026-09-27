@@ -20,7 +20,7 @@ export function ClosingCta() {
             <Link href={`/solutions/${HERO_DIAGRAM_ID}`}>Start breaking things</Link>
           </Button>
           <Button asChild variant="glass" size="lg">
-            <Link href="/problems">Explore all systems</Link>
+            <Link href="/explore">Explore all systems</Link>
           </Button>
         </div>
       </div>

@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const title = "Dimensys";
+const title = "dimensys";
 const description =
-  "Don't read about system design. Break it. Real architectures, simulated.";
+  "Step inside real systems. Real architectures, running live in your browser.";
 
 export const metadata: Metadata = {
   title,
@@ -33,7 +33,10 @@ export const metadata: Metadata = {
 
 const STATIC_NAV_ITEMS: PaletteNavItem[] = [
   { id: "page:home", title: "Home", kind: "page", href: "/" },
-  { id: "page:problems", title: "Problems", kind: "page", href: "/problems" },
+  { id: "page:explore", title: "Explore", kind: "page", href: "/explore" },
+  { id: "page:replays", title: "Replays", kind: "page", href: "/replays" },
+  { id: "page:daily", title: "Daily", kind: "page", href: "/daily" },
+  { id: "page:paths", title: "Paths", kind: "page", href: "/paths" },
   { id: "page:concepts", title: "Concepts", kind: "page", href: "/concepts" },
   { id: "page:ai", title: "Artificial Intelligence", kind: "page", href: "/artificial-intelligence" },
   { id: "page:about", title: "About", kind: "page", href: "/about" },

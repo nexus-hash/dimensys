@@ -23,7 +23,6 @@
     "test:e2e:prod": "./scripts/e2e-prod.sh"
   },
   "dependencies": {
-    "@react-three/fiber": "^9.6.0",
     "mermaid": "^11.15.0",
     "next": "16.2.3",
     "next-themes": "^0.4.6",
@@ -32,8 +31,7 @@
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "shiki": "4.4.3",
-    "three": "^0.184.0"
+    "shiki": "4.4.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -45,7 +43,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/three": "^0.184.0",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^9.2.1",
     "eslint": "^9",

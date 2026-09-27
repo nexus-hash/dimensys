@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { buildAliasRedirects, legacy2dRedirect, type AliasCard } from "./app/(server)/engine/redirectRules";
+import { buildAliasRedirects, legacy2dRedirect, problemsRedirect, type AliasCard } from "./app/(server)/engine/redirectRules";
 
 /**
  * Tolerant `data/engine/catalog.json` read for the redirect rules below
@@ -24,7 +24,7 @@ async function loadCatalogCardsForRedirects(): Promise<AliasCard[]> {
 const nextConfig: NextConfig = {
   async redirects() {
     const cards = await loadCatalogCardsForRedirects();
-    return [...buildAliasRedirects(cards), legacy2dRedirect()];
+    return [...buildAliasRedirects(cards), legacy2dRedirect(), problemsRedirect()];
   },
 };
 

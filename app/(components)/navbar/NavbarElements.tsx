@@ -6,7 +6,8 @@ import ThemeButton from '../theme/ThemeButton';
 import Avatar from './Avatar';
 import SearchBar from './SearchBar';
 import NavButtons from './NavButtons';
-import Logo3D from '../logo/Logo3DLazy';
+import Streak from './Streak';
+import { BrandMark } from '../brand/BrandMark';
 
 export default function NavbarElements() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -14,17 +15,12 @@ export default function NavbarElements() {
   return (
     <>
       <div className="flex items-center justify-between h-full w-full">
-        {/* Left: Brand / Logo */}
+        {/* Left: Brand / Logo — mark + lowercase wordmark, per the approved design */}
         <div className="flex items-center justify-start flex-1 md:flex-none">
-          <Link href="/" className="flex items-center gap-2 group" aria-label="Dimensys home">
-            <Logo3D size={36} />
-            {/*
-              Neutral wordmark, brand typography (S4.6a): the mark itself is
-              being redesigned for trademark reasons, so the home page reads
-              the brand as text here rather than switching to a new mark.
-            */}
+          <Link href="/" className="flex items-center gap-2 group" aria-label="dimensys home">
+            <BrandMark size={24} />
             <span className="text-title-3 font-semibold tracking-tight text-ink-primary" aria-hidden="true">
-              Dimensys
+              dimensys
             </span>
           </Link>
         </div>
@@ -35,8 +31,9 @@ export default function NavbarElements() {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center justify-end flex-1 md:flex-none gap-3 lg:gap-4">
+        <div className="flex items-center justify-end flex-1 md:flex-none gap-2 lg:gap-3">
           <SearchBar />
+          <Streak />
           <ThemeButton />
           <Avatar />
 

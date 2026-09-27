@@ -71,17 +71,7 @@
   --color-ink-inverse: var(--ink-inverse);
   --color-warn-ink: var(--warn-ink);
 
-  /* ── Logo accent shades — tokens instead of literals in components ─────── */
-  --color-logo-amber: var(--logo-amber);
-  --color-logo-amber-light: var(--logo-amber-light);
-  --color-logo-amber-bright: var(--logo-amber-bright);
-  --color-logo-face-right: var(--logo-face-right);
-  --color-logo-face-left: var(--logo-face-left);
-  --color-logo-hotspot: var(--logo-hotspot);
-  --color-logo-body: var(--logo-body);
-  --color-logo-emissive: var(--logo-emissive);
-
-  /* ── Type scale ──────────────────────────────────────────────────── */
+  /* ── Type scale──────────────────────────────────────────────────── */
   --text-display-xl: 6rem;
   --text-display-xl--line-height: 1;
   --text-display-xl--letter-spacing: -0.03em;
@@ -208,16 +198,6 @@
     /* Glyph ink — see DS5 SPEC GAPS */
     --ink-inverse: #ffffff;
     --warn-ink: #1a1200;
-
-    /* Logo accent shades — kept as tokens so component files hold no literal hex */
-    --logo-amber: #ffaa00;
-    --logo-amber-light: #ffbb00;
-    --logo-amber-bright: #ffcc00;
-    --logo-face-right: #ff5500;
-    --logo-face-left: #cc4400;
-    --logo-hotspot: #ffffff;
-    --logo-body: #ff4400;
-    --logo-emissive: #ff2000;
 
     /* Motion spring configs — consumed by JS (motion libs), not CSS */
     --spring-camera-stiffness: 170;

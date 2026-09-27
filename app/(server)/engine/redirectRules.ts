@@ -51,3 +51,12 @@ export function buildAliasRedirects(cards: readonly AliasCard[]): RedirectRule[]
 export function legacy2dRedirect(): RedirectRule {
   return { source: '/2d/:problemId', destination: '/solutions/:problemId', permanent: true };
 }
+
+/**
+ * `/problems` (the old catalog route) becomes `/explore` (UI_UX_SPEC §4.1:
+ * `/explore` replaces `/problems`). Needs no catalog data — a plain
+ * top-level rename — so it's always present.
+ */
+export function problemsRedirect(): RedirectRule {
+  return { source: '/problems', destination: '/explore', permanent: true };
+}
