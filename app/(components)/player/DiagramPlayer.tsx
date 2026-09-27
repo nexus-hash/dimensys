@@ -1,5 +1,6 @@
 import { PlayerIsland } from './PlayerIsland';
-import { DrilldownBlueprint } from './blueprint';
+import { DrilldownBlueprint, subsystemLabelsById } from './blueprint';
+import { PlayerShell, buildElementIndex, modeAvailability } from './shell';
 import type { PlayerBootstrap, ViewData } from './types';
 
 export interface DiagramPlayerProps {
@@ -55,24 +56,46 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
     );
   }
 
-  return (
-    <section data-player-variant={variant} aria-label={diagram.head.title} className="rounded-lg border border-line-hairline">
-      <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
-        {/* TODO(T3.16): player shell (top bar, rails, inspector, timeline frame). */}
-        {diagram.board ? (
-          <DrilldownBlueprint
-            board={diagram.board}
-            boardId={`blueprint-${diagram.id}`}
-            rootLabel={diagram.head.title}
-            className="w-full"
-          />
-        ) : (
+  if (!diagram.board) {
+    return (
+      <section data-player-variant={variant} aria-label={diagram.head.title} className="rounded-lg border border-line-hairline">
+        <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
           <div className="p-6 text-ink-secondary">
             <p role="status">
               No diagram yet: <span className="text-ink-primary">{diagram.head.title}</span>
             </p>
           </div>
-        )}
+        </PlayerIsland>
+      </section>
+    );
+  }
+
+  const board = diagram.board;
+  const blueprint = (
+    <DrilldownBlueprint board={board} boardId={`blueprint-${diagram.id}`} rootLabel={diagram.head.title} className="h-full w-full" />
+  );
+
+  // `embed`/`hero` (the home hero, a diagram embedded in a detail section)
+  // drop the shell entirely — just the board and its overlay, no top bar,
+  // rails or inspector frame.
+  if (variant !== 'full') {
+    return (
+      <section data-player-variant={variant} aria-label={diagram.head.title} className="rounded-lg border border-line-hairline">
+        <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>{blueprint}</PlayerIsland>
+      </section>
+    );
+  }
+
+  const labelsById = subsystemLabelsById(board);
+  const elementIndex = buildElementIndex(board);
+  const availability = modeAvailability(diagram);
+
+  return (
+    <section data-player-variant={variant} aria-label={diagram.head.title} className="h-full">
+      <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
+        <PlayerShell title={diagram.head.title} labelsById={labelsById} elementIndex={elementIndex} modeAvailability={availability}>
+          {blueprint}
+        </PlayerShell>
       </PlayerIsland>
     </section>
   );

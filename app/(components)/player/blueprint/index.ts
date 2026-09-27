@@ -8,5 +8,5 @@ export { DrillStage } from './DrillStage';
 export type { DrillStageProps } from './DrillStage';
 export { Breadcrumbs } from './Breadcrumbs';
 export type { BreadcrumbsProps } from './Breadcrumbs';
-export { collectDrillLevels, resolveDrillChain, drillKey } from './drill';
+export { collectDrillLevels, resolveDrillChain, drillKey, subsystemLabelsById } from './drill';
 export type { DrillLevel } from './drill';

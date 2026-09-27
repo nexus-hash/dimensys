@@ -2,12 +2,11 @@
 
 import { useEffect, useRef, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
-import { enterSubsystem, exitSubsystem, goToDrillDepth } from '../store/playerStore';
-import { Breadcrumbs } from './Breadcrumbs';
+import { enterSubsystem, exitSubsystem } from '../store/playerStore';
 import { drillKey } from './drill';
 
 export interface DrillStageProps {
-  /** The top level's own label — the root breadcrumb and its group's accessible name. */
+  /** The top level's own label — used only for the live-region announcement. */
   rootLabel: string;
   /** Subsystem id → label, for every drillable subsystem anywhere in the diagram (any depth). */
   labelsById: Record<string, string>;
@@ -28,13 +27,23 @@ const EXIT_FALLBACK_MS = 700; // safety net if `animationend` never fires (anima
  * level at a time, drives the enter/exit transition (a plain CSS
  * animation — `app/globals.css`'s blanket reduced-motion rule already
  * collapses it under `prefers-reduced-motion`/`data-motion="off"`, so there's
- * no separate reduced-motion branch here), keeps focus and an aria-live
- * announcement in step, and renders the breadcrumbs.
+ * no separate reduced-motion branch here), and keeps focus and an aria-live
+ * announcement in step.
  *
  * Entry points, both delegated from one click/keydown listener on the stage
  * (the canvas kit's SVG pieces are pure presentation with no handlers of
  * their own): a collapsed subsystem (`data-node-id` matching a known
  * subsystem id) or an expanded frame's tab (`data-subsystem-tab-id`).
+ *
+ * The breadcrumb trail itself (T3.16) is a standalone `<Breadcrumbs>` in the
+ * shell's top bar, not here — it reads `drill` from the same store and calls
+ * `goToDrillDepth` directly. Navigating from a breadcrumb still lands on
+ * this component's own `activeKey` effect (it fires on any `drill` change,
+ * regardless of who called `setState`); the one thing it loses versus an
+ * in-stage click is `pendingFocusIdRef`'s "return focus to the exact
+ * trigger" — a breadcrumb click instead focuses the landing level itself,
+ * which is an acceptable trade for keeping the crumb trail out of the canvas
+ * area per the layout decision that nothing overlaps the diagram.
  */
 export function DrillStage({ rootLabel, labelsById, className, children }: DrillStageProps) {
   const drill = usePlayerStore((s) => s.drill);
@@ -167,14 +176,8 @@ export function DrillStage({ rootLabel, labelsById, className, children }: Drill
     if (activateFromTarget(event.target)) event.preventDefault();
   }
 
-  function handleBreadcrumbNavigate(depth: number) {
-    pendingFocusIdRef.current = drill[depth];
-    store.setState((s) => goToDrillDepth(s, depth));
-  }
-
   return (
     <div className={className}>
-      <Breadcrumbs rootLabel={rootLabel} drill={drill} labelsById={labelsById} onNavigate={handleBreadcrumbNavigate} />
       <div ref={stageRef} className="player-drill-stage" onClick={handleClick} onKeyDown={handleKeyDown}>
         {children}
       </div>

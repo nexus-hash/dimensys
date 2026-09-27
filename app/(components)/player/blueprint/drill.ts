@@ -36,6 +36,20 @@ export function drillKey(path: readonly string[]): string {
 }
 
 /**
+ * Subsystem id → label, for every drillable subsystem anywhere in `root`
+ * (any depth). Shared by `DrilldownBlueprint` (labelling each pre-rendered
+ * level) and the shell's breadcrumb slot (T3.16), which needs the same map
+ * without pulling in `collectDrillLevels`' path bookkeeping itself.
+ */
+export function subsystemLabelsById(root: Board): Record<string, string> {
+  const labelsById: Record<string, string> = {};
+  for (const level of collectDrillLevels(root)) {
+    labelsById[level.path[level.path.length - 1]] = level.label;
+  }
+  return labelsById;
+}
+
+/**
  * Walks `path` down from `root`, stopping early (rather than throwing) if a
  * segment no longer resolves — a subsystem id from a stale store/URL that no
  * longer exists in this board. The returned chain is always non-empty (at

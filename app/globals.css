@@ -695,6 +695,143 @@
 }
 .player-tooltip strong { display: block; font: 600 12px var(--font-sans); margin-bottom: 2px; }
 
+/* ============================================================================
+ * Player shell (T3.16): top bar, left rail, canvas frame, right inspector,
+ * and the HUD/timeline slots around the board. Structure and breakpoints
+ * mirror the prototype's `.player`/`.ptop`/`.pbody`/`.rail`/`.canvas-area`/
+ * `.insp` (translated from its `@container app` queries to plain viewport
+ * media queries — this app has no fixed-size preview frame to contain
+ * against, the viewport itself is the container). Nothing overlaps the
+ * diagram, which is why the HUD strip sits above the board and the
+ * narration/timeline dock sits below it, both inside `.player-canvas-area`,
+ * instead of floating over it.
+ * Desktop ≥1024px, tablet 640–1023px, phone <640px.
+ * ========================================================================= */
+.player-shell {
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr);
+  background: var(--color-surface-page);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.player-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-line-hairline);
+  min-width: 0;
+  position: relative;
+  z-index: var(--z-index-chrome);
+  background: var(--color-surface-page);
+}
+.player-topbar .player-rail-toggle { display: none; }
+.player-topbar .player-phone-only { display: none; }
+
+.player-body {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 360px;
+  min-height: 0;
+  position: relative;
+}
+.player-rail {
+  overflow: auto;
+  border-right: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-page);
+  min-width: 0;
+}
+.player-body[data-rail-open="false"] .player-rail { visibility: hidden; }
+.player-canvas-area {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-page);
+}
+.player-inspector {
+  border-left: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-page);
+  overflow: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.player-body[data-inspector-open="false"] .player-inspector { visibility: hidden; }
+
+/* HUD strip: above the board, never over it. Sized for up to 4 stat tiles (T3.8). */
+.player-hud-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-line-hairline);
+  min-width: 0;
+}
+.player-hud-slot { display: flex; gap: 6px; flex: 1; min-width: 0; min-height: 56px; }
+.player-toolbox-slot { display: flex; flex: none; align-items: center; gap: 4px; }
+
+.player-board-wrap { position: relative; flex: 1 1 auto; min-height: 160px; }
+
+/* Narration + timeline: below the board, never over it. The board
+   shrinks and re-fits above this dock; it is never covered or dimmed. */
+.player-timeline-dock {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--color-line-hairline);
+}
+.player-narration-slot { min-height: 56px; }
+.player-timeline-slot { min-height: 40px; display: flex; align-items: center; gap: 6px; }
+
+/* Tablet (640–1023px): the rail becomes an overlay drawer and the inspector
+   becomes a right-edge overlay, both sliding over the canvas area (never
+   pushing it) instead of sitting in the grid. */
+@media (max-width: 1023px) {
+  .player-body { grid-template-columns: minmax(0, 1fr); }
+  .player-topbar .player-rail-toggle { display: inline-flex; }
+  .player-topbar .mode-kbd-hint { display: none; }
+  .player-rail {
+    position: absolute; inset: 0 auto 0 0; width: 300px; z-index: var(--z-index-sheet);
+    box-shadow: var(--shadow-elevation-2); transform: translateX(-102%);
+    transition: transform var(--transition-duration-panel) var(--ease-emphasized);
+    visibility: visible !important;
+  }
+  .player-body[data-rail-drawer-open="true"] .player-rail { transform: none; }
+  .player-inspector {
+    position: absolute; inset: 0 0 0 auto; width: 340px; z-index: var(--z-index-sheet);
+    box-shadow: var(--shadow-elevation-2);
+    transition: transform var(--transition-duration-panel) var(--ease-emphasized);
+    visibility: visible !important; transform: translateX(102%);
+  }
+  .player-body[data-inspector-open="true"] .player-inspector { transform: none; }
+}
+
+/* Phone (<640px): the rail and the static inspector both leave the layout —
+   their content instead lives in the bottom sheet (the DS3 `BottomSheet`
+   primitive; holds the inspector and HUD). Its lowest snap point must never
+   cover a node, so the canvas area reserves space for it via
+   `--player-sheet-peek`, kept in step with the sheet's own 12% snap point. */
+@media (max-width: 639px) {
+  .player-shell { grid-template-rows: 44px minmax(0, 1fr); }
+  .player-topbar { padding: 0 6px; gap: 4px; }
+  .player-topbar .player-mode-switcher,
+  .player-topbar .player-rail-toggle,
+  .player-topbar .player-desktop-only { display: none; }
+  .player-topbar .player-phone-only { display: inline-flex; }
+  .player-rail, .player-inspector { display: none; }
+  .player-canvas-area { padding-bottom: var(--player-sheet-peek, 12dvh); }
+  .player-hud-strip { padding: 6px 8px; gap: 6px; }
+  .player-timeline-dock { padding: 6px 8px; gap: 6px; }
+  .player-timeline-dock .player-narration-slot { display: none; }
+}
+
 /* DSA cells */
 .cv-cell rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
 .cv-cell text { font: 600 14px var(--font-mono); fill: var(--color-ink-primary); }

@@ -28,7 +28,7 @@ function PlayerRoot({ bootstrap, children }: { bootstrap: PlayerBootstrap; child
   const simStatus = usePlayerStore((s) => s.sim.status);
   const rootRef = useRef<HTMLDivElement | null>(null);
   return (
-    <div ref={rootRef} data-player-root={bootstrap.diagramId} data-player-mode={mode} data-sim-status={simStatus} className="relative">
+    <div ref={rootRef} data-player-root={bootstrap.diagramId} data-player-mode={mode} data-sim-status={simStatus} className="relative h-full">
       {children}
       {bootstrap.canvas.w > 0 && <InteractiveLayer bootstrap={bootstrap} containerRef={rootRef} />}
     </div>

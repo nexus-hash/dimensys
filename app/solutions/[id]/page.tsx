@@ -54,13 +54,26 @@ export default async function SolutionPage({ params }: { params: Promise<{ id: s
   const [diagram, runtimeUrl] = await Promise.all([loadPlayerDiagram(id), loadRuntimeUrl()]);
   if (!diagram) notFound();
 
+  // A diagram with a board gets the full-screen player shell (T3.16):
+  // the shell's own 48px top bar replaces the site nav/footer entirely —
+  // nothing else may share the viewport with the diagram. A
+  // catalog-only "planned" diagram has no player to speak of yet, so it
+  // keeps the ordinary marketing chrome around its "coming soon" notice.
+  if (!diagram.board) {
+    return (
+      <div className="flex min-h-screen flex-col bg-light-primary dark:bg-dark-primary font-sans">
+        <Navbar />
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-24 pb-20">
+          <DiagramPlayer diagram={diagram} runtimeUrl={null} />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen flex-col bg-light-primary dark:bg-dark-primary font-sans">
-      <Navbar />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-24 pb-20">
-        <DiagramPlayer diagram={diagram} runtimeUrl={diagram.live ? runtimeUrl : null} />
-      </main>
-      <Footer />
+    <div className="h-dvh bg-light-primary dark:bg-dark-primary font-sans">
+      <DiagramPlayer diagram={diagram} runtimeUrl={diagram.live ? runtimeUrl : null} />
     </div>
   );
 }
