@@ -48,10 +48,17 @@ describe('PlayerBreadcrumbs', () => {
     expect(screen.getByTestId('drill-probe')).toHaveTextContent('kgs-service');
 
     const nav = within(screen.getByRole('navigation', { name: 'Subsystem breadcrumbs' }));
-    expect(nav.getByText('URL shortener')).toBeTruthy();
     expect(nav.getByText('Key Generation Service')).toHaveAttribute('aria-current', 'location');
+    // The title appears exactly once: the heading, now a button back to the root —
+    // never repeated as a first crumb ("Title Title › Subsystem").
+    expect(nav.queryByText('URL shortener')).toBeNull();
+    expect(screen.getAllByText('URL shortener')).toHaveLength(1);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toHaveTextContent('URL shortener');
 
-    await user.click(nav.getByRole('button', { name: 'URL shortener' }));
+    await user.click(within(heading).getByRole('button', { name: 'URL shortener' }));
     expect(screen.getByTestId('drill-probe')).toHaveTextContent('');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('URL shortener');
+    expect(within(screen.getByRole('heading', { level: 1 })).queryByRole('button')).toBeNull();
   });
 });

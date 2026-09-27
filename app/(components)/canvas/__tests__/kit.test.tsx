@@ -159,3 +159,33 @@ describe('LldCard', () => {
     expect(getByText(/\+ shorten\(url: string\): string/)).toBeTruthy();
   });
 });
+
+describe('SubsystemCollapsed (card with aggregate meter)', () => {
+  it('draws the meter row and the inline expand glyph, and carries its children for the live aggregate', () => {
+    const { container } = render(
+      <svg>
+        <SubsystemCollapsed
+          boardId="b1"
+          id="kgs"
+          label="Key Generation Service"
+          nodeCount={2}
+          width={224}
+          height={72}
+          meter={{ kind: 'util', value: 0.5, text: '50%' }}
+          childIds={['kgs-worker', 'kgs-db']}
+        />
+      </svg>,
+    );
+    const g = container.querySelector('[data-node-id="kgs"]')!;
+    expect(g).toHaveAttribute('data-meter-kind', 'util');
+    expect(g).toHaveAttribute('data-child-ids', 'kgs-worker kgs-db');
+    expect(g.querySelector('.cv-label')?.textContent).toBe('Key Generation Service');
+    expect(g.querySelector('.cv-sub')?.textContent).toBe('2 nodes');
+    expect(g.querySelector('.cv-mtext')?.textContent).toBe('50%');
+    // Bar and value never overlap.
+    const track = g.querySelector('.cv-mtrack')!;
+    const barEnd = Number(track.getAttribute('x')) + Number(track.getAttribute('width'));
+    expect(barEnd).toBeLessThan(224 - 12 - 4 * 11 * 0.6);
+    expect(g.querySelector('.cv-expand')).toBeTruthy();
+  });
+});

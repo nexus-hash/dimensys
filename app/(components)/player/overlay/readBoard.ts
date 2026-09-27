@@ -42,6 +42,12 @@ export function linkPath(svg: SVGSVGElement, linkId: string): SVGPathElement | n
   return group?.querySelector<SVGPathElement>('path.cv-link') ?? null;
 }
 
+/** A link's label pill (drawn in the level's label pass, after every link — not inside the link's own group). */
+export function linkLabelFor(linkGroup: Element, linkId: string): SVGGElement | null {
+  const svg = linkGroup.closest('svg');
+  return svg?.querySelector<SVGGElement>(`[data-link-label-for="${cssEscape(linkId)}"]`) ?? null;
+}
+
 function cssEscape(id: string): string {
   return typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id.replace(/["\\]/g, '\\$&');
 }

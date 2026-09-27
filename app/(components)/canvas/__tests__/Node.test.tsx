@@ -195,7 +195,7 @@ describe('Node', () => {
     // as any other over-long sub-label — the full "lb · ×2 · primary" still
     // ships in the title/aria-label below).
     const subText = container.querySelector('[data-node-id="n1"] .cv-sub')?.textContent ?? '';
-    expect(subText).toMatch(/^lb · ×2 · pr.*…$/);
+    expect(subText).toMatch(/^lb · ×2 · p.*…$/);
     expect(g?.querySelector('title')?.textContent).toBe('API Service — lb · ×2 · primary');
   });
 
@@ -220,7 +220,8 @@ describe('Node', () => {
   it('the down state keeps the label/sub-label legible (not folded into the heavily-dimmed inner group)', () => {
     const { container } = render(
       <svg>
-        <Node boardId="b1" id="n1" type="cache" label="Redis Cache" sublabel="cache · redis" health="down" />
+        {/* 152px: the width the layout gives "Redis Cache" (title + glyph slot). */}
+        <Node boardId="b1" id="n1" type="cache" label="Redis Cache" sublabel="cache · redis" health="down" width={152} />
       </svg>,
     );
     // The text layer is its own sibling, outside `.cv-inner` (which is dimmed to .3 for `down`).

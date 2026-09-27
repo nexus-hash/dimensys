@@ -46,7 +46,6 @@ export function TopBar({ title, labelsById, modeAvailability, railOpen, onToggle
         <span aria-hidden="true" className="player-desktop-only text-ink-muted">
           &rsaquo;
         </span>
-        <h1 className="truncate text-[15px] font-medium text-ink-primary">{title}</h1>
         <PlayerBreadcrumbs rootLabel={title} labelsById={labelsById} />
       </nav>
 

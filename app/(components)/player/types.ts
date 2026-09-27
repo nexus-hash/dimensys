@@ -125,14 +125,21 @@ export interface LinkView {
   rel?: string;
   /** Multiplicities `[atStart, atEnd]`. */
   ends?: [string | null, string | null];
-  /** Polyline points. Absent for spare links. */
+  /**
+   * Route points. A polyline — or, when `curve` is set, cubic Bézier control
+   * points `[p0, c1, c2, p1, c1, c2, p2, …]` (3n + 1): the drawn link starts
+   * at the source port, passes through every third point and ends at the
+   * target port. Absent for spare links.
+   */
   route?: XY[];
+  /** `route` is a cubic Bézier chain (draw `M p0 C c1 c2 p1 …`), not a polyline. */
+  curve?: true;
   /** Static particle density (only used when nothing is simulated). */
   flux?: Flux;
   /**
    * Collision-free label anchor: the label pill's centre, in route
-   * coordinates, which segment it sits on (`h` horizontal, `v` vertical —
-   * the pill itself always renders horizontal regardless), and the pill's
+   * coordinates (on the drawn curve itself), the route's dominant direction
+   * there (`h`/`v` — the pill itself always renders horizontal regardless), and the pill's
    * own size (`sz`, `[w, h]`) to draw it at — calibrated against this
    * player's real pill geometry (see `LABEL_PILL` in `canvas/Link.tsx`), so
    * this component draws the pill at exactly this size instead of

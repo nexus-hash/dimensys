@@ -23,7 +23,7 @@ describe('StaticBlueprint', () => {
     expect(g).toBeTruthy();
     expect(g?.getAttribute('transform')).toBe('translate(28, 44)'); // (100 - 72, 80 - 36)
     expect(g?.querySelector('.cv-label')?.textContent).toBe('API Service');
-    expect(g?.querySelector('.cv-sub')?.textContent).toBe('server · go');
+    expect(g?.querySelector('.cv-sub')?.textContent).toBe('go') // a server's variant is its kind: `<kind> · <detail>[ ×N]`;
   });
 
   it('appends a replica count to the sub-label once stack > 1', () => {
@@ -34,7 +34,7 @@ describe('StaticBlueprint', () => {
       wires: [],
     };
     const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
-    expect(container.querySelector('[data-node-id="api"] .cv-sub')?.textContent).toBe('server · x ×4');
+    expect(container.querySelector('[data-node-id="api"] .cv-sub')?.textContent).toBe('x · ×4');
   });
 
   describe('meter row baseline (FID: every simulated node gets one, server-rendered at baseline)', () => {
@@ -124,7 +124,7 @@ describe('StaticBlueprint', () => {
       ],
     };
     const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
-    const label = container.querySelector('[data-link-id="l1"] .cv-link-label');
+    const label = container.querySelector('.cv-link-label[data-link-label-for="l1"]');
     expect(label).toHaveAttribute('transform', 'translate(50, 40)');
   });
 
@@ -135,8 +135,35 @@ describe('StaticBlueprint', () => {
       wires: [{ id: 'l1', a: 'a', b: 'b', line: 'sync', text: 'no cap here', route: [[0, 0], [100, 0]] }],
     };
     const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
-    const label = container.querySelector('[data-link-id="l1"] .cv-link-label');
+    const label = container.querySelector('.cv-link-label[data-link-label-for="l1"]');
     expect(label).toHaveAttribute('transform', 'translate(50, 0)');
+  });
+
+  it('draws a curved route (`curve`) as cubic Bézier segments through every third point', () => {
+    const board: Board = {
+      size: [400, 200],
+      blocks: [],
+      wires: [{ id: 'l1', a: 'a', b: 'b', line: 'sync', curve: true, route: [[0, 0], [50, 0], [50, 100], [100, 100]] }],
+    };
+    const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
+    expect(container.querySelector('[data-link-id="l1"] .cv-link')).toHaveAttribute('d', 'M0,0 C50,0 50,100 100,100');
+  });
+
+  it('draws every label pill after every link of its level, outside the link group, so no line crosses a pill', () => {
+    const board: Board = {
+      size: [400, 200],
+      blocks: [],
+      wires: [
+        { id: 'l1', a: 'a', b: 'b', line: 'sync', text: 'first', route: [[0, 0], [100, 0]], cap: { pt: [50, 0], axis: 'h', sz: [80, 20] } },
+        { id: 'l2', a: 'a', b: 'c', line: 'sync', route: [[50, -50], [50, 50]] },
+      ],
+    };
+    const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
+    const pill = container.querySelector('.cv-link-label[data-link-label-for="l1"]')!;
+    expect(pill.closest('[data-link-id]')).toBeNull();
+    const l2 = container.querySelector('[data-link-id="l2"]')!;
+    // `l2` crosses the pill's spot; the pill comes later in document (paint) order.
+    expect(l2.compareDocumentPosition(pill) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('skips a spare link with no route yet', () => {
@@ -195,7 +222,7 @@ describe('StaticBlueprint', () => {
     // Inner nodes are positioned relative to the frame's top-left, which is centered on the subsystem's box.
     // Frame top-left = (300 - 200/2, 150 - 100/2) = (200, 100). inner-a center (50,50) -> absolute (250, 150).
     const innerA = container.querySelector('[data-node-id="inner-a"]');
-    expect(innerA?.getAttribute('transform')).toBe('translate(178, 114)'); // (250 - 72, 150 - 36)
+    expect(innerA?.getAttribute('transform')).toBe('translate(200, 125)'); // (250 - 100/2, 150 - 50/2): drawn at its own box size
     expect(container.querySelector('[data-link-id="inner-link"]')).toBeTruthy();
   });
 

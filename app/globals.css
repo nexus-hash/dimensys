@@ -627,6 +627,7 @@
 .cv-node.cv-health-critical .cv-chip rect { stroke: var(--color-signal-critical); }
 .cv-node .cv-chip text { font: 600 12px var(--font-mono); fill: var(--color-ink-primary); }
 
+.cv-node.cv-subsystem-card .cv-body { stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
 .cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
 .cv-node .cv-tab, .cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
 /* The expanded frame's tab is a drill-down entry point (T3.4) — the rest of
@@ -696,7 +697,10 @@
 .cv-link-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
 .cv-linkgroup.is-dimmed { opacity: .25; }
 .cv-linkgroup.is-selected .cv-link { stroke: var(--color-ink-primary); stroke-width: 2; }
-.cv-link-label rect { fill: var(--color-surface-glass); stroke: var(--color-line-hairline); }
+.cv-link-label { pointer-events: none; }
+/* Opaque, so the pill masks the line beneath it — pills are drawn after every link of their level. */
+.cv-link-label rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-link-label.is-dimmed { opacity: .25; }
 .cv-link-label text { font: 500 12px var(--font-mono); fill: var(--color-ink-secondary); }
 .cv-link-label.is-hot rect { stroke: color-mix(in srgb, var(--color-signal-critical) 55%, transparent); }
 .cv-link-cut text { font: 600 14px var(--font-sans); fill: var(--color-ink-primary); }

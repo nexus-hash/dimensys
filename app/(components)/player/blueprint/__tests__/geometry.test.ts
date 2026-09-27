@@ -51,3 +51,26 @@ describe('translate', () => {
     expect(translate([7, 9], [0, 0])).toEqual([7, 9]);
   });
 });
+
+describe('routeToPath (curves)', () => {
+  it('draws a cubic chain as C segments through every third point', () => {
+    expect(
+      routeToPath(
+        [
+          [0, 0],
+          [10, 0],
+          [10, 20],
+          [20, 20],
+          [30, 20],
+          [30, 40],
+          [40, 40],
+        ],
+        true,
+      ),
+    ).toBe('M0,0 C10,0 10,20 20,20 C30,20 30,40 40,40');
+  });
+
+  it('falls back to a polyline for a malformed control-point count', () => {
+    expect(routeToPath([[0, 0], [10, 0], [20, 0]], true)).toBe('M0,0 L10,0 L20,0');
+  });
+});

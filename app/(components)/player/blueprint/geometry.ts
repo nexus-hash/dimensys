@@ -6,11 +6,23 @@
  */
 import type { XY } from '../types';
 
-/** `[[x0,y0],[x1,y1],...]` → `"Mx0,y0 Lx1,y1 ..."`. Empty for a route with no points. */
-export function routeToPath(route: readonly XY[]): string {
+/**
+ * A route → SVG path data. A polyline `[[x0,y0],[x1,y1],...]` becomes
+ * `"Mx0,y0 Lx1,y1 ..."`; a curve (`curve: true`, 3n + 1 cubic control points)
+ * becomes `"Mp0 Cc1 c2 p1 ..."`. A curve with a malformed point count is
+ * drawn as its polyline rather than guessed at. Empty for no points.
+ */
+export function routeToPath(route: readonly XY[], curve = false): string {
   if (route.length === 0) return '';
   const [first, ...rest] = route;
   let d = `M${first[0]},${first[1]}`;
+  if (curve && route.length >= 4 && (route.length - 1) % 3 === 0) {
+    for (let i = 1; i < route.length; i += 3) {
+      const [c1, c2, p] = [route[i], route[i + 1], route[i + 2]];
+      d += ` C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p[0]},${p[1]}`;
+    }
+    return d;
+  }
   for (const [x, y] of rest) d += ` L${x},${y}`;
   return d;
 }

@@ -145,3 +145,34 @@ export class ParticlePool {
     }
   }
 }
+
+/**
+ * Samples a drawn path into a flat `[x0, y0, x1, y1, …]` table of `n + 1`
+ * points evenly spaced by arc length (`pointAt(len)` is the SVG path's own
+ * `getPointAtLength`). Particles then ride this table instead of calling
+ * `getPointAtLength` per particle per frame; at ≤`SAMPLE_SPACING` px apart
+ * the chord between two samples stays well under a pixel from the curve.
+ */
+export const SAMPLE_SPACING = 4;
+
+export function samplePath(pointAt: (len: number) => { x: number; y: number }, length: number): Float32Array {
+  const n = Math.max(16, Math.ceil(length / SAMPLE_SPACING));
+  const out = new Float32Array((n + 1) * 2);
+  for (let i = 0; i <= n; i++) {
+    const p = pointAt((length * i) / n);
+    out[i * 2] = p.x;
+    out[i * 2 + 1] = p.y;
+  }
+  return out;
+}
+
+/** The point at progress `t` ∈ [0, 1] along a `samplePath` table (linear between samples). Writes into `out`. */
+export function pointOnSamples(samples: Float32Array, t: number, out: { x: number; y: number }): { x: number; y: number } {
+  const n = samples.length / 2 - 1;
+  const f = Math.min(1, Math.max(0, t)) * n;
+  const i = Math.min(n - 1, Math.floor(f));
+  const k = f - i;
+  out.x = samples[i * 2] + (samples[i * 2 + 2] - samples[i * 2]) * k;
+  out.y = samples[i * 2 + 1] + (samples[i * 2 + 3] - samples[i * 2 + 1]) * k;
+  return out;
+}

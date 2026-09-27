@@ -10,6 +10,7 @@
  * and text content on elements that already exist — the same "small, cheap
  * per-frame DOM writes" contract the rest of this module keeps.
  */
+import { linkLabelFor } from './readBoard';
 import { XML_NS } from './xmlNs';
 import { healthGlyphMarkup } from './health';
 import type { HealthState, NodeMeterKind } from '@/app/(components)/canvas';
@@ -132,8 +133,11 @@ export function applyLinkHealth(linkGroup: SVGGElement, update: LinkHealthUpdate
   path?.classList.toggle('is-hl', !!update.highlighted);
   linkGroup.classList.toggle('is-selected', !!update.selected);
   linkGroup.classList.toggle('is-dimmed', !!update.dimmed);
-  const label = linkGroup.querySelector<SVGGElement>('.cv-link-label');
+  // The pill lives in the level's own label pass (drawn after every link), not in this group.
+  const id = linkGroup.dataset.linkId;
+  const label = id ? linkLabelFor(linkGroup, id) : null;
   label?.classList.toggle('is-hot', !!update.labelHot);
+  label?.classList.toggle('is-dimmed', !!update.dimmed);
 }
 
 /** Reduced motion's static substitute for canvas particles: a plain dashed stroke on links that currently carry traffic. */

@@ -121,23 +121,9 @@ export function Link({
       />
       <path className="cv-link-hit" d={d} data-link-hit={id} />
 
-      {label && labelPosition && (() => {
-        const [w, h] = labelSize ?? estimatePillSize(label);
-        // A measured label that would overflow the emitted pill (a mismatch
-        // between this calibration and the real font metrics, or a document
-        // built by an older/differently-tuned engine) truncates with an
-        // ellipsis rather than spilling past the rect GEOM sized this pill
-        // to clear its neighbors.
-        const displayLabel = truncateToWidth(label, Math.max(0, w - LABEL_PAD_X * 2), LABEL_CHAR_W);
-        return (
-        <g className={'cv-link-label' + (labelHot ? ' is-hot' : '')} transform={`translate(${labelPosition.x}, ${labelPosition.y})`}>
-          <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={6} />
-          <text x={0} y={4} textAnchor="middle">
-            {displayLabel}
-          </text>
-        </g>
-        );
-      })()}
+      {label && labelPosition && (
+        <LinkLabel id={id} label={label} x={labelPosition.x} y={labelPosition.y} size={labelSize} hot={labelHot} dimmed={dimmed} />
+      )}
 
       {partitioned && cutPosition && (
         <g className="cv-link-cut" transform={`translate(${cutPosition.x}, ${cutPosition.y})`}>
@@ -149,6 +135,49 @@ export function Link({
       )}
 
       {children}
+    </g>
+  );
+}
+
+/**
+ * A link's label pill: an opaque rect at the engine-emitted size, centred on
+ * the link's own line so its fill masks that line under the text. A board
+ * draws every pill *after* all of its links (`data-link-label-for` ties the
+ * pill back to its link), so no other link can ever cross a pill's text.
+ */
+export function LinkLabel({
+  id,
+  label,
+  x,
+  y,
+  size,
+  hot = false,
+  dimmed = false,
+}: {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  size?: [number, number];
+  hot?: boolean;
+  dimmed?: boolean;
+}) {
+  const [w, h] = size ?? estimatePillSize(label);
+  // A measured label that would overflow the emitted pill (a mismatch
+  // between this calibration and the real font metrics, or a document
+  // built with different numbers) truncates with an ellipsis rather than
+  // spilling past the rect sized to clear its neighbors.
+  const displayLabel = truncateToWidth(label, Math.max(0, w - LABEL_PAD_X * 2), LABEL_CHAR_W);
+  return (
+    <g
+      className={'cv-link-label' + (hot ? ' is-hot' : '') + (dimmed ? ' is-dimmed' : '')}
+      data-link-label-for={id}
+      transform={`translate(${x}, ${y})`}
+    >
+      <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={6} />
+      <text x={0} y={4} textAnchor="middle">
+        {displayLabel}
+      </text>
     </g>
   );
 }

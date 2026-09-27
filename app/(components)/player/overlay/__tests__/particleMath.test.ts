@@ -3,6 +3,9 @@ import {
   particleSpawnHz,
   particleTravelMs,
   pickParticleKind,
+  pointOnSamples,
+  SAMPLE_SPACING,
+  samplePath,
   progressForPileup,
   PILEUP_FRACTION,
   ParticlePool,
@@ -144,5 +147,31 @@ describe('ParticlePool', () => {
     pool.spawn(0, 0, 1000, false);
     pool.step(16);
     expect(pool.progress).toBe(before);
+  });
+});
+
+describe('samplePath / pointOnSamples (particles ride the drawn path)', () => {
+  // A quarter circle of radius 100: every sampled point lies on it, and
+  // interpolating between samples stays within a fraction of a pixel.
+  const R = 100;
+  const length = (Math.PI / 2) * R;
+  const pointAt = (len: number) => ({ x: R * Math.cos(len / R), y: R * Math.sin(len / R) });
+
+  it('samples at most SAMPLE_SPACING apart, ends included', () => {
+    const s = samplePath(pointAt, length);
+    const n = s.length / 2 - 1;
+    expect(length / n).toBeLessThanOrEqual(SAMPLE_SPACING);
+    expect([s[0], s[1]]).toEqual([100, 0]);
+    expect(s[n * 2]).toBeCloseTo(0, 4);
+    expect(s[n * 2 + 1]).toBeCloseTo(100, 4);
+  });
+
+  it('interpolated points stay within 0.1px of the true curve', () => {
+    const s = samplePath(pointAt, length);
+    const out = { x: 0, y: 0 };
+    for (let t = 0; t <= 1; t += 0.013) {
+      const p = pointOnSamples(s, t, out);
+      expect(Math.abs(Math.hypot(p.x, p.y) - R)).toBeLessThan(0.1);
+    }
   });
 });

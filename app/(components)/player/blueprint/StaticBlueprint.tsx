@@ -3,9 +3,11 @@ import {
   Board as CanvasBoard,
   Node,
   Link,
+  LinkLabel,
   SubsystemCollapsed,
   SubsystemFrame,
   meterKindForType,
+  nodeSubLabel,
 } from '@/app/(components)/canvas';
 import type { LeafNodeType, LinkProtocol, NodeMeter, NodeRole } from '@/app/(components)/canvas';
 import type { Board as BoardView, LinkView, NodeView, XY } from '../types';
@@ -93,13 +95,6 @@ function baselineMeter(kind: NonNullable<ReturnType<typeof meterKindForType>>): 
   }
 }
 
-/** `type · variant`, plus a replica count once there's more than one — the visual contract's node sub-label. */
-function buildSublabel(form: string, flavor: string | undefined, stack: number | undefined): string | undefined {
-  const parts = [form, flavor].filter((p): p is string => !!p);
-  let text = parts.join(' · ');
-  if (stack && stack > 1) text += ` ×${stack}`;
-  return text || undefined;
-}
 
 function renderNode(
   block: NodeView,
@@ -124,7 +119,7 @@ function renderNode(
       type={type}
       variant={block.flavor}
       label={block.text}
-      sublabel={buildSublabel(block.form, block.flavor, block.stack)}
+      sublabel={nodeSubLabel(block.form, block.flavor, block.stack)}
       role={asNodeRole(block.duty)}
       replicas={block.stack ?? 1}
       meter={meterKind ? baselineMeter(meterKind) : undefined}
@@ -132,6 +127,8 @@ function renderNode(
       healthLabel={healthLabel}
       x={cx}
       y={cy}
+      width={block.box[2]}
+      height={block.box[3]}
     />
   );
 }
@@ -163,6 +160,8 @@ function renderSubsystem(
         height={block.box[3]}
         x={cx}
         y={cy}
+        meter={baselineMeter('util')}
+        childIds={block.inner?.blocks.map((b) => b.id)}
       />
     );
   }
@@ -195,30 +194,31 @@ function renderSubsystem(
 function renderLink(wire: LinkView, boardId: string, offset: XY) {
   if (!wire.route || wire.route.length === 0) return null; // spare link: not routed yet.
   const routeAbs = wire.route.map((p) => translate(p, offset));
-  const d = routeToPath(routeAbs);
-  // `cap` (collision-free anchor, engine v3.1+) wins when present — it's in
-  // the same route coordinate space as `wire.route` itself, so it needs the
-  // same `offset` translation. `axis` only says which route segment it
-  // sits on; the pill itself always renders horizontal regardless (`Link`
-  // never rotates its label group), so it's not read here. A link with
-  // `text` but no `cap` (an older/unsynced document) falls back to the
-  // route's own arc-length midpoint, same as before this existed.
-  const labelPosition = wire.text ? (wire.cap ? translate(wire.cap.pt, offset) : routeMidpoint(routeAbs)) : undefined;
-
   return (
     <Link
       key={wire.id}
       boardId={boardId}
       id={wire.id}
-      d={d}
+      d={routeToPath(routeAbs, wire.curve === true)}
       toNodeId={wire.b}
       protocol={asLinkProtocol(wire.line)}
       bidirectional={!!wire.two}
-      label={wire.text}
-      labelPosition={labelPosition ? { x: labelPosition[0], y: labelPosition[1] } : undefined}
-      labelSize={wire.cap?.sz}
     />
   );
+}
+
+/**
+ * A link's label pill, drawn in its own pass after every link of the level
+ * so no other link can cross its text (its opaque fill masks its own line).
+ * `cap` — the engine's collision-free anchor on the drawn curve — wins when
+ * present (same coordinate space as `route`, so it takes the same
+ * `offset`); a link with `text` but no `cap` (an older/unsynced document)
+ * falls back to the route's own arc-length midpoint.
+ */
+function renderLinkLabel(wire: LinkView, offset: XY) {
+  if (!wire.text || !wire.route || wire.route.length === 0) return null;
+  const [x, y] = wire.cap ? translate(wire.cap.pt, offset) : routeMidpoint(wire.route.map((p) => translate(p, offset)));
+  return <LinkLabel key={`label-${wire.id}`} id={wire.id} label={wire.text} x={x} y={y} size={wire.cap?.sz} />;
 }
 
 function renderLevel(
@@ -231,6 +231,7 @@ function renderLevel(
   return (
     <>
       {level.wires.map((wire) => renderLink(wire, boardId, offset))}
+      {level.wires.map((wire) => renderLinkLabel(wire, offset))}
       {level.blocks.map((block) =>
         block.form === 'subSystem'
           ? renderSubsystem(block, boardId, offset, mode, health)

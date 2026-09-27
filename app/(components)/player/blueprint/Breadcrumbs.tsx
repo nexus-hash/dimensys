@@ -14,13 +14,19 @@ export interface BreadcrumbsProps {
   labelsById: Record<string, string>;
   /** Called with the depth to jump to (`0` = root, `drill.length` = already there). */
   onNavigate: (depth: number) => void;
+  /**
+   * Leave the root crumb out: the caller already shows the diagram title
+   * (the top bar's own heading, which becomes the way back to the root),
+   * so repeating it here read as "Title Title › Subsystem".
+   */
+  omitRoot?: boolean;
 }
 
-export function Breadcrumbs({ rootLabel, drill, labelsById, onNavigate }: BreadcrumbsProps) {
+export function Breadcrumbs({ rootLabel, drill, labelsById, onNavigate, omitRoot = false }: BreadcrumbsProps) {
   if (drill.length === 0) return null;
 
   const crumbs = [
-    { depth: 0, label: rootLabel },
+    ...(omitRoot ? [] : [{ depth: 0, label: rootLabel }]),
     ...drill.map((id, i) => ({ depth: i + 1, label: labelsById[id] ?? id })),
   ];
 
@@ -31,7 +37,7 @@ export function Breadcrumbs({ rootLabel, drill, labelsById, onNavigate }: Breadc
           const isCurrent = i === crumbs.length - 1;
           return (
             <li key={crumb.depth} className="flex items-center gap-1">
-              {i > 0 && (
+              {(i > 0 || omitRoot) && (
                 <span aria-hidden="true" className="text-ink-muted">
                   ›
                 </span>

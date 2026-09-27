@@ -34,8 +34,8 @@ import {
 import { buildMetricIndex, readMetric, type MetricIndex } from './metricIndex';
 import { classifyHealth, healthChipText, meterSeverity } from './health';
 import { applyNodeHealth, applyLinkHealth, setSelected, setStaticFlow } from './domHealth';
-import { findActiveLevel, findBoardSvg, linkPath as findLinkPath } from './readBoard';
-import { MAX_PARTICLES, ParticlePool, particleSpawnHz, particleTravelMs, pickParticleKind, progressForPileup } from './particleMath';
+import { findActiveLevel, findBoardSvg, linkLabelFor, linkPath as findLinkPath } from './readBoard';
+import { MAX_PARTICLES, ParticlePool, particleSpawnHz, particleTravelMs, pickParticleKind, progressForPileup, pointOnSamples, samplePath } from './particleMath';
 import type { HealthState, NodeMeterKind } from '@/app/(components)/canvas';
 import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
 
@@ -52,6 +52,8 @@ interface LinkEntry {
   group: SVGGElement;
   path: SVGPathElement;
   length: number;
+  /** The drawn path sampled by arc length (`samplePath`): particles ride exactly the curve the SVG draws. */
+  samples: Float32Array;
   spawnAccMs: number;
 }
 
@@ -92,6 +94,26 @@ function meterReading(
   const util = readMetric(idx.nodeCols, frame.metrics, id, UTILIZATION_CODE);
   if (util === undefined) return undefined;
   return { kind: 'util', value: util, text: `${Math.round(util * 100)}%`, severity: meterSeverity(util) };
+}
+
+/**
+ * A collapsed subsystem card's meter: the *highest* utilization among the
+ * nodes inside it (not the mean — a subsystem is as close to saturation as
+ * its hottest member, and a mean would hide one saturated node behind idle
+ * ones). `undefined` when no child publishes utilization this epoch.
+ */
+function aggregateUtilization(
+  childIds: readonly string[],
+  idx: MetricIndex,
+  frame: { metrics: Float64Array },
+): { kind: NodeMeterKind; value: number; text: string; severity: 'ok' | 'warn' | 'critical' } | undefined {
+  let max: number | undefined;
+  for (const child of childIds) {
+    const util = readMetric(idx.nodeCols, frame.metrics, child, UTILIZATION_CODE);
+    if (util !== undefined && (max === undefined || util > max)) max = util;
+  }
+  if (max === undefined) return undefined;
+  return { kind: 'util', value: max, text: `${Math.round(max * 100)}%`, severity: meterSeverity(max) };
 }
 
 export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerProps) {
@@ -191,7 +213,12 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
         const chipValue = chipCode ? readMetric(idx.nodeCols, frame.metrics, id, chipCode) : undefined;
 
         const meterKind = (el.dataset.meterKind as NodeMeterKind | undefined) ?? undefined;
-        const meter = meterKind ? meterReading(meterKind, idx, frame, id, up === 0) : undefined;
+        const childIds = el.dataset.childIds;
+        const meter = childIds
+          ? aggregateUtilization(childIds.split(' '), idx, frame)
+          : meterKind
+            ? meterReading(meterKind, idx, frame, id, up === 0)
+            : undefined;
 
         applyNodeHealth(el, {
           state,
@@ -239,7 +266,10 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
         } catch {
           length = 0;
         }
-        if (length > 0) links.push({ id, toNodeId: group.dataset.to, group, path, length, spawnAccMs: 0 });
+        if (length > 0) {
+          const samples = samplePath((len) => path.getPointAtLength(len), length);
+          links.push({ id, toNodeId: group.dataset.to, group, path, length, samples, spawnAccMs: 0 });
+        }
       }
     }
 
@@ -307,6 +337,8 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
       }
     }
 
+    const scratchPt = { x: 0, y: 0 };
+
     function drawFrame(ts: number) {
       rafId = requestAnimationFrame(drawFrame);
       const dt = lastTs ? ts - lastTs : 16;
@@ -362,7 +394,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
           queueCounter += 1;
           t = progressForPileup(1, queueCounter, queueCounter + 1);
         }
-        const pt = link.path.getPointAtLength(Math.min(1, Math.max(0, t)) * link.length);
+        const pt = pointOnSamples(link.samples, t, scratchPt);
         drawParticle(ctx!, pt.x, pt.y, kindCode);
       });
     }
@@ -509,7 +541,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
       }
       if (linkGroup) {
         const id = linkGroup.dataset.linkId!;
-        const label = linkGroup.querySelector('.cv-link-label text')?.textContent;
+        const label = linkLabelFor(linkGroup, id)?.querySelector('text')?.textContent;
         const title = label || id;
         const lines: string[] = [];
         if (frame && metricIndex) {

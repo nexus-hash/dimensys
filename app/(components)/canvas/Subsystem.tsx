@@ -1,21 +1,37 @@
 import { NodeIcon } from './icons';
 import { HealthGlyph } from './HealthGlyph';
 import { hatchId } from './CanvasDefs';
-import type { HealthState } from './types';
-import { MONO_CHAR_EM, SANS_CHAR_EM, truncateToWidth } from './text';
+import type { HealthState, NodeMeter } from './types';
+import { NODE_HEIGHT, NODE_WIDTH } from './types';
+import { MeterRow } from './Node';
+import {
+  EXPAND_GLYPH_W,
+  MONO_CHAR_EM,
+  measureMono,
+  measureSans,
+  SUB_FONT_PX,
+  subsystemSubLabel,
+  TEXT_PAD_R,
+  TEXT_X,
+  TITLE_FONT_PX,
+  TITLE_PAD_R,
+  truncateToFit,
+  truncateToWidth,
+  withSafety,
+} from './text';
 
 /** Matches `.cv-subsystem .cv-tab` in globals.css. */
 const TAB_FONT_SIZE = 11;
 const TAB_LETTER_SPACING_EM = 0.06;
-/** Matches `.cv-node .cv-label`/`.cv-sub` in globals.css — same classes `Node` uses. */
-const LABEL_FONT_SIZE = 13;
-const SUBLABEL_FONT_SIZE = 12;
 
 /**
- * The collapsed subsystem affordance: renders like a larger node,
- * with the inner node count and a ⤢ expand glyph, and aggregates the worst
- * health of its contents (the caller computes that aggregate and passes it
- * as `health`, same as `Node`).
+ * The collapsed subsystem card: the same anatomy as a node (icon, title,
+ * mono sub-label, meter row) on a dashed body, with the inner node count
+ * followed by an inline ⤢ expand glyph. Its meter is the aggregate
+ * utilization of the nodes inside (the live layer drives it; `meter` is the
+ * server-rendered baseline), and it aggregates the worst health of its
+ * contents (the caller computes that and passes it as `health`, same as
+ * `Node`).
  */
 export function SubsystemCollapsed({
   boardId,
@@ -28,8 +44,10 @@ export function SubsystemCollapsed({
   dimmed = false,
   x = 0,
   y = 0,
-  width = 168,
-  height = 88,
+  width = NODE_WIDTH,
+  height = NODE_HEIGHT,
+  meter,
+  childIds,
 }: {
   boardId: string;
   id: string;
@@ -43,6 +61,10 @@ export function SubsystemCollapsed({
   y?: number;
   width?: number;
   height?: number;
+  /** Aggregate utilization meter (baseline); omitted renders no meter row. */
+  meter?: NodeMeter;
+  /** Ids of the nodes inside, for the live aggregate meter (`data-child-ids`). */
+  childIds?: readonly string[];
 }) {
   const showGlyph = health !== 'ok';
   const ariaLabel = `${label} subsystem, ${nodeCount} nodes, ${health === 'ok' ? 'healthy' : health}${
@@ -52,23 +74,27 @@ export function SubsystemCollapsed({
   // (text.ts — no DOM to measure against server-side): a hard clipPath as
   // the safety net, plus the full text in a native `<title>` tooltip
   // regardless of what's visually truncated.
-  const subText = `${nodeCount} node${nodeCount === 1 ? '' : 's'}`;
+  const subText = subsystemSubLabel(nodeCount);
   const textClipId = `${boardId}-${id}-text-clip`;
-  const textAreaWidth = Math.max(0, width - 38 - 12);
-  const displayLabel = truncateToWidth(label, textAreaWidth, LABEL_FONT_SIZE * SANS_CHAR_EM);
-  const displaySub = truncateToWidth(subText, textAreaWidth, SUBLABEL_FONT_SIZE * MONO_CHAR_EM);
+  const textAreaWidth = Math.max(0, width - TEXT_X - TEXT_PAD_R);
+  const displayLabel = truncateToFit(label, width - TEXT_X - TITLE_PAD_R, (t) => measureSans(t, TITLE_FONT_PX));
+  const displaySub = truncateToFit(subText, textAreaWidth - EXPAND_GLYPH_W, (t) => measureMono(t, SUB_FONT_PX));
+  // The expand glyph sits inline right after the count ("2 nodes ⤢").
+  const glyphX = TEXT_X + withSafety(measureMono(displaySub, SUB_FONT_PX)) + 4;
   const titleText = `${label} — ${subText}`;
 
   return (
     <g
       className={
-        'cv-node' +
+        'cv-node cv-subsystem-card' +
         (health !== 'ok' ? ` cv-health-${health}` : '') +
         (selected ? ' is-selected' : '') +
         (dimmed ? ' is-dimmed' : '')
       }
       transform={`translate(${x - width / 2}, ${y - height / 2})`}
       data-node-id={id}
+      data-meter-kind={meter?.kind}
+      data-child-ids={childIds?.join(' ')}
       tabIndex={0}
       role="button"
       aria-label={ariaLabel}
@@ -82,21 +108,22 @@ export function SubsystemCollapsed({
           <NodeIcon type="subSystem" />
         </g>
         <clipPath id={textClipId}>
-          <rect x={38} y={0} width={textAreaWidth} height={height} />
+          <rect x={TEXT_X} y={0} width={textAreaWidth} height={height} />
         </clipPath>
         <g clipPath={`url(#${textClipId})`}>
-          <text className="cv-label" x={38} y={27}>
+          <text className="cv-label" x={TEXT_X} y={27}>
             {displayLabel}
           </text>
-          <text className="cv-sub" x={38} y={45}>
+          <text className="cv-sub" x={TEXT_X} y={45}>
             {displaySub}
           </text>
+          <g className="cv-icon cv-expand" transform={`translate(${glyphX}, 35)`} aria-hidden="true">
+            <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+          </g>
         </g>
-        <g className="cv-icon" transform={`translate(${width - 26}, ${height - 26})`} aria-hidden="true">
-          <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-          </svg>
-        </g>
+        {meter && <MeterRow meter={meter} width={width} />}
       </g>
       <rect className="cv-hatch" width={width} height={height} rx={12} fill={`url(#${hatchId(boardId)})`} />
       <rect className="cv-ring" x={-3} y={-3} width={width + 6} height={height + 6} rx={15} />

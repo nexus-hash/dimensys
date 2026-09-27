@@ -1,10 +1,11 @@
 export { Board } from './Board';
-export { Node } from './Node';
+export { Node, MeterRow } from './Node';
 export type { LeafNodeType } from './Node';
-export { Link } from './Link';
+export { Link, LinkLabel } from './Link';
 export { SubsystemCollapsed, SubsystemFrame } from './Subsystem';
 export { HealthGlyph } from './HealthGlyph';
 export { DsaCell } from './DsaCell';
 export { PointerMarker } from './PointerMarker';
 export { LldCard } from './LldCard';
 export * from './types';
+export * from './text';
