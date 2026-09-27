@@ -1,5 +1,5 @@
 import React from 'react';
-import Logo3D from '../logo/Logo3D';
+import Logo3D from '../logo/Logo3DLazy';
 
 export default function Footer() {
   return (

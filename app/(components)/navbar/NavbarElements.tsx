@@ -5,8 +5,7 @@ import ThemeButton from '../theme/ThemeButton';
 import Avatar from './Avatar';
 import SearchBar from './SearchBar';
 import NavButtons from './NavButtons';
-
-import Logo3D from '../logo/Logo3D';
+import Logo3D from '../logo/Logo3DLazy';
 
 export default function NavbarElements() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
