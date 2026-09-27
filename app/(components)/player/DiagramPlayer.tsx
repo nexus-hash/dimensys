@@ -34,9 +34,8 @@ export function toBootstrap(diagram: ViewData, runtimeUrl: string | null): Playe
  * Renders the frame server-side and hands a small serialisable bootstrap to
  * the one client boundary, `<PlayerIsland>`. The static SVG blueprint (T3.2)
  * goes in as a server-rendered child, so a readable diagram needs no client
- * JS and is the LCP element.
- *
- * Skeleton (T3.1): renders a "not implemented" notice only.
+ * JS and is the LCP element. A diagram with no board yet (catalog-only)
+ * renders a placeholder instead.
  */
 export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: DiagramPlayerProps) {
   if (!diagram) {
