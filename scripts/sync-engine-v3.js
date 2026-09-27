@@ -60,7 +60,7 @@ const PUBLIC_DIR = path.join(DIMENSYS_ROOT, 'public');
  * (this is a plain Node script, that's a TypeScript module the app imports)
  * but describe the same contract, so keep them in lockstep by hand.
  */
-const SUPPORTED_RUNTIME_FORMAT = 1;
+const SUPPORTED_RUNTIME_FORMAT = 2;
 
 // --- small path helpers ---------------------------------------------------
 

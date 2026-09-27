@@ -10,6 +10,7 @@ import {
   usePlatformModKey,
   comboToTokens,
 } from '@/app/(components)/command';
+import { DevUiHeader } from '../DevUiChrome';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -43,13 +44,16 @@ export function CommandGallery() {
 
   return (
     <div className="min-h-screen bg-surface-page px-6 py-8 text-ink-primary">
-      <header className="mb-8 border-b border-line-hairline pb-4">
-        <h1 className="text-title-1">DS7 — Command palette gallery</h1>
-        <p className="mt-1 text-body text-ink-secondary">
-          Development only (404s in production). The registry&apos;s live contents, a scoped demo shortcut, and
-          triggers for the palette and cheat sheet — both mounted once, app-wide, by <code>CommandProvider</code>.
-        </p>
-      </header>
+      <DevUiHeader
+        current="/dev/ui/command"
+        title="DS7 — Command palette gallery"
+        description={
+          <>
+            Development only (404s in production). The registry&apos;s live contents, a scoped demo shortcut, and
+            triggers for the palette and cheat sheet — both mounted once, app-wide, by <code>CommandProvider</code>.
+          </>
+        }
+      />
 
       <Section title="Open">
         <div className="flex flex-wrap items-center gap-3">

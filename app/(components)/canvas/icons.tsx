@@ -63,7 +63,7 @@ const VARIANT_OVERRIDE: Partial<Record<HldNodeType, Record<string, string>>> = {
   client: { web: 'web', mobile: 'mobile' },
 };
 
-export function nodeIconKey(type: HldNodeType, variant?: string): string {
+function nodeIconKey(type: HldNodeType, variant?: string): string {
   if (variant) {
     const perType = VARIANT_OVERRIDE[type];
     const override = perType?.[variant];

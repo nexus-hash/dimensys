@@ -4,13 +4,13 @@ import * as React from 'react';
 import { Slot } from 'radix-ui';
 import { cn } from './utils';
 
-export type ButtonVariant = 'primary' | 'glass' | 'ghost' | 'danger';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+type ButtonVariant = 'primary' | 'glass' | 'ghost' | 'danger';
+type ButtonSize = 'sm' | 'md' | 'lg';
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: 'text-on-brand font-semibold bg-[image:var(--brand-gradient)] hover:shadow-brand-glow',
+  primary: 'border-transparent text-on-brand font-semibold bg-[image:var(--brand-gradient)] hover:shadow-brand-glow',
   glass: 'bg-surface-glass border-line-strong backdrop-blur-md hover:border-ink-muted',
-  ghost: 'text-ink-secondary hover:text-ink-primary hover:bg-surface-glass',
+  ghost: 'border-transparent text-ink-secondary hover:text-ink-primary hover:bg-surface-glass',
   danger:
     'text-ink-primary bg-signal-critical/10 border-signal-critical/45 hover:border-signal-critical',
 };
@@ -49,7 +49,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     <Comp
       ref={ref as never}
       className={cn(
-        'inline-flex select-none items-center justify-center whitespace-nowrap rounded-control border border-transparent',
+        // Border colour comes from the variant only: a shared `border-transparent`
+        // here would win over the glass/danger outline (`cn` doesn't dedupe).
+        'inline-flex select-none items-center justify-center whitespace-nowrap rounded-control border',
         'font-medium transition-[transform,background,box-shadow,border-color] duration-micro ease-standard',
         'active:scale-[.97] disabled:pointer-events-none disabled:opacity-45 disabled:active:scale-100',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand focus-visible:outline-offset-2',

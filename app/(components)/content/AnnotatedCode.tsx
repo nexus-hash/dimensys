@@ -54,7 +54,7 @@ export async function AnnotatedCode({
     >
       {/* Language chip */}
       {language && language !== 'text' && (
-        <div className="px-4 py-2 bg-surface-overlay border-b border-line-hairline text-ink-muted text-text-label font-mono flex justify-between items-center">
+        <div className="px-4 py-2 bg-surface-overlay border-b border-line-hairline text-ink-muted text-label font-mono flex justify-between items-center">
           <span>{language}</span>
         </div>
       )}
@@ -63,7 +63,7 @@ export async function AnnotatedCode({
           with highlight/annotation line classes by createLineDecorationTransformer */}
       <div className="relative group">
         <div
-          className="shiki-container p-4 overflow-x-auto font-mono text-text-body leading-relaxed"
+          className="shiki-container p-4 overflow-x-auto font-mono text-body leading-relaxed"
           aria-label={`Code block in ${language}`}
           dangerouslySetInnerHTML={{ __html: html }}
         />
@@ -76,10 +76,10 @@ export async function AnnotatedCode({
           independent of the inline markers above */}
       {annotations.length > 0 && (
         <div className="px-4 py-3 bg-surface-overlay border-t border-line-hairline">
-          <div className="text-text-label font-semibold text-ink-secondary mb-2">
+          <div className="text-label font-semibold text-ink-secondary mb-2">
             Annotations
           </div>
-          <ul className="space-y-1 text-text-body">
+          <ul className="space-y-1 text-body">
             {annotations.map((ann) => (
               <li key={ann.lineNumber} className="flex gap-2 text-ink-secondary">
                 <span className="w-6 h-6 rounded-full bg-brand text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
@@ -97,4 +97,3 @@ export async function AnnotatedCode({
   );
 }
 
-export default AnnotatedCode;

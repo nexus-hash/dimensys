@@ -27,4 +27,16 @@ describe('RequirementBadge', () => {
     render(<RequirementBadge text="Redirects resolve correctly" status="not-simulated" />);
     expect(screen.getByText('functional · not simulated')).toBeTruthy();
   });
+
+  it('renders no second line at all when there is no observed value (no placeholder dash)', () => {
+    const { container } = render(<RequirementBadge text="create successful requests ≥ 38 rps" status="pass" />);
+    expect(container.textContent).not.toContain('—');
+    expect(container.textContent).not.toContain('–');
+    expect(container.querySelectorAll('.block')).toHaveLength(0);
+  });
+
+  it('keeps a threshold phrase together so the unit never wraps onto its own line', () => {
+    const { container } = render(<RequirementBadge text="create successful requests ≥ 38 rps" status="pass" />);
+    expect(container.textContent).toContain('≥\u00a038\u00a0rps');
+  });
 });

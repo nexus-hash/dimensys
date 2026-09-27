@@ -6,15 +6,63 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
       - run: npm ci
       - run: npm run lint
       - run: npm run lint:boundary
       - run: npm test
       - run: npx tsc --noEmit
+
+  # DS9: the /dev/ui component gallery's a11y (axe) and visual-regression
+  # (toHaveScreenshot) specs, in both themes. These pages 404 in a production
+  # build (see app/dev/ui/**/page.tsx), so this runs against the dev server
+  # (Playwright's own `webServer`, from playwright.config.ts), not a build.
+  #
+  # Baseline strategy: baselines were generated on a WSL/Linux dev machine
+  # (not inside a container — Docker wasn't available there) and committed
+  # under e2e/dev-ui-screenshots.spec.ts-snapshots/. Playwright's default
+  # snapshot naming already suffixes each file with the platform
+  # (`-linux`), but that alone doesn't guarantee pixel parity across Linux
+  # distros/versions: fonts can still rasterize slightly differently
+  # (fontconfig/freetype), even though the app's fonts are self-hosted via
+  # next/font (not system-font fallback). This is why every job in this repo
+  # pins `runs-on` to an exact ubuntu-24.04 rather than the ubuntu-latest
+  # label: ubuntu-latest is scheduled to move to Ubuntu 26 from 2026-10-19,
+  # and an unplanned OS jump would silently invalidate these baselines (and
+  # could shift font rendering under any other job too). Bump the pin
+  # deliberately, alongside a baseline refresh, when we're ready to move.
+  # Two more mitigations on top of the pin:
+  #   1. `maxDiffPixelRatio: 0.02` in the spec absorbs minor anti-aliasing
+  #      drift while still catching real regressions.
+  #   2. If this job's diffs still exceed that budget on a real font-rendering
+  #      mismatch (not a regression), regenerate the baselines *from CI's own
+  #      environment* rather than locally: push a throwaway commit, add
+  #      `workflow_dispatch` input or temporarily change this job to run
+  #      `npx playwright test e2e/dev-ui-screenshots.spec.ts --update-snapshots`,
+  #      download the `dev-ui-screenshots` artifact this job uploads on
+  #      failure (or the updated working tree via a manual SSH/tmate step),
+  #      and commit the refreshed PNGs. This keeps the baselines
+  #      environment-accurate without requiring Docker anywhere.
+  e2e-dev-ui:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test e2e/dev-ui-a11y.spec.ts e2e/dev-ui-screenshots.spec.ts
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: dev-ui-playwright-report
+          path: playwright-report/
+          retention-days: 14

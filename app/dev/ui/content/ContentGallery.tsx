@@ -1,4 +1,5 @@
 import { CodeBlock, AnnotatedCode, Markdown } from '@/app/(components)/content';
+import { DevUiHeader } from '../DevUiChrome';
 
 const TYPESCRIPT_EXAMPLE = `interface User {
   id: string;
@@ -85,25 +86,23 @@ console.log(greeting);
  */
 export default async function ContentGallery() {
   return (
-    <div className="min-h-screen bg-surface-page dark:bg-surface-page p-8">
+    <div className="min-h-screen bg-surface-page px-6 py-8 text-ink-primary">
+      <DevUiHeader
+        current="/dev/ui/content"
+        title="DS8 — Content kit gallery"
+        description="Development only (404s in production). Server-rendered Markdown, CodeBlock, and AnnotatedCode components with Shiki highlighting, both themes."
+      />
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-text-display font-bold text-brand dark:text-brand mb-2">
-          Content Components
-        </h1>
-        <p className="text-text-body-lg text-ink-secondary dark:text-ink-secondary mb-12">
-          Server-rendered Markdown, CodeBlock, and AnnotatedCode components with Shiki highlighting.
-        </p>
-
         {/* CodeBlock Examples */}
         <section className="mb-16">
-          <h2 className="text-text-title-1 font-semibold text-brand dark:text-brand mb-6 border-b border-line-hairline pb-2">
+          <h2 className="text-title-1 font-semibold text-brand-ink mb-6 border-b border-line-hairline pb-2">
             CodeBlock Examples
           </h2>
 
           <div className="space-y-8">
             {/* TypeScript */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 TypeScript
               </h3>
               <CodeBlock code={TYPESCRIPT_EXAMPLE} language="typescript" />
@@ -111,7 +110,7 @@ export default async function ContentGallery() {
 
             {/* TypeScript with line numbers */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 TypeScript (with line numbers)
               </h3>
               <CodeBlock
@@ -123,7 +122,7 @@ export default async function ContentGallery() {
 
             {/* Java */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 Java
               </h3>
               <CodeBlock code={JAVA_EXAMPLE} language="java" />
@@ -131,7 +130,7 @@ export default async function ContentGallery() {
 
             {/* Python */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 Python
               </h3>
               <CodeBlock code={PYTHON_EXAMPLE} language="python" />
@@ -139,7 +138,7 @@ export default async function ContentGallery() {
 
             {/* JSON */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 JSON
               </h3>
               <CodeBlock code={JSON_EXAMPLE} language="json" showLineNumbers={true} />
@@ -147,7 +146,7 @@ export default async function ContentGallery() {
 
             {/* Plain text */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 Plain Text
               </h3>
               <CodeBlock code="No language specified" language="text" />
@@ -157,14 +156,14 @@ export default async function ContentGallery() {
 
         {/* AnnotatedCode Examples */}
         <section className="mb-16">
-          <h2 className="text-text-title-1 font-semibold text-brand dark:text-brand mb-6 border-b border-line-hairline pb-2">
+          <h2 className="text-title-1 font-semibold text-brand-ink mb-6 border-b border-line-hairline pb-2">
             AnnotatedCode Examples
           </h2>
 
           <div className="space-y-8">
             {/* With annotations */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 TypeScript with Annotations
               </h3>
               <AnnotatedCode
@@ -179,7 +178,7 @@ export default async function ContentGallery() {
 
             {/* With highlighted lines */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 Python with Highlighted Lines
               </h3>
               <AnnotatedCode
@@ -196,7 +195,7 @@ export default async function ContentGallery() {
 
             {/* Java with highlights only */}
             <div>
-              <h3 className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
+              <h3 className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mb-3">
                 Java with Highlighted Lines (No Annotations)
               </h3>
               <AnnotatedCode
@@ -210,7 +209,7 @@ export default async function ContentGallery() {
 
         {/* Markdown Example */}
         <section className="mb-16">
-          <h2 className="text-text-title-1 font-semibold text-brand dark:text-brand mb-6 border-b border-line-hairline pb-2">
+          <h2 className="text-title-1 font-semibold text-brand-ink mb-6 border-b border-line-hairline pb-2">
             Markdown Example
           </h2>
           <Markdown content={MARKDOWN_CONTENT} />
@@ -218,58 +217,58 @@ export default async function ContentGallery() {
 
         {/* Feature showcase */}
         <section>
-          <h2 className="text-text-title-1 font-semibold text-brand dark:text-brand mb-6 border-b border-line-hairline pb-2">
+          <h2 className="text-title-1 font-semibold text-brand-ink mb-6 border-b border-line-hairline pb-2">
             Features
           </h2>
-          <ul className="space-y-3 text-text-body-lg">
+          <ul className="space-y-3 text-body-lg">
             <li className="flex gap-3">
-              <span className="text-brand font-bold">✓</span>
+              <span className="text-brand-ink font-bold">✓</span>
               <span>
                 <strong>Server-side highlighting:</strong> Shiki highlights code on the server,
                 no highlighter shipped to the client
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="text-brand font-bold">✓</span>
+              <span className="text-brand-ink font-bold">✓</span>
               <span>
                 <strong>Dual themes:</strong> Light and dark themes via CSS variables, switched
                 by data-theme attribute
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="text-brand font-bold">✓</span>
+              <span className="text-brand-ink font-bold">✓</span>
               <span>
                 <strong>Language chip:</strong> Shows the language for each code block
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="text-brand font-bold">✓</span>
+              <span className="text-brand-ink font-bold">✓</span>
               <span>
                 <strong>Line numbers:</strong> Optional line numbers for easy reference
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="text-brand font-bold">✓</span>
+              <span className="text-brand-ink font-bold">✓</span>
               <span>
                 <strong>Copy button:</strong> Tiny client-side copy button with tooltip feedback
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="text-brand font-bold">✓</span>
+              <span className="text-brand-ink font-bold">✓</span>
               <span>
                 <strong>Annotations:</strong> Per-line notes with visual markers and keyboard
                 accessibility
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="text-brand font-bold">✓</span>
+              <span className="text-brand-ink font-bold">✓</span>
               <span>
                 <strong>Highlighted lines:</strong> Subtle background and left border for
                 important lines
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="text-brand font-bold">✓</span>
+              <span className="text-brand-ink font-bold">✓</span>
               <span>
                 <strong>Typography tokens:</strong> Uses app&apos;s design tokens, no hex colors
               </span>

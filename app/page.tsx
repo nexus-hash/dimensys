@@ -1,19 +1,75 @@
-import Navbar from "./(components)/navbar/Navbar";
-import Dashboard from "./(components)/dashboard/Dashboard";
-import HeroSection from "./(components)/dashboard/HeroSection";
-import Footer from "./(components)/footer/Footer";
-import CircuitBackground from "./(components)/problems/CircuitBackground";
+import Navbar from './(components)/navbar/Navbar';
+import Footer from './(components)/footer/Footer';
+import CircuitBackground from './(components)/problems/CircuitBackground';
+import { Hero, HERO_DIAGRAM_ID } from './(components)/home/Hero';
+import { ShowcaseSection } from './(components)/home/ShowcaseSection';
+import { ClosingCta } from './(components)/home/ClosingCta';
+import { BreakFixVisual } from './(components)/home/BreakFixVisual';
+import { ReplaysVisual } from './(components)/home/ReplaysVisual';
+import { WalkthroughVisual } from './(components)/home/WalkthroughVisual';
+import { ShareVisual } from './(components)/home/ShareVisual';
 
+/**
+ * Home (S4.6a). Structure and copy follow the approved design intent: one
+ * hero (the live embedded player) plus one capability per showcase section
+ * below the fold — never a catalog grid, task list or row of cards. Two
+ * showcase sections (Outage replays, Share) describe capabilities that
+ * aren't built yet; they render honest static layouts with a "Coming soon"
+ * marker instead of faking the feature. The third ("Drill down" in the
+ * design intent) is repurposed to the walkthrough capability, which is
+ * real and shipped today — see `WalkthroughVisual`'s own comment.
+ */
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-between bg-light-primary dark:bg-dark-primary font-sans relative overflow-x-hidden"> 
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-light-primary font-sans dark:bg-dark-primary">
       <CircuitBackground />
       <Navbar />
-      <main className="w-full flex flex-col items-center">
-        <HeroSection />
-        <div className="flex flex-col flex-1 items-center justify-center 2xl:max-w-7xl xl:max-w-6xl w-full">
-          <Dashboard />
-        </div>
+      <main aria-labelledby="home-heading" className="flex w-full flex-col items-center">
+        <Hero />
+
+        <ShowcaseSection
+          index="01"
+          eyebrow="Break → Fix"
+          headingId="home-show-fix"
+          heading="Watch it fail. Then fix it and watch it recover."
+          body="Slow the database and retries pile up until every request times out. Every number is computed live from the diagram, never played back."
+          link={{ href: `/solutions/${HERO_DIAGRAM_ID}`, label: 'Try it in the simulator' }}
+          visual={<BreakFixVisual />}
+        />
+
+        <ShowcaseSection
+          index="02"
+          eyebrow="Outage replays"
+          headingId="home-show-replays"
+          heading="Relive the outages that made the news."
+          body="Real incidents, rebuilt from public postmortems. Scrub to the minute it tipped over and follow the chain reaction, one hop at a time."
+          comingSoon
+          visual={<ReplaysVisual />}
+          flip
+        />
+
+        <ShowcaseSection
+          index="03"
+          eyebrow="Walkthroughs"
+          headingId="home-show-walkthrough"
+          heading="Every step, explained in plain words."
+          body="Guided walkthroughs follow one request, hop by hop, through the real diagram — no narration is invented, it's read straight from the same data the player runs on."
+          link={{ href: `/solutions/${HERO_DIAGRAM_ID}`, label: 'Take the walkthrough' }}
+          visual={<WalkthroughVisual diagramId={HERO_DIAGRAM_ID} />}
+        />
+
+        <ShowcaseSection
+          index="04"
+          eyebrow="Share"
+          headingId="home-show-share"
+          heading="Every meltdown will be a link."
+          body="The URL will follow the simulation as you play, so a teammate can open the exact second the cache died."
+          comingSoon
+          visual={<ShareVisual />}
+          flip
+        />
+
+        <ClosingCta />
       </main>
       <Footer />
     </div>

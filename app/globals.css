@@ -71,17 +71,7 @@
   --color-ink-inverse: var(--ink-inverse);
   --color-warn-ink: var(--warn-ink);
 
-  /* ── Logo accent shades — tokens instead of literals in components ─────── */
-  --color-logo-amber: var(--logo-amber);
-  --color-logo-amber-light: var(--logo-amber-light);
-  --color-logo-amber-bright: var(--logo-amber-bright);
-  --color-logo-face-right: var(--logo-face-right);
-  --color-logo-face-left: var(--logo-face-left);
-  --color-logo-hotspot: var(--logo-hotspot);
-  --color-logo-body: var(--logo-body);
-  --color-logo-emissive: var(--logo-emissive);
-
-  /* ── Type scale ──────────────────────────────────────────────────── */
+  /* ── Type scale──────────────────────────────────────────────────── */
   --text-display-xl: 6rem;
   --text-display-xl--line-height: 1;
   --text-display-xl--letter-spacing: -0.03em;
@@ -208,16 +198,6 @@
     /* Glyph ink — see DS5 SPEC GAPS */
     --ink-inverse: #ffffff;
     --warn-ink: #1a1200;
-
-    /* Logo accent shades — kept as tokens so component files hold no literal hex */
-    --logo-amber: #ffaa00;
-    --logo-amber-light: #ffbb00;
-    --logo-amber-bright: #ffcc00;
-    --logo-face-right: #ff5500;
-    --logo-face-left: #cc4400;
-    --logo-hotspot: #ffffff;
-    --logo-body: #ff4400;
-    --logo-emissive: #ff2000;
 
     /* Motion spring configs — consumed by JS (motion libs), not CSS */
     --spring-camera-stiffness: 170;
@@ -571,7 +551,17 @@
 
 .cv-node { cursor: pointer; outline: none; }
 .cv-node .cv-body { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); stroke-width: 1; transition: stroke var(--transition-duration-micro); }
-.cv-node .cv-stack { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-node .cv-stack { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); transition: stroke var(--transition-duration-micro), stroke-opacity var(--transition-duration-micro); }
+/* FID: a replicated node's selection ring/halo stays tight to the front card
+   (`.cv-ring`/`.cv-halo` are unchanged, sized off the front card's own box
+   only) — it never grows to cover the offset stack cards. Instead each back
+   card gets its own thin outline in the selection colour, at half its
+   opacity, so the whole stack still reads as one selected group. Hover and
+   keyboard focus get the same treatment, lighter still, so a stack doesn't
+   look selected before it is. */
+.cv-node.is-selected .cv-stack { stroke: var(--color-ink-primary); stroke-opacity: .5; stroke-width: 1; }
+.cv-node:hover .cv-stack { stroke: var(--color-ink-primary); stroke-opacity: .25; }
+.cv-node:focus-visible .cv-stack { stroke: var(--color-ink-primary); stroke-opacity: .25; }
 .cv-node:hover .cv-body { stroke: var(--color-line-strong); }
 .cv-node .cv-icon { color: var(--color-ink-secondary); }
 .cv-node .cv-label { font: 500 13px var(--font-sans); fill: var(--color-ink-primary); }
@@ -584,17 +574,22 @@
 .cv-node .cv-ring, .cv-node .cv-sel, .cv-node .cv-halo, .cv-node .cv-focus { fill: none; stroke: none; }
 .cv-node .cv-hatch { opacity: 0; transition: opacity 400ms; }
 .cv-node .cv-inner { transition: opacity 400ms; }
-.cv-node .cv-role rect { fill: none; stroke: var(--color-line-strong); }
-.cv-node .cv-role text { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
-
+.cv-node .cv-text { transition: opacity 400ms; }
 .cv-node.cv-health-warn .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; }
 .cv-node.cv-health-critical .cv-ring { stroke: var(--color-signal-critical); stroke-width: 2; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-signal-critical) 35%, transparent)); }
 .cv-node.cv-health-critical.is-pulsing .cv-ring { animation: cv-ringpulse 1.2s ease-in-out infinite; }
 .cv-node.cv-health-down .cv-ring { stroke: var(--color-ink-muted); stroke-width: 1; stroke-dasharray: 4 3; }
 .cv-node.cv-health-down .cv-inner { opacity: .3; }
 .cv-node.cv-health-down .cv-hatch { opacity: 1; }
+/* The label stays its own, separately-dimmed layer (not part of `.cv-inner`) so a
+   `down` node still reads its name at a legible contrast — .6 opacity clears
+   3:1 against the canvas background in both themes with margin. `.cv-sub`
+   swaps its usual (already semi-transparent) muted ink for the opaque
+   primary ink here, because that alpha would otherwise compound with this
+   opacity below the legibility floor. */
+.cv-node.cv-health-down .cv-text { opacity: .6; }
+.cv-node.cv-health-down .cv-sub { fill: var(--color-ink-primary); }
 .cv-node.cv-health-recovering .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; stroke-dasharray: 7 5; animation: cv-dashrot 1.8s linear infinite; }
-.cv-node.cv-health-warn .cv-role, .cv-node.cv-health-critical .cv-role, .cv-node.cv-health-down .cv-role, .cv-node.cv-health-recovering .cv-role { display: none; }
 
 .cv-node.is-selected .cv-sel { stroke: var(--color-ink-primary); stroke-width: 2; }
 .cv-node.is-selected .cv-halo { stroke: var(--color-ink-primary); stroke-width: 8; stroke-opacity: .1; }
@@ -612,8 +607,62 @@
 .cv-node.cv-health-critical .cv-chip rect { stroke: var(--color-signal-critical); }
 .cv-node .cv-chip text { font: 600 12px var(--font-mono); fill: var(--color-ink-primary); }
 
+.cv-node.cv-subsystem-card .cv-body { stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
 .cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
-.cv-node .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
+.cv-node .cv-tab, .cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
+/* The expanded frame's tab is a drill-down entry point (T3.4) — the rest of
+   `.cv-subsystem` stays decorative/non-interactive. */
+.cv-tab-hit { cursor: pointer; outline: none; }
+.cv-tab-hit:hover .cv-tab { fill: var(--color-ink-primary); }
+.cv-tab-hit:focus-visible { outline: 2px solid var(--color-ink-primary); outline-offset: 2px; }
+
+/* ============================================================================
+ * Player — subsystem drill-down (T3.4).
+ *
+ * Every level (the top board and each subsystem's own board, any depth) is
+ * pre-rendered server-side; only the active one is un-hidden. Both stack in
+ * the same grid cell so entering/leaving can briefly overlap for the
+ * crossfade instead of the page jumping height. The blanket reduced-motion
+ * rule above already collapses both animations to a near-instant cut under
+ * `prefers-reduced-motion`/`data-motion="off"`.
+ *
+ * `min-width: 0` on both: grid items default to `min-width: auto`, which —
+ * same flex/grid "automatic minimum size" trap `StaticBlueprint.tsx` guards
+ * against on its own box — would otherwise let a level's content set an
+ * unshrinkable floor on this grid cell's column, wide enough to overflow a
+ * narrow viewport.
+ * ========================================================================= */
+/* `DrillStage`'s own outer wrapper (T3.16): without an explicit size here,
+   this div sizes to its content (its only non-decorative descendant is the
+   grid below), which breaks the `width/height: 100%` chain those rules rely
+   on — a percentage height only resolves against a *definite* parent
+   height, and "auto" (content-based) doesn't count as definite. */
+.player-drill-root { display: contents; }
+/* `grid-template-columns/rows: 1fr` (T3.16): with no explicit track sizing, a
+   grid's implicit single track sizes to its *content* even when the grid
+   container itself has a definite 100% size — so without this, every level
+   sat in a cell shrunk to whatever size the pre-JS-fit CSS fallback gave it,
+   not the stage's true full box, and the board-fit effect below measured
+   that shrunk cell instead of the real free area. */
+.player-drill-stage { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; width: 100%; height: 100%; min-width: 0; min-height: 0; position: relative; touch-action: none; }
+/* No flex-centering here (BG part 2b): once hydrated, `DrillStage`'s camera
+   effect takes over positioning its one child (the board) entirely —
+   `position: absolute; left/top: 0` plus a `translate()/scale()` transform
+   (see `camera.ts`) — since a camera needs to place the board anywhere in
+   this box, not just centered. Pre-hydration/no-JS, this stays a plain
+   block box: the child's own inline styles (`aspect-ratio` +
+   `max-width`/`max-height` capping it at its native pixel size, plus
+   `margin-inline: auto`) center it exactly as before, because plain block
+   layout (unlike a flex/grid parent) honors `margin: auto` centering on its
+   own — see `StaticBlueprint`'s own comment for that box's sizing. */
+.player-drill-level {
+  grid-area: 1 / 1; outline: none; width: 100%; height: 100%; min-width: 0; min-height: 0;
+  position: relative;
+}
+.player-drill-level.is-entering { animation: player-drill-in var(--transition-duration-scene) var(--ease-emphasized) both; }
+.player-drill-level.is-leaving { animation: player-drill-out var(--transition-duration-small) var(--ease-exit) both; }
+@keyframes player-drill-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes player-drill-out { from { opacity: 1; } to { opacity: 0; } }
 
 @keyframes cv-ringpulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
 @keyframes cv-dashrot { to { stroke-dashoffset: -24; } }
@@ -628,11 +677,413 @@
 .cv-link-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
 .cv-linkgroup.is-dimmed { opacity: .25; }
 .cv-linkgroup.is-selected .cv-link { stroke: var(--color-ink-primary); stroke-width: 2; }
-.cv-link-label rect { fill: var(--color-surface-glass); stroke: var(--color-line-hairline); }
+.cv-link-label { pointer-events: none; }
+/* Opaque, so the pill masks the line beneath it — pills are drawn after every link of their level. */
+.cv-link-label rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-link-label.is-dimmed { opacity: .25; }
 .cv-link-label text { font: 500 12px var(--font-mono); fill: var(--color-ink-secondary); }
 .cv-link-label.is-hot rect { stroke: color-mix(in srgb, var(--color-signal-critical) 55%, transparent); }
 .cv-link-cut text { font: 600 14px var(--font-sans); fill: var(--color-ink-primary); }
 .cv-link-cut circle { fill: var(--color-surface-canvas); stroke: var(--color-line-strong); }
+
+/* Reduced motion's static substitute for the particle canvas (T3.3): a plain
+   dashed stroke on a link currently carrying traffic, no animation. */
+.cv-link.is-flow-static { stroke-dasharray: 2 6; }
+
+/* Interactive layer overlay (T3.3): the particle canvas sits over the active
+   drill level's SVG (positioned/sized imperatively in `InteractiveLayer.tsx`
+   to match that SVG's own box within `data-player-root`) and never captures
+   pointer events itself — hover/click targets stay the static SVG's own
+   nodes/links underneath it. */
+.player-overlay-canvas { position: absolute; pointer-events: none; z-index: 1; }
+
+.player-tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 8px));
+  pointer-events: none;
+  z-index: 2;
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-surface-overlay);
+  border: 1px solid var(--color-line-strong);
+  box-shadow: var(--elevation-2, 0 2px 8px rgba(0, 0, 0, .2));
+  font: 500 12px var(--font-mono);
+  color: var(--color-ink-primary);
+  line-height: 1.5;
+}
+.player-tooltip strong { display: block; font: 600 12px var(--font-sans); margin-bottom: 2px; }
+
+/* `--surface-canvas` + a 24px dot grid — the diagram canvas's own background,
+   painted by whatever wrapper owns the *free area* the board sits in, not by
+   the board itself (`app/(components)/canvas/Board.tsx` paints no background
+   of its own; see its own comment). Matches the design's board token and grid
+   spacing exactly. `.player-board-wrap` below applies it to the
+   player shell's free area, full bleed; any standalone caller (a dev page,
+   the homepage embed/hero) applies this same class to its own board
+   wrapper instead of relying on the board to paint it. */
+.canvas-surface {
+  background-color: var(--color-surface-canvas);
+  background-image: radial-gradient(circle, var(--color-grid-dot) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+}
+
+/* The home hero's board (`<DiagramPlayer variant="hero">`): a fixed wide box
+   inside the hero card, framed by the card itself (no border or radius of
+   its own). `DrillStage` fits the board inside the padded content box with
+   the same camera fit the full player uses. The stage takes no pointer
+   input at all (`.is-static`): no hover or selection styling, no drag, and
+   a wheel or touch scroll over it scrolls the page. */
+.player-hero { position: relative; aspect-ratio: 960 / 440; padding: 12px; overflow: hidden; }
+.player-drill-stage.is-static { pointer-events: none; touch-action: auto; }
+
+/* The hero card's live indicator: a brand dot with a soft expanding ring. */
+.live-dot { width: 8px; height: 8px; flex: none; border-radius: 9999px; background: var(--color-brand); animation: live-dot 2s ease-out infinite; }
+@keyframes live-dot {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 50%, transparent); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+/* Home closing section: a dot grid that fades out from the centre. */
+.closing-dots::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle, var(--color-grid-dot) 1.2px, transparent 1.7px) 0 0 / 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 25%, transparent 70%);
+  mask-image: radial-gradient(ellipse at 50% 50%, black 25%, transparent 70%);
+}
+
+/* ============================================================================
+ * Player shell (T3.16): top bar, left rail, canvas frame, right inspector,
+ * and the HUD/timeline slots around the board. Breakpoints are plain
+ * viewport media queries. Nothing overlaps the
+ * diagram, which is why the HUD strip sits above the board and the
+ * narration/timeline dock sits below it, both inside `.player-canvas-area`,
+ * instead of floating over it.
+ * Desktop ≥1024px, tablet 640–1023px, phone <640px.
+ * ========================================================================= */
+.player-shell {
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr);
+  background: var(--color-surface-page);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.player-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-line-hairline);
+  min-width: 0;
+  position: relative;
+  z-index: var(--z-index-chrome);
+  background: var(--color-surface-page);
+}
+.player-topbar .player-rail-toggle { display: none; }
+.player-topbar .player-phone-only { display: none; }
+
+.player-body {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 360px;
+  min-height: 0;
+  position: relative;
+}
+/* Collapsing a column reclaims its space for the canvas (matches the
+   design's collapsed-rail / closed-inspector layouts) rather than
+   just hiding its content — desktop only (≥1024px; `min-width` here, not
+   `max-width`, so it can't win a specificity fight with the tablet/phone
+   `@media (max-width: 1023px)` block below, which resets
+   `grid-template-columns` on the bare `.player-body` selector — a lower
+   specificity than these attribute-qualified rules would otherwise beat
+   regardless of source order). */
+@media (min-width: 1024px) {
+  .player-body[data-rail-open="false"] { grid-template-columns: 0 minmax(0, 1fr) 360px; }
+  .player-body[data-inspector-open="false"] { grid-template-columns: 280px minmax(0, 1fr) 0; }
+  .player-body[data-rail-open="false"][data-inspector-open="false"] { grid-template-columns: 0 minmax(0, 1fr) 0; }
+}
+.player-rail {
+  overflow: auto;
+  border-right: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-page);
+  min-width: 0;
+}
+.player-body[data-rail-open="false"] .player-rail { visibility: hidden; }
+.player-canvas-area {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-page);
+}
+.player-inspector {
+  border-left: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-page);
+  overflow: auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.player-body[data-inspector-open="false"] .player-inspector { visibility: hidden; }
+
+/* Chrome strip: above the board, never over it. One compact row — HUD
+   tiles (flex, each capped at 230px) then the zoom cluster — sized to its
+   content, so every pixel it doesn't need goes to the board. The Break It
+   toolbar row below it collapses while empty. A container query (the
+   strip's own width, which the rail/inspector columns change) drops the
+   tiles into a 2×2 grid rather than squeezing four of them until their
+   text overflows. */
+.player-hud-strip {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-page);
+  min-width: 0;
+  container-type: inline-size;
+}
+.player-hud-strip-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.player-hud-slot { display: flex; gap: 6px; flex: 1; min-width: 0; }
+.player-hud-slot:empty { display: none; }
+.player-canvas-toolbar-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.player-canvas-toolbar-slot:empty { display: none; }
+.hud-tile { flex: 1 1 0; min-width: 0; }
+@container (max-width: 760px) {
+  .player-hud-slot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .player-hud-slot .hud-tile { max-width: none; }
+}
+
+/* Phone summary button (hidden above the phone breakpoint, see below). */
+.player-hud-summary { display: none; }
+
+/* The zoom cluster: a bordered row of 30px icon buttons at the end of the
+   strip row. Its host keeps the cluster's width reserved before the board's
+   client code fills it, so the tiles don't shift when it arrives. */
+.player-zoom-slot { flex: none; display: flex; min-width: 100px; justify-content: flex-end; }
+.player-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line-hairline);
+}
+/* The kit's icon-only `sm` size sets a width but no height; the cluster's
+   buttons are 30px squares. */
+.player-zoom-controls button { width: 30px; height: 30px; }
+/* A bare embed/hero board has no strip: the cluster sits in the board's own
+   bottom-right corner there. `.player-drill-root` is `display: contents`,
+   so this positions against the board's wrapper. */
+.player-zoom-controls.is-overlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: var(--z-index-chrome);
+}
+
+/* Phone Metrics tab: the same tiles, 2×2. */
+.player-sheet-hud { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+.player-sheet-hud .hud-tile { max-width: none; }
+
+/* Requirement badges (T3.8): the data-display kit's own `RequirementBadge`
+   rows, stacked — in the left rail and the phone Metrics tab. */
+.hud-req-badges { display: flex; flex-direction: column; gap: 10px; }
+
+/* 24px inner padding (T3.16 board-fit follow-up): without it the board sits
+   flush against the rail's border and the far viewport edge whenever it's
+   wide enough to be width-bound — `.player-drill-stage`'s `width/height:
+   100%` resolves against this box's *content* box, so the padding shrinks
+   the free area the fit effect (`DrillStage`) measures for free, no JS
+   change needed. */
+.player-board-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 160px;
+  padding: 24px;
+  overflow: hidden;
+  background-color: var(--color-surface-canvas);
+  background-image: radial-gradient(circle, var(--color-grid-dot) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+  /* Pan/zoom surface (BG part 2b): the free area itself is what the user
+     drags/pinches on, edge to edge — `touch-action: none` here only (not the
+     whole page) so a one-finger drag pans the diagram instead of scrolling
+     the page, while everything outside the canvas keeps native scroll. */
+  touch-action: none;
+}
+
+/* Narration + transport dock: below the board, never over it. The board
+   shrinks and re-fits above this dock; it is never covered or dimmed. The
+   narration slot takes no space while empty, leaving one 40px transport
+   row. */
+.player-timeline-dock {
+  flex: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-page);
+}
+.player-narration-slot:empty { display: none; }
+.player-timeline-slot { height: 40px; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.player-tl-btn { width: 32px; height: 32px; flex: none; }
+.player-tl-reset { margin-left: auto; }
+.player-tl-speed {
+  flex: none;
+  height: 28px;
+  min-width: 40px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--color-line-hairline);
+  font: 600 12px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-secondary);
+  transition: color var(--transition-duration-micro), border-color var(--transition-duration-micro);
+}
+.player-tl-speed:hover { color: var(--color-ink-primary); border-color: var(--color-line-strong); }
+.player-tl-speed:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.player-tl-speed:disabled { opacity: .45; }
+.player-tl-live {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font: 500 12px var(--font-mono);
+  color: var(--color-ink-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.player-tl-live b { color: var(--color-ink-primary); font-weight: 600; letter-spacing: .04em; }
+.player-tl-run { font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.player-tl-note { color: var(--color-ink-muted); overflow: hidden; text-overflow: ellipsis; }
+.player-live-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  animation: player-livedot 2s ease-out infinite;
+}
+.player-tl-live[data-playing="false"] .player-live-dot { animation: none; background: var(--color-ink-muted); }
+@keyframes player-livedot {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 50%, transparent); }
+  70% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-brand) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 0%, transparent); }
+}
+/* Scenario mode: scrubber + "00:32 / 01:30" fill the same flexible middle. */
+.player-scrubber { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 0 6px; }
+.player-scrubber-slider { flex: 1; min-width: 60px; }
+.player-time { font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); white-space: nowrap; }
+.player-time-total { color: var(--color-ink-muted); }
+
+/* Tablet (640–1023px): the rail becomes an overlay drawer and the inspector
+   becomes a right-edge overlay, both sliding over the canvas area (never
+   pushing it) instead of sitting in the grid. */
+@media (max-width: 1023px) {
+  .player-body { grid-template-columns: minmax(0, 1fr); }
+  .player-topbar .player-rail-toggle { display: inline-flex; }
+  .player-topbar .mode-kbd-hint { display: none; }
+  .player-rail {
+    position: absolute; inset: 0 auto 0 0; width: 300px; z-index: var(--z-index-sheet);
+    box-shadow: var(--shadow-elevation-2); transform: translateX(-102%);
+    transition: transform var(--transition-duration-panel) var(--ease-emphasized);
+    visibility: visible !important;
+  }
+  .player-body[data-rail-drawer-open="true"] .player-rail { transform: none; }
+  .player-inspector {
+    position: absolute; inset: 0 0 0 auto; width: 340px; z-index: var(--z-index-sheet);
+    box-shadow: var(--shadow-elevation-2);
+    transition: transform var(--transition-duration-panel) var(--ease-emphasized);
+    visibility: visible !important; transform: translateX(102%);
+  }
+  .player-body[data-inspector-open="true"] .player-inspector { transform: none; }
+  /* An overlay doesn't push layout on its own — reserve its width from the
+     canvas area's own box (not just visually slide over it) so the board
+     re-fits to stay clear of it too, matching "nothing overlaps the
+     diagram" everywhere else. The board-fit effect (`DrillStage`) picks
+     this up for free via its `ResizeObserver` on `.player-board-wrap`. */
+  .player-canvas-area {
+    padding-right: 0;
+    transition: padding-right var(--transition-duration-panel) var(--ease-emphasized);
+  }
+  .player-body[data-inspector-open="true"] .player-canvas-area { padding-right: 340px; }
+}
+
+/* Phone (<640px): the rail and the static inspector both leave the layout —
+   their content instead lives in the bottom sheet (the DS3 `BottomSheet`
+   primitive; holds the inspector and HUD). Its lowest snap point must never
+   cover a node, so the canvas area reserves space for it via
+   `--player-sheet-peek`, kept in step with the sheet's own 12% snap point. */
+@media (max-width: 639px) {
+  .player-shell { grid-template-rows: 44px minmax(0, 1fr); }
+  .player-topbar { padding: 0 6px; gap: 4px; }
+  .player-topbar .player-mode-switcher,
+  .player-topbar .player-rail-toggle,
+  .player-topbar .player-desktop-only { display: none; }
+  .player-topbar .player-phone-only { display: inline-flex; }
+  .player-rail, .player-inspector { display: none; }
+  /* `padding-right` reset (T3.6 fix): the tablet rule above reserves
+     340px of `.player-canvas-area`'s own width for the inspector *overlay*
+     whenever `data-inspector-open="true"` — but that attribute just tracks
+     `selection !== null` regardless of breakpoint, and phone's `@media`
+     range is a subset of tablet's (`max-width: 1023px` also matches
+     <640px), so without this the leftover `padding-right: 340px` still
+     applied here too on selecting anything, squeezing the canvas down to a
+     ~50px sliver (390px viewport − 340px). The inspector aside is already
+     `display: none` on phone (the line above) — its content lives in the
+     bottom sheet instead, which reserves its own space via
+     `padding-bottom` below — so there is never anything here for
+     `padding-right` to clear. */
+  .player-body[data-inspector-open="true"] .player-canvas-area { padding-right: 0; }
+  .player-canvas-area { padding-bottom: var(--player-sheet-peek, 12dvh); }
+  /* Phone strip: the tiles collapse behind one summary button (the first
+     two values); expanded, they drop into a 2×2 grid on their own line
+     inside the strip and the board re-fits to what's left. Only Fit shows
+     in the zoom cluster (pinch zooms). */
+  .player-hud-strip { padding: 6px 8px; gap: 6px; }
+  .player-hud-strip-row { flex-wrap: wrap; }
+  .player-hud-slot { display: none; order: 3; flex-basis: 100%; }
+  .player-hud-strip[data-hud-expanded="true"] .player-hud-slot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .player-hud-slot .hud-tile { max-width: none; }
+  .player-hud-summary {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--color-line-hairline);
+    background: var(--color-surface-raised);
+    font: 600 13px var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-primary);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .player-hud-summary:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+  .player-hud-summary-chev { width: 16px; height: 16px; flex: none; margin-left: auto; color: var(--color-ink-muted); transition: transform var(--transition-duration-small); }
+  .player-hud-summary[aria-expanded="true"] .player-hud-summary-chev { transform: rotate(180deg); }
+  .player-zoom-slot { min-width: 36px; }
+  .player-zoom-slot .player-zoom-controls { padding: 0; border: 0; }
+  .player-zoom-slot .player-zoom-step { display: none; }
+  .player-zoom-slot .player-zoom-fit { width: 36px; height: 36px; border: 1px solid var(--color-line-hairline); border-radius: 10px; }
+  .player-zoom-controls.is-overlay { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
+  .player-timeline-dock { padding: 6px 8px; gap: 6px; }
+  .player-timeline-dock .player-narration-slot { display: none; }
+  .player-tl-speed, .player-tl-note, .player-tl-reset { display: none; }
+}
 
 /* DSA cells */
 .cv-cell rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
@@ -726,3 +1177,21 @@
   vertical-align: middle;
 }
 .cv-lld-rule { stroke: var(--color-line-hairline); }
+
+/* ============================================================================
+ * Home (S4.6a): the below-the-fold showcase sections' settle-in transition.
+ *
+ * "Scroll-reveal from a visible resting state" (the design intent) means
+ * exactly that: content is fully opaque and legible the whole time — never
+ * `opacity: 0` (that would fail contrast checks on anything not yet
+ * scrolled into view, and would leave a no-JS/pre-hydration visitor unable
+ * to read a section at all). Only position settles in, a few pixels, on
+ * top of content that was already readable at rest.
+ * ========================================================================= */
+.home-reveal {
+  transform: translateY(24px);
+  transition: transform var(--transition-duration-scene) var(--ease-emphasized);
+}
+.home-reveal.is-visible {
+  transform: none;
+}

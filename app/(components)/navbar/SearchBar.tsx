@@ -1,48 +1,31 @@
 'use client';
 
-import { usePlatformModKey } from '@/app/(components)/command';
-import { useCommandPalette } from '@/app/(components)/command';
+import { useCommandPalette, usePlatformModKey } from '@/app/(components)/command';
+import { Kbd, SearchIcon } from '@/app/(components)/ui';
 
 /**
- * The navbar's search entry point. It no longer owns any search behaviour
- * itself — clicking (or ⌘K/Ctrl+K, bound globally by `CommandProvider`)
- * opens the command palette, which does the actual fuzzy search over
- * diagrams, pages and actions. This keeps the pill-button look (icon,
- * label, mono shortcut badge) from the previous inline-expanding version.
+ * The navbar's search entry point: a bordered pill that opens the command
+ * palette (which does the actual fuzzy search over diagrams, pages and
+ * actions). ⌘K / Ctrl K is bound globally by `CommandProvider`; the hint
+ * shows whichever the visitor's platform uses. The label hides below the
+ * desktop breakpoint and the whole pill hides at phone width, where the
+ * menu button opens the palette instead.
  */
 export default function SearchBar() {
   const { openPalette } = useCommandPalette();
   const modKey = usePlatformModKey();
-  const shortcutLabel = modKey === '⌘' ? '⌘K' : `${modKey}+K`;
+  const shortcutLabel = modKey === '⌘' ? '⌘K' : `${modKey} K`;
 
   return (
-    <div className="relative flex items-center justify-end">
-      <button
-        type="button"
-        onClick={openPalette}
-        aria-label="Open command palette"
-        className="group flex h-10 items-center gap-2 rounded-full px-3 text-light-secondary/70 transition-colors hover:bg-light-secondary/5 hover:text-orange-500 dark:text-dark-secondary/70 dark:hover:bg-dark-secondary/10 dark:hover:text-orange-400"
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="flex-shrink-0"
-          aria-hidden
-        >
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <span className="hidden text-sm sm:inline">Search...</span>
-        <span className="hidden items-center justify-center whitespace-nowrap rounded border border-light-secondary/20 px-1.5 py-0.5 font-mono text-[10px] text-light-secondary/50 sm:flex dark:border-dark-secondary/20 dark:text-dark-secondary/50">
-          {shortcutLabel}
-        </span>
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={openPalette}
+      aria-label={`Search diagrams (${shortcutLabel})`}
+      className="hidden h-8 items-center gap-2 rounded-lg border border-line-hairline pl-2.5 pr-2 text-[13px] text-ink-muted transition-colors duration-micro hover:border-line-strong hover:text-ink-secondary sm:inline-flex lg:min-w-[180px]"
+    >
+      <SearchIcon className="h-4 w-4 flex-none" />
+      <span className="hidden lg:inline">Search diagrams</span>
+      <Kbd className="ml-auto">{shortcutLabel}</Kbd>
+    </button>
   );
 }

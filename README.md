@@ -8,10 +8,10 @@ Dimensys is an open-source Next.js application designed to showcase complex syst
 
 ## ✨ Features
 
-- **Dual-Mode Rendering**: Seamlessly toggle between a technical 2D SVG blueprint and an interactive 3D WebGL environment (`@react-three/fiber`).
-- **Interactive Scenarios**: Watch data flow and state changes dynamically as you step through predefined architectural scenarios (e.g., "Cache Hit", "Database Failure").
+- **Interactive System Diagrams**: A static, server-rendered SVG blueprint of the architecture, paired with an in-browser simulation you can play, pause and scrub.
+- **Break It Scenarios**: Kill a node, flood a queue, flip a switch — watch cascading failure and recovery play out in real time.
 - **Dark/Light Mode**: Full theme support optimized for both reading clarity and visual impact.
-- **Zero-Runtime Layouts**: Diagram routes are pre-compiled and highly optimized. No heavy graph algorithms run in the browser.
+- **Static-First**: Diagram layouts are pre-compiled at build time and ship as plain HTML/SVG — no layout algorithm runs in the browser. Only the simulation itself runs client-side.
 
 ---
 
@@ -27,7 +27,7 @@ Dimensys is an open-source Next.js application designed to showcase complex syst
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 24+
 
 ### Local Development
 

@@ -30,8 +30,12 @@ async function assertThemeIsReal(page: Page, theme: 'light' | 'dark') {
   expect(bodyBg).toBe(theme === 'dark' ? DARK_BODY_BG : LIGHT_BODY_BG);
 }
 
-async function runAxe(page: Page) {
-  const results = await new AxeBuilder({ page }).analyze();
+async function runAxe(page: Page, disableRules: string[] = []) {
+  let builder = new AxeBuilder({ page });
+  if (disableRules.length > 0) {
+    builder = builder.disableRules(disableRules);
+  }
+  const results = await builder.analyze();
   const seriousOrCritical = results.violations.filter(
     (v) => v.impact === 'serious' || v.impact === 'critical',
   );
@@ -118,6 +122,35 @@ for (const theme of ['light', 'dark'] as const) {
     await page.goto('/dev/ui/motion');
     await assertThemeIsReal(page, theme);
     await expect(page.getByRole('heading', { name: 'DS6 — Motion gallery' })).toBeVisible();
+
+    await runAxe(page);
+  });
+}
+
+/**
+ * DS8: the content gallery (server-rendered Markdown, CodeBlock and
+ * AnnotatedCode, Shiki-highlighted, both themes) is the a11y test surface
+ * for the content layer. Same zero serious/critical bar, both themes,
+ * including `color-contrast`.
+ *
+ * That rule used to be disabled here: the light-theme Shiki token palette
+ * (`github-light`) had real failures (e.g. `#e36209` on the `#fafafa` code
+ * background, ~3.3:1, needs 4.5:1). The fix was a Shiki theme swap, not a
+ * component change — see app/(components)/content/shiki.ts, which now uses
+ * `github-light-high-contrast` (every token it defines for this app's
+ * highlighted languages clears 4.5:1 against `#fafafa`; dark mode was
+ * already passing and is unchanged). The flat `--brand`-as-text bug that
+ * used to fail here too (headings/links/checkmarks using `text-brand`,
+ * ~2.93:1, instead of the design system's dedicated `--brand-ink` text
+ * token) was fixed earlier at the source (app/(components)/content/Markdown.tsx
+ * and this page).
+ */
+for (const theme of ['light', 'dark'] as const) {
+  test(`/dev/ui/content has no serious/critical axe violations (${theme})`, async ({ page }) => {
+    await setTheme(page, theme);
+    await page.goto('/dev/ui/content');
+    await assertThemeIsReal(page, theme);
+    await expect(page.getByRole('heading', { name: 'DS8 — Content kit gallery' })).toBeVisible();
 
     await runAxe(page);
   });

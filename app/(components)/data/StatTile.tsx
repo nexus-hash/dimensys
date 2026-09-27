@@ -13,7 +13,7 @@ export interface StatTileDelta {
   bad?: 'critical' | 'warn';
 }
 
-export interface StatTileProps {
+interface StatTileProps {
   label: string;
   /** Already-formatted value, e.g. via `formatMetricValue` — kept as a string so callers control precision. */
   value: string;
@@ -28,6 +28,8 @@ export interface StatTileProps {
     unit?: string;
     timestamps?: string[];
     formatValue?: (v: number) => string;
+    /** Accessible name/tooltip for the chart; defaults to "<label>, last <n> samples, now <value>". */
+    title?: string;
   };
   tooltip?: string;
   className?: string;
@@ -38,6 +40,15 @@ export interface StatTileProps {
    * the caller's job, same as `value`.
    */
   numberRoll?: { value: number; format: (v: number) => string };
+  /**
+   * `default`: the gallery/detail tile — a sparkline that carries its own
+   * "view as table" disclosure.
+   * `compact`: the player's HUD strip tile — one tight 2×2 row (label over
+   * value on the left, delta over a 20px sparkline on the right), capped at
+   * 230px wide and 48px tall, no per-tile table (the strip offers one table
+   * for all of its tiles instead).
+   */
+  variant?: 'default' | 'compact';
 }
 
 const SEVERITY_LABEL: Record<2 | 1, string> = { 2: 'critical', 1: 'warning' };
@@ -46,22 +57,53 @@ const SEVERITY_RING: Record<2 | 1, string> = {
   1: 'shadow-[inset_0_0_0_1.5px_var(--color-signal-warn)]',
 };
 
+const LAYOUT = {
+  default: {
+    grid: 'grid-cols-[auto_minmax(56px,1fr)] grid-rows-2 py-1.5',
+    label: 'text-caption',
+    topRow: '',
+    valueRow: '',
+  },
+  compact: {
+    // Row 1 is pinned to a 14px line box (the glyph's own size), so the
+    // tile is 2 + 10 + 14 + 1 + 20 = 47px tall whatever the inherited
+    // line-height is.
+    grid: 'max-w-[230px] min-w-0 grid-cols-[auto_minmax(36px,1fr)] grid-rows-[auto_auto] py-[5px] overflow-hidden',
+    label: 'truncate text-[11px] font-medium leading-[14px]',
+    topRow: 'h-[14px] leading-[14px]',
+    valueRow: 'leading-none',
+  },
+} as const;
+
 /**
  * StatTile: the form for a single live value — value + delta +
- * optional sparkline. Matches the approved prototype's HUD tile exactly: a
- * 2×2 grid (label + severity glyph top-left, delta top-right, the big mono
- * value bottom-left, the sparkline bottom-right), so it drops straight into
- * the HUD strip at native size. A live-updating value is `tabular-nums`
- * so digits don't jitter as it ticks.
+ * optional sparkline, laid out as a 2×2 grid (label + severity glyph
+ * top-left, delta top-right, the mono value bottom-left, the sparkline
+ * bottom-right). A live-updating value is `tabular-nums` so digits don't
+ * jitter as it ticks. See `variant` for the two sizes.
  */
-export function StatTile({ label, value, unit, delta, severity = 0, sparkline, tooltip, className, numberRoll }: StatTileProps) {
+export function StatTile({
+  label,
+  value,
+  unit,
+  delta,
+  severity = 0,
+  sparkline,
+  tooltip,
+  className,
+  numberRoll,
+  variant = 'default',
+}: StatTileProps) {
   const ring = severity ? SEVERITY_RING[severity as 1 | 2] : '';
+  const layout = LAYOUT[variant];
+  const compact = variant === 'compact';
 
   const body = (
     <div
-      className={`grid grid-cols-[auto_minmax(56px,1fr)] grid-rows-2 items-center gap-x-2.5 gap-y-px rounded-[10px] border border-line-hairline bg-surface-raised px-2.5 py-1.5 ${ring} ${className ?? ''}`.trim()}
+      data-variant={variant}
+      className={`grid ${layout.grid} items-center gap-x-2.5 gap-y-px rounded-[10px] border border-line-hairline bg-surface-raised px-2.5 ${ring} ${className ?? ''}`.trim()}
     >
-      <div className="col-start-1 row-start-1 flex items-center justify-start gap-1.5">
+      <div className={`col-start-1 row-start-1 flex min-w-0 items-center justify-start gap-1.5 ${layout.topRow}`.trim()}>
         {severity > 0 && (
           <HealthGlyph
             state={severity === 2 ? 'critical' : 'warn'}
@@ -69,11 +111,13 @@ export function StatTile({ label, value, unit, delta, severity = 0, sparkline, t
             ariaLabel={SEVERITY_LABEL[severity as 1 | 2]}
           />
         )}
-        <span className="whitespace-nowrap text-caption text-ink-secondary">{label}</span>
+        <span className={`whitespace-nowrap text-ink-secondary ${layout.label}`}>{label}</span>
       </div>
 
       {delta && (
-        <div className="col-start-2 row-start-1 overflow-hidden text-right font-mono text-[11px] font-medium text-ellipsis whitespace-nowrap text-ink-muted">
+        <div
+          className={`col-start-2 row-start-1 min-w-0 overflow-hidden text-right font-mono text-[11px] font-medium text-ellipsis whitespace-nowrap text-ink-muted ${layout.topRow}`.trim()}
+        >
           <span
             className="font-bold"
             style={{
@@ -91,7 +135,7 @@ export function StatTile({ label, value, unit, delta, severity = 0, sparkline, t
         </div>
       )}
 
-      <div className="col-start-1 row-start-2 flex items-baseline gap-1 whitespace-nowrap">
+      <div className={`col-start-1 row-start-2 flex items-baseline gap-1 whitespace-nowrap ${layout.valueRow}`.trim()}>
         {numberRoll ? (
           <NumberRoll
             value={numberRoll.value}
@@ -115,10 +159,11 @@ export function StatTile({ label, value, unit, delta, severity = 0, sparkline, t
             height={20}
             warnThreshold={sparkline.warnThreshold}
             severity={severity}
-            title={`${label}, last ${sparkline.window ?? sparkline.values.length} samples, now ${value}${unit ? ` ${unit}` : ''}`}
+            title={sparkline.title ?? `${label}, last ${sparkline.window ?? sparkline.values.length} samples, now ${value}${unit ? ` ${unit}` : ''}`}
             unit={sparkline.unit ?? unit}
             timestamps={sparkline.timestamps}
             formatValue={sparkline.formatValue}
+            table={!compact}
           />
         </div>
       )}

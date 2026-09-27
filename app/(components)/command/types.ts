@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-
 /**
  * A registered shortcut. `keys` is a normalized combo string produced by
  * `comboFromEvent` (e.g. `"mod+k"`, `"k"`, `"?"`, `"mod+shift+z"`) — never a
@@ -30,17 +28,6 @@ export type ShortcutRegistration = Omit<ShortcutDef, 'id' | 'handler'> & {
 };
 
 export const GLOBAL_SCOPE = 'global';
-
-/** One row the command palette can show and act on. */
-export interface PaletteItem {
-  id: string;
-  label: string;
-  group: string;
-  keywords?: string[];
-  hint?: ReactNode;
-  href?: string;
-  onSelect?: () => void;
-}
 
 /** A navigable catalog/page entry, passed in from a server component. */
 export interface PaletteNavItem {

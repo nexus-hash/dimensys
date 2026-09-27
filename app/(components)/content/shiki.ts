@@ -17,7 +17,19 @@ import { createHighlighter, type Highlighter, type ShikiTransformer } from 'shik
 // Dual light/dark Shiki themes. Token colors are emitted as CSS variables
 // (`defaultColor: false` below) so the actual color used is decided by CSS —
 // see the `.shiki` rules in app/globals.css, switched by `html[data-theme]`.
-const THEMES = { light: 'github-light', dark: 'github-dark' } as const;
+//
+// The light theme is the "high-contrast" GitHub variant, not the plain
+// `github-light` one: on the `--surface-raised` code background this app
+// uses, plain `github-light`'s `keyword`/`storage` token color and its
+// `variable` token color measure only ~4.4:1 and ~3.3:1 against it — both
+// below the 4.5:1 WCAG AA text threshold. `github-light-high-contrast`
+// remaps those same scopes to darker shades of the same hues (~7.75:1 and
+// ~9.82:1); every token color it defines for the languages this app
+// highlights (ts/tsx/js/jsx/java/py/json/bash/go/sql/md — see
+// LANGUAGE_ALIASES below) clears 4.5:1 against that background. It ships in
+// the already-installed `shiki` package, so this is a theme choice, not a
+// new dependency. `github-dark` (unchanged) already passes.
+const THEMES = { light: 'github-light-high-contrast', dark: 'github-dark' } as const;
 
 // The only languages this app ever highlights. Anything else falls back to
 // plain text — this keeps the set of lazily-imported Shiki grammars fixed
@@ -60,7 +72,7 @@ function getHighlighter(): Promise<Highlighter> {
 }
 
 /** Resolve a caller-supplied language string to a Shiki grammar id, or 'text'. */
-export function resolveLanguage(language: string | undefined): string {
+function resolveLanguage(language: string | undefined): string {
   if (!language) return 'text';
   return LANGUAGE_ALIASES[language.toLowerCase()] ?? 'text';
 }

@@ -6,7 +6,7 @@ import * as crypto from 'crypto';
 import { spawnSync } from 'child_process';
 
 const SCRIPT_PATH = path.resolve(__dirname, '../sync-engine-v3.js');
-const RUNTIME_FORMAT = 1;
+const RUNTIME_FORMAT = 2;
 
 function sha256Hex(buf: Buffer): string {
   return crypto.createHash('sha256').update(buf).digest('hex');
@@ -263,8 +263,20 @@ describe('sync-engine-v3.js', () => {
   it('fails loudly on an unknown runtimeFormat', () => {
     const fixture = track(makeTempDirs());
     const manifest = buildManifestFixture(fixture.engineDir);
-    const bumped = { ...manifest, runtimeFormat: 2 };
+    const bumped = { ...manifest, runtimeFormat: 3 };
     fs.writeFileSync(path.join(fixture.engineDir, 'manifest.json'), JSON.stringify(bumped, null, 2));
+
+    const result = runSync(fixture);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('runtimeFormat');
+    expect(fs.existsSync(path.join(fixture.appDir, 'data', 'engine'))).toBe(false);
+  });
+
+  it('refuses the old runtimeFormat 1 (format 2 is the only one this app supports)', () => {
+    const fixture = track(makeTempDirs());
+    const manifest = buildManifestFixture(fixture.engineDir);
+    const oldFormat = { ...manifest, runtimeFormat: 1 };
+    fs.writeFileSync(path.join(fixture.engineDir, 'manifest.json'), JSON.stringify(oldFormat, null, 2));
 
     const result = runSync(fixture);
     expect(result.status).toBe(1);

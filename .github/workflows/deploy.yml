@@ -15,10 +15,10 @@ on:
 
 jobs:
   release-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout dimensys
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Fetch all history for branching/pushing
 
@@ -28,9 +28,9 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: '24'
 
       - name: Bump Version
         id: bump_version
@@ -41,7 +41,7 @@ jobs:
           echo "Bumped version to $NEW_VER"
 
       - name: Checkout dms-engine (private)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: ${{ secrets.DMS_ENGINE_REPO }}
           ref: ${{ secrets.DMS_ENGINE_REF }}
@@ -52,14 +52,14 @@ jobs:
         run: |
           mv dms-engine-checkout ../dms-engine
           
-      - name: Build dms-engine
+      - name: Build dms-engine v3
         run: |
           cd ../dms-engine
           npm ci
-          npm run build
+          npm run build:v3
 
-      - name: Sync engine output to dimensys
-        run: node scripts/sync-engine.js
+      - name: Sync v3 engine output to dimensys
+        run: node scripts/sync-engine-v3.js
 
       - name: Install dimensys dependencies
         run: npm ci
@@ -89,6 +89,7 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='dms-engine-checkout' \
+            --exclude='server-data' \
             ./ ${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}:${{ secrets.HOSTINGER_DEPLOY_PATH }}
 
       - name: Install Production Dependencies and Restart App via PM2

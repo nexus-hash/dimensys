@@ -1,7 +1,7 @@
 import { Tooltip } from '@/app/(components)/ui';
 import { TableView } from './TableView';
 
-export interface DumbbellRow {
+interface DumbbellRow {
   label: string;
   /** The "from" value, e.g. without a fix. Rendered as the hollow dot. */
   before: number;
@@ -9,7 +9,7 @@ export interface DumbbellRow {
   after: number;
 }
 
-export interface DumbbellBarsProps {
+interface DumbbellBarsProps {
   rows: DumbbellRow[];
   /** Scale the track covers; both values are clamped into it. */
   min?: number;

@@ -3,7 +3,7 @@ import { HealthGlyph } from '@/app/(components)/canvas';
 import { TableView } from './TableView';
 import { severityFromThresholds, type Severity } from './format';
 
-export interface MeterProps {
+interface MeterProps {
   /** e.g. "core-db util", "Budget". */
   label: string;
   /** 0–1 fill ratio. */

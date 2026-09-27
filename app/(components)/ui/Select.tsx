@@ -5,7 +5,7 @@ import { Select as RadixSelect } from 'radix-ui';
 import { cn } from './utils';
 import { CheckIcon, ChevronDownIcon } from './icons';
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: React.ReactNode;
   disabled?: boolean;

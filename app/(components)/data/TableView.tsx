@@ -13,6 +13,7 @@ export function TableView({
   rows,
   buttonLabel = 'View as table',
   className,
+  defaultOpen = false,
 }: {
   /** Screen-reader-only table caption, e.g. "p99 latency, last 60 seconds". */
   caption: string;
@@ -20,9 +21,11 @@ export function TableView({
   rows: Array<Array<string | number>>;
   buttonLabel?: string;
   className?: string;
+  /** Render the disclosure already expanded (e.g. for a gallery state demo). */
+  defaultOpen?: boolean;
 }) {
   return (
-    <details className={className ? `${className} mt-1` : 'mt-1'}>
+    <details open={defaultOpen} className={className ? `${className} mt-1` : 'mt-1'}>
       <summary className="cursor-pointer list-none text-caption text-ink-muted underline decoration-dotted underline-offset-2 [&::-webkit-details-marker]:hidden hover:text-ink-secondary">
         {buttonLabel}
       </summary>

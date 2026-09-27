@@ -42,7 +42,7 @@ jobs:
     if: >-
       (github.event_name != 'pull_request' || github.base_ref == 'main') &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
@@ -64,21 +64,38 @@ jobs:
 
       - name: Determine engine ref
         id: engine_ref
+        env:
+          # Passed via env, not interpolated inline into the script, since a
+          # PR head branch name is attacker-controlled input (script-injection
+          # safety) — never echoed or otherwise printed below.
+          HEAD_REF: ${{ github.head_ref }}
+          DMS_ENGINE_REPO: ${{ secrets.DMS_ENGINE_REPO }}
+          DMS_ENGINE_PAT: ${{ secrets.DMS_ENGINE_PAT }}
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             echo "ref=${{ github.event.client_payload.sha }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            # A PR preview builds against the engine branch of the same name
+            # as this app PR's head branch, when one exists (so an app PR
+            # depending on unmerged engine work can preview against it);
+            # otherwise it falls back to engine main.
+            if git ls-remote --exit-code --heads "https://x-access-token:${DMS_ENGINE_PAT}@github.com/${DMS_ENGINE_REPO}.git" "$HEAD_REF" > /dev/null 2>&1; then
+              echo "ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+            else
+              echo "ref=main" >> "$GITHUB_OUTPUT"
+            fi
           else
             # Always the engine's main branch — this workflow intentionally
-            # ignores DMS_ENGINE_REF (that secret is used by build.yml for
-            # other purposes); the dev site always tracks engine main.
+            # ignores DMS_ENGINE_REF (that secret is used by deploy.yml for
+            # other purposes); push/dispatch always track engine main.
             echo "ref=main" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout dimensys
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Checkout dms-engine (private)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: ${{ secrets.DMS_ENGINE_REPO }}
           ref: ${{ steps.engine_ref.outputs.ref }}
@@ -89,22 +106,14 @@ jobs:
         run: mv dms-engine-checkout ../dms-engine
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
-
-      - name: Build dms-engine
-        run: |
-          cd ../dms-engine
-          npm ci
-          npm run build
-
-      - name: Sync engine output to dimensys
-        run: node scripts/sync-engine.js
+          node-version: '24'
 
       - name: Build dms-engine v3
         run: |
           cd ../dms-engine
+          npm ci
           npm run build:v3
 
       - name: Sync v3 engine output to dimensys
@@ -129,11 +138,11 @@ jobs:
       # --- Guard: refuse to ship proprietary engine source in the output ---
       # The engine's LICENSE header ("This software and its source code are
       # proprietary and confidential ...") only ever appears in
-      # dms-engine/LICENSE — it is never emitted into generated pages, static
-      # assets, or the shared component templates that sync-engine.js copies
-      # into this repo. Its presence in the build output, or any path that
-      # references dms-engine/src directly, indicates the private engine
-      # source leaked into the deployable artifact.
+      # dms-engine/LICENSE — it is never emitted into the v3 output that
+      # sync-engine-v3.js copies into this repo. Its presence in the build
+      # output, or any path that references dms-engine/src directly,
+      # indicates the private engine source leaked into the deployable
+      # artifact.
       - name: Verify no engine source in build output
         run: |
           set -e
@@ -193,21 +202,21 @@ jobs:
           SKIP_PREBUILD: "true"
         run: |
           if [ "${{ steps.target.outputs.prod }}" = "true" ]; then
-            url=$(npx vercel@${{ env.VERCEL_CLI_VERSION }} deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+            url=$(npx vercel@${{ env.VERCEL_CLI_VERSION }} deploy --prebuilt --archive=tgz --prod --token=${{ secrets.VERCEL_TOKEN }})
           else
-            url=$(npx vercel@${{ env.VERCEL_CLI_VERSION }} deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+            url=$(npx vercel@${{ env.VERCEL_CLI_VERSION }} deploy --prebuilt --archive=tgz --token=${{ secrets.VERCEL_TOKEN }})
           fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
   comment-preview-url:
     needs: deploy
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
       - name: Comment preview URL on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const url = ${{ toJSON(needs.deploy.outputs.url) }};

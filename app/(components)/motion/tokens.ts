@@ -22,12 +22,6 @@ const DURATION_FALLBACK_MS: Record<DurationToken, number> = {
   scene: 600,
 };
 
-const EASE_FALLBACK: Record<EaseToken, string> = {
-  standard: 'cubic-bezier(0.2, 0, 0, 1)',
-  emphasized: 'cubic-bezier(0.3, 0, 0, 1)',
-  exit: 'cubic-bezier(0.4, 0, 1, 1)',
-};
-
 export interface SpringTokenConfig {
   stiffness: number;
   damping: number;
@@ -83,11 +77,6 @@ export function durationMs(token: DurationToken): number {
   return parsed ?? DURATION_FALLBACK_MS[token];
 }
 
-/** CSS easing string for a named token. */
-export function ease(token: EaseToken): string {
-  return readCssRaw(EASE_VAR[token]) || EASE_FALLBACK[token];
-}
-
 /** `{ stiffness, damping }` for a named spring token. */
 export function springConfig(token: SpringToken): SpringTokenConfig {
   const stiffnessRaw = readCssRaw(SPRING_VAR[token].stiffness);
@@ -100,17 +89,7 @@ export function springConfig(token: SpringToken): SpringTokenConfig {
   };
 }
 
-/** `var(--transition-duration-<token>)`, for use directly in inline styles/CSS. */
-export function durationVar(token: DurationToken): string {
-  return `var(${DURATION_VAR[token]})`;
-}
-
 /** `var(--ease-<token>)`, for use directly in inline styles/CSS. */
 export function easeVar(token: EaseToken): string {
   return `var(${EASE_VAR[token]})`;
-}
-
-/** A ready-to-use `transition-duration/timing-function` CSS shorthand fragment. */
-export function transitionCss(duration: DurationToken, easing: EaseToken = 'standard'): string {
-  return `${durationVar(duration)} ${easeVar(easing)}`;
 }

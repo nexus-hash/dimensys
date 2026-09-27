@@ -2,7 +2,7 @@ import { Tooltip } from '@/app/(components)/ui';
 import { TableView } from './TableView';
 import type { Severity } from './format';
 
-export interface SparklineProps {
+interface SparklineProps {
   /** Samples, oldest first. `NaN`/`null`/`undefined` entries are gaps. */
   values: Array<number | null | undefined>;
   /**
@@ -29,6 +29,12 @@ export interface SparklineProps {
   timestamps?: string[];
   /** Formats a value for the table view; defaults to `String`. */
   formatValue?: (value: number) => string;
+  /**
+   * Render the "view as table" disclosure under the chart (default `true`).
+   * A caller that already offers one table for a whole group of charts (the
+   * player's HUD strip) passes `false` so each chart doesn't repeat it.
+   */
+  table?: boolean;
   className?: string;
 }
 
@@ -42,7 +48,7 @@ const SEVERITY_COLOR: Record<Severity, string> = {
  * Sparkline: a single muted line with a subtle area fill, no axes, the
  * current point emphasized as a dot, gaps for missing samples, and a fixed
  * viewBox so the chart never reflows as data streams. Ships with a hover
- * tooltip and a "view as table" disclosure.
+ * tooltip and (unless `table={false}`) a "view as table" disclosure.
  */
 export function Sparkline({
   values,
@@ -55,6 +61,7 @@ export function Sparkline({
   unit,
   timestamps,
   formatValue = (v) => String(v),
+  table = true,
   className,
 }: SparklineProps) {
   const w = 100;
@@ -149,6 +156,16 @@ export function Sparkline({
       )}
     </svg>
   );
+
+  if (!table) {
+    return (
+      <div className={className ? undefined : 'w-full'}>
+        <Tooltip content={title}>
+          <div>{svg}</div>
+        </Tooltip>
+      </div>
+    );
+  }
 
   const tableRows = values.map((v, i) => [
     timestamps?.[i] ?? String(i),

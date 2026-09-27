@@ -3,9 +3,8 @@
 import * as React from 'react';
 import { DropdownMenu as RxDropdown, ContextMenu as RxContext } from 'radix-ui';
 import { cn } from './utils';
-import { CheckIcon } from './icons';
 
-export interface MenuItem {
+interface MenuItem {
   type?: 'item';
   value: string;
   label: React.ReactNode;
@@ -13,10 +12,10 @@ export interface MenuItem {
   disabled?: boolean;
   danger?: boolean;
 }
-export interface MenuSeparator {
+interface MenuSeparator {
   type: 'separator';
 }
-export type MenuEntry = MenuItem | MenuSeparator;
+type MenuEntry = MenuItem | MenuSeparator;
 
 const CONTENT_CLASSES = cn(
   'z-chrome min-w-[200px] overflow-hidden rounded-card border border-line-hairline bg-surface-overlay p-1 shadow-elevation-2',
@@ -100,4 +99,3 @@ export function ContextMenu({ children, items, onSelect }: ContextMenuProps) {
   );
 }
 
-export { CheckIcon as MenuCheckIcon };

@@ -6,7 +6,7 @@ import { cn } from './utils';
 import { IconButton } from './Button';
 import { CloseIcon } from './icons';
 
-export type SheetSide = 'left' | 'right';
+type SheetSide = 'left' | 'right';
 
 export interface SheetProps {
   trigger?: React.ReactElement;
@@ -91,6 +91,25 @@ export interface BottomSheetProps {
   /** Controlled snap index (index into `snapPoints`). */
   snapIndex?: number;
   onSnapIndexChange?: (index: number) => void;
+  /**
+   * Whether a dimming backdrop covers the rest of the page while open.
+   * Default `true` (a transient drawer you open on demand). Pass `false` for
+   * chrome that's meant to stay open at a low snap point alongside content
+   * the person can still see and interact with underneath (the player's
+   * phone sheet, T3.16 — its 12% peek must never dim the diagram).
+   */
+  scrim?: boolean;
+  /** Extra classes on the sheet panel itself (the portaled `Dialog.Content`) — a parent wrapper's classes can't reach it. */
+  className?: string;
+  /**
+   * Whether the visible title row (`<h2>{title}</h2>` under the grab handle)
+   * renders. Default `true`. `title` still names the sheet for assistive
+   * tech either way (via a visually-hidden `Dialog.Title`) — pass `false`
+   * when the sheet's own content already carries a heading or tabs that
+   * make a second, generic title line redundant (the player's phone sheet,
+   * T3.16, whose tabs are the prototype's own sheet header).
+   */
+  showTitleBar?: boolean;
 }
 
 /**
@@ -109,6 +128,9 @@ export function BottomSheet({
   defaultSnapIndex = 1,
   snapIndex,
   onSnapIndexChange,
+  scrim = true,
+  className,
+  showTitleBar = true,
 }: BottomSheetProps) {
   const [uncontrolledIndex, setUncontrolledIndex] = React.useState(defaultSnapIndex);
   const currentIndex = snapIndex ?? uncontrolledIndex;
@@ -176,21 +198,28 @@ export function BottomSheet({
   };
 
   return (
-    <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
+    // `modal={scrim}`: chrome without a scrim (the player's phone sheet, T3.16) is also
+    // non-modal — otherwise Radix still traps focus and marks the rest of the page
+    // `aria-hidden`/`inert` even with no visible overlay, which would make the diagram
+    // behind a permanently-open peeked sheet unreachable.
+    <RadixDialog.Root open={open} onOpenChange={onOpenChange} modal={scrim}>
       {trigger ? <RadixDialog.Trigger asChild>{trigger}</RadixDialog.Trigger> : null}
       <RadixDialog.Portal>
-        <RadixDialog.Overlay
-          className={cn(
-            'fixed inset-0 z-sheet bg-[color-mix(in_srgb,var(--ink-primary)_32%,transparent)]',
-            'data-[state=open]:animate-[fadein_var(--transition-duration-small)_ease-out]',
-            'data-[state=closed]:animate-[fadeout_var(--transition-duration-micro)_var(--ease-exit)]',
-          )}
-        />
+        {scrim ? (
+          <RadixDialog.Overlay
+            className={cn(
+              'fixed inset-0 z-sheet bg-[color-mix(in_srgb,var(--ink-primary)_32%,transparent)]',
+              'data-[state=open]:animate-[fadein_var(--transition-duration-small)_ease-out]',
+              'data-[state=closed]:animate-[fadeout_var(--transition-duration-micro)_var(--ease-exit)]',
+            )}
+          />
+        ) : null}
         <RadixDialog.Content
           ref={panelRef}
           className={cn(
             'fixed inset-x-0 bottom-0 z-sheet flex flex-col rounded-t-[18px] border-t border-line-strong bg-surface-overlay shadow-elevation-2',
             dragState.current ? '' : 'transition-[height] duration-panel ease-emphasized',
+            className,
           )}
           style={{ height: dragHeightPx != null ? `${dragHeightPx}px` : `${heightPercent}dvh` }}
           onOpenAutoFocus={(e) => e.preventDefault()}
@@ -219,15 +248,14 @@ export function BottomSheet({
           >
             <span aria-hidden className="h-1 w-10 rounded-full bg-line-strong" />
           </button>
-          <div className="flex-none border-b border-line-hairline px-4 pb-2.5">
-            <h2 className="text-title-3 text-ink-primary">{title}</h2>
-          </div>
+          {showTitleBar ? (
+            <div className="flex-none border-b border-line-hairline px-4 pb-2.5">
+              <h2 className="text-title-3 text-ink-primary">{title}</h2>
+            </div>
+          ) : null}
           <div className="flex-1 overflow-auto overscroll-contain p-4">{children}</div>
         </RadixDialog.Content>
       </RadixDialog.Portal>
     </RadixDialog.Root>
   );
 }
-
-/** Alias — the design spec lists both names for the same snap-point sheet. */
-export const Drawer = BottomSheet;

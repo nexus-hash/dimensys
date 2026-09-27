@@ -17,8 +17,3 @@ export function isMotionReduced(): boolean {
   const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
   return dataMotionOff || prefersReduced;
 }
-
-/** Picks the full-motion or reduced-motion variant of anything (a preset, a duration, a class name…). */
-export function pickMotion<T>(reduced: boolean, full: T, reducedVariant: T): T {
-  return reduced ? reducedVariant : full;
-}

@@ -5,7 +5,7 @@ import { RadioGroup } from 'radix-ui';
 import { cn } from './utils';
 import { useReducedMotion } from './useReducedMotion';
 
-export interface SegmentedControlOption {
+interface SegmentedControlOption {
   value: string;
   label: React.ReactNode;
   /** Optional trailing `Kbd`-style hint (e.g. a mode number). */

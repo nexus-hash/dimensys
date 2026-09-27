@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { useTheme } from 'next-themes';
 import {
   StatTile,
   Meter,
@@ -9,6 +8,7 @@ import {
   DumbbellBars,
   HealthBadge,
   RequirementBadge,
+  TableView,
   formatMs,
   formatPercent,
   formatRps,
@@ -16,6 +16,8 @@ import {
   severityOf,
 } from '@/app/(components)/data';
 import type { HealthState } from '@/app/(components)/canvas';
+import { useReducedMotion } from '@/app/(components)/ui';
+import { DevUiHeader } from '../DevUiChrome';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -69,8 +71,14 @@ function initialHistory(base: number, spread: number, seed: number): number[] {
 function StreamingStat() {
   const [history, setHistory] = React.useState(() => initialHistory(420, 60, 7));
   const rngRef = React.useRef(mulberry32(99));
+  // Reduced motion (OS `prefers-reduced-motion` or the app's own
+  // `data-motion="off"`) freezes the tick, same as it freezes CSS motion —
+  // a "live" demo isn't essential, and a still page is also what screenshot
+  // tests need for a deterministic bitmap.
+  const reduced = useReducedMotion();
 
   React.useEffect(() => {
+    if (reduced) return;
     const id = setInterval(() => {
       setHistory((prev) => {
         const last = prev[prev.length - 1] ?? 420;
@@ -80,7 +88,7 @@ function StreamingStat() {
       });
     }, 600);
     return () => clearInterval(id);
-  }, []);
+  }, [reduced]);
 
   const current = history[history.length - 1] ?? 0;
   const sev = severityOf('p99', current);
@@ -106,10 +114,6 @@ const HEALTH_DETAIL: Partial<Record<HealthState, string>> = {
 };
 
 export function DataGallery() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
-
   const p99History = React.useMemo(() => initialHistory(180, 40, 1), []);
   const p99HistoryWarn = React.useMemo(() => initialHistory(700, 200, 2), []);
   const errHistory = React.useMemo(() => [0.001, 0.002, NaN, 0.001, 0.0015, 0.0009, 0.0012], []);
@@ -118,24 +122,12 @@ export function DataGallery() {
 
   return (
     <div className="min-h-screen bg-surface-page px-6 py-8 text-ink-primary">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-line-hairline pb-4">
-        <div>
-          <h1 className="text-title-1">DS4 — Data-display kit gallery</h1>
-          <p className="mt-1 text-body text-ink-secondary">
-            Development only (404s in production). StatTile, Meter, Sparkline, DumbbellBars, HealthBadge and
-            RequirementBadge, every state, both themes.
-          </p>
-        </div>
-        {mounted && (
-          <button
-            type="button"
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="rounded-control border border-line-hairline px-3 py-1.5 text-body text-ink-secondary hover:text-ink-primary"
-          >
-            Toggle theme ({resolvedTheme})
-          </button>
-        )}
-      </header>
+      <DevUiHeader
+        current="/dev/ui/data"
+        title="DS4 — Data-display kit gallery"
+        description="Development only (404s in production). StatTile, Meter, Sparkline, DumbbellBars, HealthBadge,
+            RequirementBadge and TableView, every state, both themes."
+      />
 
       <Section title="StatTile — value + delta + sparkline">
         <Row label="ok">
@@ -295,6 +287,35 @@ export function DataGallery() {
         </Row>
         <Row label="not simulated">
           <RequirementBadge text="Redirects resolve to the original URL" status="not-simulated" />
+        </Row>
+      </Section>
+
+      <Section title="TableView — the accessible &quot;view as table&quot; disclosure every chart offers">
+        <Row label="closed">
+          <TableView
+            caption="p99 latency, last 6 samples"
+            columns={['t', 'p99 (ms)']}
+            rows={[
+              ['-25s', 180],
+              ['-20s', 184],
+              ['-15s', 179],
+              ['-10s', 190],
+              ['-5s', 176],
+              ['now', 180],
+            ]}
+          />
+        </Row>
+        <Row label="open">
+          <TableView
+            defaultOpen
+            caption="error rate, last 3 samples"
+            columns={['t', 'err %']}
+            rows={[
+              ['-10s', '0.1%'],
+              ['-5s', '0.2%'],
+              ['now', '38%'],
+            ]}
+          />
         </Row>
       </Section>
     </div>

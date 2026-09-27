@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useTheme } from 'next-themes';
 import { Button, Switch } from '@/app/(components)/ui';
+import { DevUiHeader } from '../DevUiChrome';
 import {
   MOTION_PRESETS,
   type MotionPreset,
@@ -252,34 +252,19 @@ function ViewTransitionDemo({ reduced }: { reduced: boolean }) {
 }
 
 export function MotionGallery() {
-  const { resolvedTheme, setTheme } = useTheme();
   const [reduced, setReduced] = React.useState(false);
-  const [mounted, setMounted] = React.useState(false);
 
-  React.useEffect(() => setMounted(true), []);
   React.useEffect(() => {
     document.documentElement.setAttribute('data-motion', reduced ? 'off' : 'on');
   }, [reduced]);
 
   return (
-    <main className="mx-auto max-w-[960px] px-6 py-10">
-      <div className="mb-8 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-title-1 text-ink-primary">DS6 — Motion gallery</h1>
-          <p className="mt-1 text-body text-ink-secondary">
-            Every signature-moment preset, with its full-motion choreography and its reduced-motion variant.
-          </p>
-        </div>
-        {mounted && (
-          <Button
-            size="sm"
-            variant="glass"
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          >
-            {resolvedTheme === 'dark' ? 'Light theme' : 'Dark theme'}
-          </Button>
-        )}
-      </div>
+    <div className="min-h-screen bg-surface-page px-6 py-8 text-ink-primary">
+      <DevUiHeader
+        current="/dev/ui/motion"
+        title="DS6 — Motion gallery"
+        description="Every signature-moment preset, with its full-motion choreography and its reduced-motion variant."
+      />
 
       <Section title="Reduced motion">
         <label className="flex items-center gap-2 text-body text-ink-secondary">
@@ -305,6 +290,6 @@ export function MotionGallery() {
       <Section title="View transitions">
         <ViewTransitionDemo reduced={reduced} />
       </Section>
-    </main>
+    </div>
   );
 }

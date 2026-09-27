@@ -1,67 +1,80 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import ThemeButton from '../theme/ThemeButton';
 import Avatar from './Avatar';
 import SearchBar from './SearchBar';
 import NavButtons from './NavButtons';
+import Streak from './Streak';
+import { BrandMark } from '../brand/BrandMark';
+import { useCommandPalette } from '@/app/(components)/command';
+import { CloseIcon, MenuIcon, SearchIcon } from '@/app/(components)/ui';
 
-import Logo3D from '../logo/Logo3D';
-
+/**
+ * Site header row: wordmark, then the primary links straight after it
+ * (left-aligned, not centred), then the right-hand cluster — search pill,
+ * streak, theme toggle, menu (below the desktop breakpoint, where the links
+ * collapse into it) and the avatar.
+ */
 export default function NavbarElements() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { openPalette } = useCommandPalette();
 
   return (
     <>
-      <div className="flex items-center justify-between h-full w-full">
-        {/* Left: Brand / Logo */}
-        <div className="flex items-center justify-start flex-1 md:flex-none">
-          <div className="flex items-center group" aria-label="Home">
-            <Logo3D size={36} />
-          </div>
-        </div>
+      <div className="mx-auto flex h-full w-full max-w-[1280px] items-center gap-2 px-4 sm:gap-6 sm:px-6">
+        <Link
+          href="/"
+          className="flex flex-none items-center gap-2 text-[17px] font-bold tracking-[-0.01em] text-ink-primary"
+          aria-label="dimensys home"
+          data-nav-brand
+        >
+          <BrandMark size={22} />
+          <span aria-hidden="true">dimensys</span>
+        </Link>
 
-        {/* Center: Desktop Navigation Links */}
-        <div className="hidden md:flex items-center justify-center flex-1 gap-6 lg:gap-8">
+        <nav aria-label="Primary" className="hidden items-center gap-1 lg:flex" data-nav-links>
           <NavButtons />
-        </div>
+        </nav>
 
-        {/* Right: Actions */}
-        <div className="flex items-center justify-end flex-1 md:flex-none gap-3 lg:gap-4">
+        <div className="ml-auto flex items-center gap-1.5">
           <SearchBar />
+          <Streak />
           <ThemeButton />
-          <Avatar />
-
-          {/* Mobile Menu Toggle */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden flex items-center justify-center w-8 h-8 text-light-secondary dark:text-dark-secondary"
-            aria-label="Toggle Menu"
+            type="button"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className="inline-grid h-8 w-8 flex-none place-items-center rounded-control text-ink-secondary transition-colors duration-micro hover:bg-surface-glass hover:text-ink-primary lg:hidden"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="site-menu"
           >
-            {mobileMenuOpen ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
-            )}
+            {mobileMenuOpen ? <CloseIcon className="h-[18px] w-[18px]" /> : <MenuIcon className="h-[18px] w-[18px]" />}
           </button>
+          <Avatar />
         </div>
       </div>
 
-      {/* Mobile Menu Panel */}
       {mobileMenuOpen && (
-        <div
-          className="absolute top-full left-0 w-full bg-[rgba(255,255,255,0.95)] dark:bg-[rgba(18,18,18,0.95)] backdrop-blur-md border-b border-orange-500/15 p-4 md:hidden flex flex-col gap-4 shadow-lg z-40"
-          style={{ animation: 'slideDown 0.2s ease-out' }}
+        <nav
+          id="site-menu"
+          aria-label="Site menu"
+          className="absolute left-0 top-full z-40 flex w-full flex-col gap-1 border-b border-line-hairline bg-surface-page p-4 shadow-elevation-2 lg:hidden"
         >
-          <NavButtons isMobile={true} onClick={() => setMobileMenuOpen(false)} />
-        </div>
+          <NavButtons isMobile onClick={() => setMobileMenuOpen(false)} />
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              openPalette();
+            }}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-3 text-left text-base font-medium text-ink-secondary transition-colors duration-micro hover:bg-surface-glass hover:text-ink-primary sm:hidden"
+          >
+            <SearchIcon className="h-4 w-4 flex-none" />
+            Search diagrams
+          </button>
+        </nav>
       )}
     </>
   );

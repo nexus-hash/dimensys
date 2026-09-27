@@ -100,9 +100,11 @@ export function arrowId(boardId: string, kind: ArrowKind = 'default'): string {
 }
 
 /** LLD relations with dedicated markers. `implements`/`associates`/
- * `depends` reuse `inherits`'s marker (dashed for `implements`) or none. */
-export type RelationMarkerKind = 'inherits' | 'composes' | 'aggregates';
+ * `depends` reuse `inherits`'s marker (dashed for `implements`) or none.
+ * Used only within this file (`relationMarkerId`'s own callers below), so
+ * neither this nor `relationMarkerId` itself is exported. */
+type RelationMarkerKind = 'inherits' | 'composes' | 'aggregates';
 
-export function relationMarkerId(boardId: string, kind: RelationMarkerKind): string {
+function relationMarkerId(boardId: string, kind: RelationMarkerKind): string {
   return `${boardId}-rel-${kind}`;
 }

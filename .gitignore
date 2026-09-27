@@ -42,11 +42,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# dms-engine generated output (synced at build time)
-/app/solutions/
-/public/engine/
-/app/(components)/diagram-assets
-
-# dms-engine v3 generated output (synced at build time by sync-engine-v3.js)
+# dms-engine v3 output, synced at build time by sync-engine-v3.js. Never
+# commit these: `data/engine/` is the public view-data/runtime bytes,
+# `server-data/engine/` never leaves the server.
 /data/engine/
 /server-data/engine/

@@ -30,7 +30,7 @@
  */
 
 /** Version of the view-data / manifest format this app was built against. */
-export const RUNTIME_FORMAT = 1;
+export const RUNTIME_FORMAT = 2;
 
 // ---------------------------------------------------------------------------
 // Shared small shapes
@@ -125,10 +125,30 @@ export interface LinkView {
   rel?: string;
   /** Multiplicities `[atStart, atEnd]`. */
   ends?: [string | null, string | null];
-  /** Polyline points. Absent for spare links. */
+  /**
+   * Route points. A polyline — or, when `curve` is set, cubic Bézier control
+   * points `[p0, c1, c2, p1, c1, c2, p2, …]` (3n + 1): the drawn link starts
+   * at the source port, passes through every third point and ends at the
+   * target port. Absent for spare links.
+   */
   route?: XY[];
+  /** `route` is a cubic Bézier chain (draw `M p0 C c1 c2 p1 …`), not a polyline. */
+  curve?: true;
   /** Static particle density (only used when nothing is simulated). */
   flux?: Flux;
+  /**
+   * Collision-free label anchor: the label pill's centre, in route
+   * coordinates (on the drawn curve itself), the route's dominant direction
+   * there (`h`/`v` — the pill itself always renders horizontal regardless), and the pill's
+   * own size (`sz`, `[w, h]`) to draw it at — calibrated against this
+   * player's real pill geometry (see `LABEL_PILL` in `canvas/Link.tsx`), so
+   * this component draws the pill at exactly this size instead of
+   * re-estimating it from `text.length` with its own numbers. Present
+   * whenever both `text` and `route` are; a link with `text` but no `cap`
+   * (an older/unsynced document) falls back to the route's own arc-length
+   * midpoint, sized from `text.length` the old way.
+   */
+  cap?: { pt: XY; axis: 'h' | 'v'; sz: XY };
 }
 
 /** One graph level. */
@@ -174,7 +194,11 @@ export interface RisksPart extends PartBase {
 }
 export interface SparkPart extends PartBase {
   shape: 'spark';
-  /** Node metric names to plot for this node, e.g. `utilization`. */
+  /**
+   * Metric codes to plot for this node (see `parseMetricKey`/`metricCodeLabel`
+   * in `metricKeys.ts`), e.g. `c` (utilization). The sparkline column is this
+   * node's own neutral metric key, `n:<nodeId>.<code>`.
+   */
   series: string[];
   /** Window in seconds. */
   span?: number;
@@ -316,7 +340,12 @@ export interface KitView {
 }
 
 export interface GaugeView {
-  /** Metric key the worker publishes, e.g. `global.p99Ms`. */
+  /**
+   * Neutral metric key the worker publishes, e.g. `g.e` (a global metric) or
+   * `n:api.c` (a per-node metric). Parse with `parseMetricKey` in
+   * `metricKeys.ts`; never derive the display label from the key itself —
+   * that's `text`/`suffix` below.
+   */
   probe: string;
   text: string;
   suffix: string;
@@ -438,7 +467,7 @@ export interface ViewData {
   /** Whether a sim payload exists for this diagram. */
   live: boolean;
   start?: { play?: string; story?: string };
-  /** `teaser`: a share headline exists (the worker renders it). */
+  /** `probes`: neutral metric keys (see `GaugeView.probe`). `teaser`: a share headline exists (the worker renders it). */
   social?: { probes: string[]; still?: { play: string; t: number }; teaser: boolean };
   embedding?: { on: boolean; full: boolean };
   film?: { on: boolean; cam: Array<{ t: number; aim: string; magnify?: number; pitch?: number }> };
@@ -586,6 +615,8 @@ export interface PlayerBootstrap {
   diagramUrl: string;
   /** Hashed URL of the runtime worker bundle under `/engine/runtime/`, or `null` when absent (no runtime, no sim). */
   runtimeUrl: string | null;
+  /** Where the worker fetches the opaque sim payload from (`/solutions/<id>/sim.bin?h=...`), or `null` when there is none. */
+  simUrl: string | null;
   hasSimulation: boolean;
   /** Layout canvas size; the overlay layers share this viewBox with the static SVG. Zero when the diagram has no board yet. */
   canvas: { w: number; h: number };

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import NavbarElements from "./NavbarElements";
+import { useState, useEffect } from 'react';
+import NavbarElements from './NavbarElements';
 
+/** The fixed 60px site header; it gains a surface and hairline once the page scrolls. */
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
 
@@ -11,25 +12,18 @@ export default function Navbar() {
       setScrolled(window.scrollY > 20);
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    // Run once on mount
+    window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <div
-      className={`fixed top-0 left-0 w-full h-14 lg:h-16 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-[rgba(255,102,0,0.06)] backdrop-blur-xl border-b border-orange-500/15 shadow-[0_4px_30px_rgba(255,102,0,0.05)]"
-          : "bg-transparent border-b border-transparent"
+    <header
+      className={`fixed left-0 top-0 z-50 h-[60px] w-full border-b transition-colors duration-small ${
+        scrolled ? 'border-line-hairline bg-surface-page/85 backdrop-blur-xl' : 'border-transparent bg-transparent'
       }`}
     >
-      <div className="flex items-center justify-center h-full px-4 w-full">
-        <div className="w-full xl:max-w-7xl h-full">
-          <NavbarElements />
-        </div>
-      </div>
-    </div>
+      <NavbarElements />
+    </header>
   );
 }

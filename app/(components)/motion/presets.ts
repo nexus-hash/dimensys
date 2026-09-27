@@ -15,7 +15,7 @@ import { type DurationToken, type EaseToken, type SpringToken, durationMs } from
 
 export type StageDuration = DurationToken | { fractionOf: DurationToken; factor: number };
 
-export interface MotionStage {
+interface MotionStage {
   /** Neutral label for this beat, e.g. "ink flash", "hatch fade in". */
   name: string;
   duration: StageDuration;
@@ -26,9 +26,9 @@ export interface MotionStage {
   spring?: SpringToken;
 }
 
-export type ReducedMode = 'fade' | 'steady' | 'instant';
+type ReducedMode = 'fade' | 'steady' | 'instant';
 
-export interface ReducedVariant {
+interface ReducedVariant {
   mode: ReducedMode;
   /** Only meaningful for `mode: 'fade'`. */
   duration?: DurationToken;
