@@ -127,4 +127,74 @@ test.describe('player label geometry (GEOM)', () => {
       expect(found).toBe(true);
     }
   });
+
+  for (const id of ['url-shortener', 'netflix']) {
+    test(`${id}: no node title or sub-label truncates at default fit`, async ({ page }) => {
+      await page.goto(`/solutions/${id}`);
+      await settle(page);
+      const texts = await page.locator('[data-drill-key=""] [data-node-id] :is(.cv-label, .cv-sub)').allTextContents();
+      expect(texts.length).toBeGreaterThan(0);
+      expect(texts.filter((t) => t.includes('…'))).toEqual([]);
+    });
+
+    for (const zoom of ['fit', '3x'] as const) {
+      test(`${id}: every node's text sits inside its padding box, and the meter value never overlaps its bar (${zoom})`, async ({ page }) => {
+        await page.goto(`/solutions/${id}`);
+        await settle(page);
+        if (zoom === '3x') {
+          const wrap = (await page.locator('.player-board-wrap').boundingBox())!;
+          await page.mouse.move(wrap.x + wrap.width / 2, wrap.y + wrap.height / 2);
+          await page.keyboard.down('Control');
+          for (let i = 0; i < 3; i++) await page.mouse.wheel(0, -110);
+          await page.keyboard.up('Control');
+          await settle(page);
+        }
+        const problems = await page.evaluate(() => {
+          const out: string[] = [];
+          const level = document.querySelector('[data-drill-key=""]')!;
+          for (const g of level.querySelectorAll<SVGGElement>('[data-node-id]')) {
+            const body = g.querySelector<SVGRectElement>('.cv-body');
+            if (!body) continue;
+            const b = body.getBoundingClientRect();
+            const s = b.width / body.width.baseVal.value; // CSS px per unit
+            const pad = 12 * s;
+            const tol = 0.75;
+            for (const t of g.querySelectorAll<SVGTextElement>('.cv-label, .cv-sub, .cv-mtext')) {
+              if (!t.textContent) continue;
+              const r = t.getBoundingClientRect();
+              if (r.left < b.left + pad - tol || r.right > b.right - pad + tol || r.top < b.top - tol || r.bottom > b.bottom + tol) {
+                out.push(`${g.dataset.nodeId} ${t.getAttribute('class')} "${t.textContent}" outside padding box`);
+              }
+            }
+            const track = g.querySelector<SVGRectElement>('.cv-mtrack');
+            const value = g.querySelector<SVGTextElement>('.cv-mtext');
+            if (track && value && value.textContent) {
+              const tr = track.getBoundingClientRect();
+              const vr = value.getBoundingClientRect();
+              if (tr.right > vr.left - 0.5) out.push(`${g.dataset.nodeId} meter bar reaches its value (${tr.right} > ${vr.left})`);
+            }
+          }
+          return out;
+        });
+        expect(problems).toEqual([]);
+      });
+    }
+
+    test(`${id}: every label pill is painted after every link of its level (no line crosses a pill's text)`, async ({ page }) => {
+      await page.goto(`/solutions/${id}`);
+      await settle(page);
+      const late = await page.evaluate(() => {
+        const svg = document.querySelector('[data-drill-key=""] svg')!;
+        const all = [...svg.querySelectorAll('[data-link-id], [data-link-label-for]')];
+        const lastLink = Math.max(...all.map((el, i) => (el.hasAttribute('data-link-id') ? i : -1)));
+        const firstPill = all.findIndex((el) => el.hasAttribute('data-link-label-for'));
+        const fill = getComputedStyle(svg.querySelector('.cv-link-label rect')!).fill;
+        return { ordered: firstPill > lastLink, fill };
+      });
+      expect(late.ordered).toBe(true);
+      // Opaque fill: no alpha channel in the resolved color.
+      expect(late.fill).toMatch(/^rgb\(/);
+    });
+  }
 });
+
