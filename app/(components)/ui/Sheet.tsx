@@ -101,6 +101,15 @@ export interface BottomSheetProps {
   scrim?: boolean;
   /** Extra classes on the sheet panel itself (the portaled `Dialog.Content`) — a parent wrapper's classes can't reach it. */
   className?: string;
+  /**
+   * Whether the visible title row (`<h2>{title}</h2>` under the grab handle)
+   * renders. Default `true`. `title` still names the sheet for assistive
+   * tech either way (via a visually-hidden `Dialog.Title`) — pass `false`
+   * when the sheet's own content already carries a heading or tabs that
+   * make a second, generic title line redundant (the player's phone sheet,
+   * T3.16, whose tabs are the prototype's own sheet header).
+   */
+  showTitleBar?: boolean;
 }
 
 /**
@@ -121,6 +130,7 @@ export function BottomSheet({
   onSnapIndexChange,
   scrim = true,
   className,
+  showTitleBar = true,
 }: BottomSheetProps) {
   const [uncontrolledIndex, setUncontrolledIndex] = React.useState(defaultSnapIndex);
   const currentIndex = snapIndex ?? uncontrolledIndex;
@@ -238,9 +248,11 @@ export function BottomSheet({
           >
             <span aria-hidden className="h-1 w-10 rounded-full bg-line-strong" />
           </button>
-          <div className="flex-none border-b border-line-hairline px-4 pb-2.5">
-            <h2 className="text-title-3 text-ink-primary">{title}</h2>
-          </div>
+          {showTitleBar ? (
+            <div className="flex-none border-b border-line-hairline px-4 pb-2.5">
+              <h2 className="text-title-3 text-ink-primary">{title}</h2>
+            </div>
+          ) : null}
           <div className="flex-1 overflow-auto overscroll-contain p-4">{children}</div>
         </RadixDialog.Content>
       </RadixDialog.Portal>

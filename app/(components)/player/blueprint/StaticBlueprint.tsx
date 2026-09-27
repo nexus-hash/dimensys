@@ -221,19 +221,30 @@ function renderLevel(
  * ResizeObserver, no client JS, and it still fills a fixed-height container
  * when the caller sets one (an explicit height wins over `aspect-ratio`).
  *
- * The fit scale is capped at 1 and centered (T3.4): `maxWidth` is the
- * board's own pixel size, so a small graph (a subsystem's own board is its
- * own coordinate space, not scaled to the parent) never gets stretched up
- * to fill a wide container — it only ever scales *down*, on a narrow
- * viewport, and sits centered otherwise (`marginInline: auto`) once capped.
- * `minWidth: 0` is defensive: it stops this box's own intrinsic width (from
- * its only child, a replaced `<svg>` whose intrinsic size comes from
- * `viewBox`) from becoming an unshrinkable floor if it's ever placed
- * directly inside a flex/grid item with no width of its own (the classic
- * "automatic minimum size" trap) — as `.player-drill-level` already is; see
- * that rule in `globals.css`. It does not, by itself, fix an ancestor whose
- * *own* width is resolved through flex stretch (see `/dev/player`'s `main`
- * for that distinct, page-level fix).
+ * The fit scale is capped at 1 and centered (T3.4), on *both* axes: `maxWidth`
+ * and `maxHeight` are the board's own pixel size, so a small graph (a
+ * subsystem's own board is its own coordinate space, not scaled to the
+ * parent) never gets stretched up to fill a wide or tall container — it only
+ * ever scales *down*, when the available box is narrower or shorter than the
+ * board's own size, and sits centered otherwise. Centering is the parent's
+ * job now (`.player-drill-level`'s `display: flex` + centering in
+ * `globals.css`, for the player shell specifically), not this component's —
+ * a plain `<div className="w-full">` caller with no such parent still gets
+ * the width-only behavior this had before, since `marginInline: auto` only
+ * self-centers within a block-formatting-context parent that's *wider* than
+ * this box, which a flex/grid parent overrides harmlessly.
+ *
+ * Both `min-width: 0` and `min-height: 0` are defensive: they stop this
+ * box's own intrinsic size (from its only child, a replaced `<svg>` whose
+ * intrinsic size comes from `viewBox`) from becoming an unshrinkable floor
+ * if it's ever placed directly inside a flex/grid item with no size of its
+ * own (the classic "automatic minimum size" trap) — as `.player-drill-level`
+ * already is; see that rule in `globals.css`. Neither one, by itself, fixes
+ * an ancestor whose *own* size is resolved through flex stretch (see
+ * `/dev/player`'s `main` for that distinct, page-level fix, and
+ * `.player-drill-stage`/`.player-drill-level`'s explicit `width`/`height:
+ * 100%` in `globals.css` for the same fix applied through the player
+ * shell's own chain).
  */
 export function StaticBlueprint({ board, boardId, label, className, style, mode = 'health', health }: StaticBlueprintProps) {
   return (
@@ -245,7 +256,9 @@ export function StaticBlueprint({ board, boardId, label, className, style, mode 
       style={{
         aspectRatio: `${board.size[0]} / ${board.size[1]}`,
         maxWidth: board.size[0],
+        maxHeight: board.size[1],
         minWidth: 0,
+        minHeight: 0,
         marginInline: 'auto',
         ...style,
       }}

@@ -528,7 +528,12 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
   return (
     <>
       <canvas ref={canvasRef} className="player-overlay-canvas" aria-hidden="true" />
-      <div ref={tooltipRef} className="player-tooltip" role="tooltip" hidden />
+      {/* Visual-only hover/focus hint, not wired to its target via `aria-describedby` —
+          `aria-hidden` (T3.16) keeps it out of the accessibility tree regardless of the
+          `hidden` toggle's own state, so it's never flagged as page content sitting
+          outside every landmark (axe `region`) while the pointer happens to be over a
+          node during a scan. */}
+      <div ref={tooltipRef} className="player-tooltip" role="tooltip" aria-hidden="true" hidden />
     </>
   );
 }

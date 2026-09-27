@@ -71,9 +71,16 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   }
 
   const board = diagram.board;
-  const blueprint = (
-    <DrilldownBlueprint board={board} boardId={`blueprint-${diagram.id}`} rootLabel={diagram.head.title} className="h-full w-full" />
-  );
+  // No `className="w-full"` here: `StaticBlueprint`'s own `aspect-ratio` +
+  // `max-width`/`max-height` need `width`/`height` left `auto` on both axes
+  // to engage CSS's two-axis "shrink to fit, never upscale, preserve ratio"
+  // sizing for a replaced-like box — an explicit `100%` on either axis would
+  // make that axis definite and stop the *other* one being derived from it
+  // when this is the more restrictive constraint (e.g. a short container).
+  // A plain block box's default `width: auto` already fills its containing
+  // block (the embed/hero, non-shell path below), and the shell's own
+  // `.player-drill-level` centers a flex item sized the same way.
+  const blueprint = <DrilldownBlueprint board={board} boardId={`blueprint-${diagram.id}`} rootLabel={diagram.head.title} />;
 
   // `embed`/`hero` (the home hero, a diagram embedded in a detail section)
   // drop the shell entirely — just the board and its overlay, no top bar,
@@ -90,13 +97,19 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   const elementIndex = buildElementIndex(board);
   const availability = modeAvailability(diagram);
 
+  // A plain `<div>`, not a labelled `<section>`: an accessibly-named
+  // `<section>` is itself a landmark ("region"), and `PlayerShell` already
+  // renders its own top-level `<main aria-label>` — nesting that inside
+  // another landmark is exactly what axe's `landmark-main-is-top-level`
+  // flags. The embed/hero branch above has no `<main>` of its own, so it
+  // keeps the labelled section as its one landmark.
   return (
-    <section data-player-variant={variant} aria-label={diagram.head.title} className="h-full">
+    <div data-player-variant={variant} className="h-full">
       <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
         <PlayerShell title={diagram.head.title} labelsById={labelsById} elementIndex={elementIndex} modeAvailability={availability}>
           {blueprint}
         </PlayerShell>
       </PlayerIsland>
-    </section>
+    </div>
   );
 }

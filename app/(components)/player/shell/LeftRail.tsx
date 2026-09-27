@@ -26,8 +26,6 @@ export function LeftRail({ open, onClose }: LeftRailProps) {
           <RailSection title="Scenarios" />
           <RailSection title="Walkthroughs" />
           <RailSection title="Estimates" />
-          {/* T3.9's Break It toolbar slot (Kill/Spike/Partition/Slow/Flush) — only relevant in Break it mode; this task builds the empty, labelled section. */}
-          <RailSection title="Tools" />
         </div>
       </aside>
       {/* Tablet/phone overlay backdrop: dismisses the drawer, never renders past `lg`. */}

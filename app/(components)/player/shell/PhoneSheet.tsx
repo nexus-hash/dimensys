@@ -34,6 +34,12 @@ export interface PhoneSheetProps {
  * to the "Inspect" tab and bumping the snap point on selection, the
  * mode-specific toolbox chips, and narration. This task only builds the
  * sheet, its tabs, and the title/empty-body slots.
+ *
+ * `showTitleBar={false}`: the prototype's own phone sheet has no separate
+ * title row above its tabs — the tab strip *is* the sheet's header. `title`
+ * still names the sheet for assistive tech (a visually-hidden Radix title),
+ * and the selected element's name still shows up visibly, just scoped to
+ * the "Inspect" tab's own `<InspectorHeader>` instead of a sheet-wide banner.
  */
 export function PhoneSheet({ elementIndex }: PhoneSheetProps) {
   const selection = usePlayerStore((s) => s.selection);
@@ -56,6 +62,7 @@ export function PhoneSheet({ elementIndex }: PhoneSheetProps) {
       onOpenChange={() => {}}
       scrim={false}
       className="sm:hidden"
+      showTitleBar={false}
       title={title}
       snapPoints={SNAP_PERCENTS}
       snapIndex={snapIndex}

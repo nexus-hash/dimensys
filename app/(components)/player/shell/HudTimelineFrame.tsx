@@ -1,13 +1,19 @@
 import type { ReactNode } from 'react';
 
 /**
- * The HUD strip: a slim strip above the board, never over it.
- * Sized for up to 4 stat tiles; T3.8 renders them into `data-hud-slot`.
+ * The HUD strip: a slim strip above the board, never over it — matching the
+ * prototype's `.cstrip`. Two rows: HUD tiles on top (T3.8 fills
+ * `data-hud-slot`, sized for up to 4), the Break It toolbar below
+ * (`data-canvas-toolbar-slot`, T3.9's Kill/Spike/Partition/Slow/Flush
+ * strip — empty here; this task only builds the labelled slot).
  */
 export function HudStrip() {
   return (
     <div className="player-hud-strip">
-      <div className="player-hud-slot" role="group" aria-label="Live metrics, last 60 seconds" data-hud-slot />
+      <div className="player-hud-strip-row">
+        <div className="player-hud-slot" role="group" aria-label="Live metrics, last 60 seconds" data-hud-slot />
+      </div>
+      <div className="player-canvas-toolbar-slot" role="toolbar" aria-label="Break it tools" data-canvas-toolbar-slot />
     </div>
   );
 }

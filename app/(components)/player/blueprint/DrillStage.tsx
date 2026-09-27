@@ -177,7 +177,7 @@ export function DrillStage({ rootLabel, labelsById, className, children }: Drill
   }
 
   return (
-    <div className={className}>
+    <div className={['player-drill-root', className].filter(Boolean).join(' ')}>
       <div ref={stageRef} className="player-drill-stage" onClick={handleClick} onKeyDown={handleKeyDown}>
         {children}
       </div>
