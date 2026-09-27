@@ -1,9 +1,8 @@
 /**
  * Unit formatting + threshold helpers for the data-display kit.
  *
- * The numeric formatting mirrors the prototype's `fmtMs`/`fmtPct`/`fmtRps`/
- * `fmtUsd` (prototype/index.html) exactly, so the HUD reads identically to
- * the approved visual contract. Every formatter returns the em dash `'—'`
+ * The numeric formatting follows the approved design's number styles
+ * exactly, so the HUD reads identically to the visual contract. Every formatter returns the em dash `'—'`
  * for missing/non-finite input, so gaps in streamed data (NaN samples, a
  * metric that hasn't reported yet) render as a dash rather than "NaN" or
  * "undefined".
@@ -35,8 +34,8 @@ export function formatSeconds(value: number | null | undefined): string {
 /**
  * A 0–1 ratio as a percent. `decimals` (default 1) is dropped once the value
  * reads at 10%+ with a requested precision above 1, and integers are shown
- * with no decimal once the value rounds to 100%+ — matches the prototype's
- * `fmtPct`, used for both small error rates (e.g. "0.42") and big ones.
+ * with no decimal once the value rounds to 100%+ — the design's percent
+ * style, used for both small error rates (e.g. "0.42") and big ones.
  */
 export function formatPercent(value: number | null | undefined, decimals = 1): string {
   if (!isUsable(value)) return '—';
@@ -109,7 +108,7 @@ export function formatMetric(value: number | null | undefined, unit: MetricUnit,
 /** Severity states a threshold-driven metric can be in. */
 export type Severity = 0 | 1 | 2;
 
-/** The prototype's `HEALTH` thresholds, `[warnAt, criticalAt]` per metric kind. */
+/** Display health thresholds, `[warnAt, criticalAt]` per metric kind — one table for tiles, sparklines and node chips. */
 const HEALTH_THRESHOLDS = {
   util: [0.7, 0.9],
   err: [0.01, 0.05],
@@ -119,7 +118,7 @@ const HEALTH_THRESHOLDS = {
 
 export type ThresholdMetricKind = keyof typeof HEALTH_THRESHOLDS;
 
-/** 0 = ok, 1 = warn, 2 = critical, matching the prototype's `sevOf`. */
+/** 0 = ok, 1 = warn, 2 = critical. */
 export function severityOf(kind: ThresholdMetricKind, value: number | null | undefined): Severity {
   const t = HEALTH_THRESHOLDS[kind];
   if (!isUsable(value)) return 0;
@@ -129,6 +128,11 @@ export function severityOf(kind: ThresholdMetricKind, value: number | null | und
 /** The warn cutoff for a threshold kind (a `Sparkline`'s `warnThreshold` line). */
 export function warnThresholdOf(kind: ThresholdMetricKind): number {
   return HEALTH_THRESHOLDS[kind][0];
+}
+
+/** The critical cutoff for a threshold kind. */
+export function criticalThresholdOf(kind: ThresholdMetricKind): number {
+  return HEALTH_THRESHOLDS[kind][1];
 }
 
 /** Severity from explicit warn/critical thresholds (for a `Meter`'s own scale). */
