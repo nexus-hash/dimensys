@@ -93,9 +93,12 @@ export function SubsystemCollapsed({
 
 /**
  * The expanded subsystem boundary: a dashed frame with a top-left
- * mono tab label. Purely decorative — it draws around whatever `Node`s the
- * caller places inside `width`×`height`, it doesn't lay them out (padding
- * between the frame and its contents, if any, is also the caller's call).
+ * mono tab label. The frame body is purely decorative — it draws around
+ * whatever `Node`s the caller places inside `width`×`height`, it doesn't lay
+ * them out (padding between the frame and its contents, if any, is also the
+ * caller's call). The tab itself is a drill-down entry point (T3.4): it's
+ * focusable and carries `data-subsystem-tab-id`, which the player's
+ * `DrillStage` delegates clicks/keydown to.
  *
  * `boardId`/`id` namespace the tab's clip id, same as `Node` — needed so two
  * frames on one board (or two boards on one page) never collide.
@@ -123,12 +126,19 @@ export function SubsystemFrame({
   const displayLabel = truncateToWidth(label.toUpperCase(), tabAreaWidth, TAB_FONT_SIZE * (MONO_CHAR_EM + TAB_LETTER_SPACING_EM));
 
   return (
-    <g className="cv-subsystem" transform={`translate(${x}, ${y})`} aria-hidden="true">
-      <rect className="cv-body" width={width} height={height} rx={16} />
+    <g className="cv-subsystem" transform={`translate(${x}, ${y})`}>
+      <rect className="cv-body" width={width} height={height} rx={16} aria-hidden="true" />
       <clipPath id={tabClipId}>
         <rect x={2} y={-20} width={tabAreaWidth} height={20} />
       </clipPath>
-      <g clipPath={`url(#${tabClipId})`}>
+      <g
+        className="cv-tab-hit"
+        clipPath={`url(#${tabClipId})`}
+        data-subsystem-tab-id={id}
+        role="button"
+        tabIndex={0}
+        aria-label={`Enter ${label} subsystem`}
+      >
         <text className="cv-tab" x={2} y={-8}>
           {displayLabel}
         </text>
