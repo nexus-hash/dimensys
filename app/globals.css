@@ -943,6 +943,19 @@
   .player-topbar .player-desktop-only { display: none; }
   .player-topbar .player-phone-only { display: inline-flex; }
   .player-rail, .player-inspector { display: none; }
+  /* `padding-right` reset (T3.6 fix): the tablet rule above reserves
+     340px of `.player-canvas-area`'s own width for the inspector *overlay*
+     whenever `data-inspector-open="true"` — but that attribute just tracks
+     `selection !== null` regardless of breakpoint, and phone's `@media`
+     range is a subset of tablet's (`max-width: 1023px` also matches
+     <640px), so without this the leftover `padding-right: 340px` still
+     applied here too on selecting anything, squeezing the canvas down to a
+     ~50px sliver (390px viewport − 340px). The inspector aside is already
+     `display: none` on phone (the line above) — its content lives in the
+     bottom sheet instead, which reserves its own space via
+     `padding-bottom` below — so there is never anything here for
+     `padding-right` to clear. */
+  .player-body[data-inspector-open="true"] .player-canvas-area { padding-right: 0; }
   .player-canvas-area { padding-bottom: var(--player-sheet-peek, 12dvh); }
   /* Only on phone does the bottom sheet actually exist, so only here does
      the zoom cluster need to clear its peek height (same value the canvas

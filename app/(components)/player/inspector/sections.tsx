@@ -40,8 +40,8 @@ import type {
 function SectionHeading({ title, assumed }: { title: string; assumed?: true }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-2">
-      <h3 className="text-label font-semibold text-ink-secondary">{title}</h3>
-      {assumed ? <Pill variant="neutral">assumed</Pill> : null}
+      <h3 className="min-w-0 break-words text-label font-semibold text-ink-secondary">{title}</h3>
+      {assumed ? <Pill variant="neutral" className="flex-none">assumed</Pill> : null}
     </div>
   );
 }
@@ -53,7 +53,7 @@ function ScalarText({ value }: { value: Scalar }) {
 
 async function ProseSection({ part }: { part: ProsePart }) {
   return (
-    <section>
+    <section className="min-w-0">
       <SectionHeading title={part.title} assumed={part.assumed} />
       {await Markdown({ content: part.md, className: 'text-body' })}
     </section>
@@ -62,13 +62,13 @@ async function ProseSection({ part }: { part: ProsePart }) {
 
 function PairsSection({ part }: { part: PairsPart }) {
   return (
-    <section>
+    <section className="min-w-0">
       <SectionHeading title={part.title} assumed={part.assumed} />
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-body">
         {part.pairs.map(([key, value, hint], i) => (
           <div className="contents" key={`${key}-${i}`}>
-            <dt className="text-ink-muted">{key}</dt>
-            <dd className="text-ink-primary" title={hint}>
+            <dt className="min-w-0 break-words text-ink-muted">{key}</dt>
+            <dd className="min-w-0 break-words text-ink-primary" title={hint}>
               <ScalarText value={value} />
             </dd>
           </div>
@@ -80,7 +80,7 @@ function PairsSection({ part }: { part: PairsPart }) {
 
 function GridSection({ part }: { part: GridPart }) {
   return (
-    <section>
+    <section className="min-w-0">
       <SectionHeading title={part.title} assumed={part.assumed} />
       <div className="overflow-x-auto rounded-lg border border-line-hairline">
         <table className="min-w-full text-left text-body">
@@ -120,13 +120,13 @@ function moodDotClass(mood?: string): string {
 
 function BulletsSection({ part }: { part: BulletsPart }) {
   return (
-    <section>
+    <section className="min-w-0">
       <SectionHeading title={part.title} assumed={part.assumed} />
       <ul className="flex flex-col gap-1.5 text-body">
         {part.items.map((item, i) => (
           <li key={i} className="flex items-start gap-2">
             <span aria-hidden className={`mt-[7px] h-1.5 w-1.5 flex-none rounded-full ${moodDotClass(item.mood)}`} />
-            <span className="text-ink-secondary">{item.text}</span>
+            <span className="min-w-0 break-words text-ink-secondary">{item.text}</span>
           </li>
         ))}
       </ul>
@@ -136,7 +136,7 @@ function BulletsSection({ part }: { part: BulletsPart }) {
 
 async function SourceSection({ part }: { part: SourcePart }) {
   return (
-    <section>
+    <section className="min-w-0">
       <SectionHeading title={part.title} assumed={part.assumed} />
       {await CodeBlock({ code: part.src, language: part.lang })}
       {part.legend ? <p className="mt-2 text-caption text-ink-muted">{part.legend}</p> : null}
@@ -160,7 +160,7 @@ async function NotedSourceSection({ part }: { part: NotedSourcePart }) {
     })
     .filter((a): a is { lineNumber: number; note: string } => a !== null);
   return (
-    <section>
+    <section className="min-w-0">
       <SectionHeading title={part.title} assumed={part.assumed} />
       {await AnnotatedCode({ code: part.src, language: part.lang, annotations })}
     </section>
@@ -170,17 +170,19 @@ async function NotedSourceSection({ part }: { part: NotedSourcePart }) {
 /** Bottlenecks: `RisksPart.risks` has no severity level of its own — `alarm` (a live-watched risk) is the only signal the view data carries, so that's what picks the chip. */
 function RisksSection({ part }: { part: RisksPart }) {
   return (
-    <section>
+    <section className="min-w-0">
       <SectionHeading title={part.title} assumed={part.assumed} />
       <ul className="flex flex-col gap-3">
         {part.risks.map((risk, i) => (
-          <li key={i} className="rounded-lg border border-line-hairline p-3">
+          <li key={i} className="min-w-0 rounded-lg border border-line-hairline p-3">
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <Pill variant={risk.alarm ? 'critical' : 'warn'}>{risk.alarm ? 'Watched bottleneck' : 'Bottleneck'}</Pill>
-              <span className="font-medium text-ink-primary">{risk.text}</span>
+              <Pill variant={risk.alarm ? 'critical' : 'warn'} className="flex-none">
+                {risk.alarm ? 'Watched bottleneck' : 'Bottleneck'}
+              </Pill>
+              <span className="min-w-0 break-words font-medium text-ink-primary">{risk.text}</span>
             </div>
-            <p className="text-body text-ink-secondary">{risk.danger}</p>
-            <p className="mt-1 text-body text-ink-muted">
+            <p className="break-words text-body text-ink-secondary">{risk.danger}</p>
+            <p className="mt-1 break-words text-body text-ink-muted">
               <span className="font-medium text-ink-secondary">Mitigation: </span>
               {risk.remedy}
             </p>
@@ -197,23 +199,28 @@ function RisksSection({ part }: { part: RisksPart }) {
  * `embed` (diagram refs), and anything future — so nothing is silently
  * dropped from the sheet. A neutral, compact row: the section's own title
  * plus a "Coming soon" chip. T3.7 plugs its real renderers in by adding
- * cases to `SectionRenderer` below (and can delete the matching entry from
- * `ADVANCED_SHAPES` here) — this is the one place that needs to change.
+ * cases to `SectionRenderer` below (and adding the shape to `SIMPLE_SHAPES`)
+ * — this is the one place that needs to change.
  */
 function AdvancedSection({ part }: { part: Part }) {
   return (
     <section
       data-inspector-advanced-shape={part.shape}
-      className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-line-hairline px-3 py-2.5"
+      className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-dashed border-line-hairline px-3 py-2.5"
     >
-      <span className="text-body font-medium text-ink-secondary">{part.title}</span>
+      <span className="min-w-0 truncate text-body font-medium text-ink-secondary">{part.title}</span>
       <Pill variant="neutral">Coming soon</Pill>
     </section>
   );
 }
 
-/** Shapes T3.7 is expected to give a real renderer — kept as a named set purely so `AdvancedSection`'s doc comment above has one place to stay honest from. */
-export const ADVANCED_SHAPES = ['trade', 'calc', 'spark', 'embed'] as const;
+/** Shapes with a real renderer above — anything else (`trade`/`calc`/`spark`/`embed`, or a future shape this app has never seen) falls to `AdvancedSection`. `NodeInspectorBody` uses this same set to decide whether a *pane* is advanced-only (see its doc comment) for tab ordering. */
+export const SIMPLE_SHAPES = new Set<Part['shape']>(['prose', 'pairs', 'grid', 'bullets', 'source', 'notedSource', 'risks']);
+
+/** Whether `shape` has a real (non-"Coming soon") renderer above. */
+export function isSimpleShape(shape: Part['shape']): boolean {
+  return SIMPLE_SHAPES.has(shape);
+}
 
 /** Dispatches a `Part` to its section renderer by `shape`. The `default` case is what makes an unknown shape (an advanced one, or one this app has never seen) a "Coming soon" row instead of a silent gap. */
 export function SectionRenderer({ part }: { part: Part }): ReactNode {

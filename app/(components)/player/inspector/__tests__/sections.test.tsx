@@ -59,24 +59,23 @@ describe('section renderers', () => {
     expect(container).not.toHaveTextContent('null');
   });
 
-  it('pairs: renders a null value as a placeholder, not blank or "null"', () => {
-    const part: PairsPart = { shape: 'pairs', pane: 'overview', title: 'Spec', pairs: [['Note', null]] };
-    const { getByText } = render(<PairsSection part={part} />);
-    expect(getByText('—')).toBeTruthy();
-  });
-
-  it('grid: renders a table with the given heads and cells', () => {
+  it('grid: renders a table with the given heads and cells, and a null cell as a placeholder (not blank or "null")', () => {
+    // `PairsPart.pairs` values are `string | number` only (no `null`) — `Scalar`'s
+    // null-placeholder path is a real, reachable case for `grid` cells instead
+    // (`GridPart.cells: Scalar[][]`), so it's covered here.
     const part: GridPart = {
       shape: 'grid',
       pane: 'architecture',
       title: 'Health Check Spec',
       heads: ['Path', 'Interval', 'Threshold'],
-      cells: [['/healthz', '5s', '2 successes']],
+      cells: [['/healthz', '5s', '2 successes'], ['/live', null, '—']],
     };
     const { getByRole } = render(<GridSection part={part} />);
     const table = getByRole('table');
     expect(table).toHaveTextContent('Path');
     expect(table).toHaveTextContent('/healthz');
+    expect(table.textContent).toContain('—');
+    expect(table.textContent).not.toContain('null');
     expect(table).toHaveTextContent('2 successes');
   });
 

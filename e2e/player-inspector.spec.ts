@@ -62,18 +62,19 @@ test.describe('player inspector body', () => {
     const tabCount = await tabs.count();
     expect(tabCount).toBeGreaterThan(1);
 
-    // First pane (first-appearance order) starts active with real content
-    // below it, not an empty panel.
-    const firstTab = tabs.first();
-    await expect(firstTab).toHaveAttribute('aria-selected', 'true');
+    // api-service has an "Overview" pane, so it — not whichever pane
+    // happened to appear first in the sheet's own part order — starts
+    // active, with real content below it, not an empty panel.
+    const overviewTab = inspector.getByRole('tab', { name: 'Overview' });
+    await expect(overviewTab).toHaveAttribute('aria-selected', 'true');
     const panel = inspector.getByRole('tabpanel');
     await expect(panel).not.toBeEmpty();
 
-    // Keyboard: arrow-right moves to the next tab and its content shows.
-    await firstTab.focus();
+    // Keyboard: arrow-right moves focus+selection to the next tab (strip
+    // order), and its content shows.
+    await overviewTab.focus();
     await page.keyboard.press('ArrowRight');
-    const secondTab = tabs.nth(1);
-    await expect(secondTab).toHaveAttribute('aria-selected', 'true');
+    await expect(inspector.getByRole('tab', { selected: true })).not.toHaveText('Overview');
     await expect(inspector.getByRole('tabpanel')).not.toBeEmpty();
 
     // Esc closes the inspector entirely (T3.16 behaviour, still true with a body inside it).
@@ -109,6 +110,61 @@ test.describe('player inspector body', () => {
       expect(results.violations).toEqual([]);
     }
   });
+
+  test('no horizontal overflow in the inspector body, across every tab, at 1440/834/390', async ({ page }) => {
+    // Long code lines (AnnotatedCode's shiki output, `notedSource`) must
+    // scroll horizontally inside their own code viewport, not stretch the
+    // inspector body sideways — a missing `min-width: 0` on a flex
+    // ancestor is what breaks that containment (see `sections.tsx`).
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 834, height: 1112 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto('/solutions/url-shortener');
+      const node = page.locator('[data-node-id="api-service"]');
+      await node.waitFor({ state: 'visible' });
+      await node.click();
+      await settle(page);
+
+      // Below 640px the desktop/tablet aside is CSS-hidden and the phone
+      // sheet's own body slot is what's actually on screen instead (both
+      // exist in the DOM at once — see `Inspector`/`PhoneSheet`).
+      const bodySlot = page.locator('[data-inspector-body-slot]:visible');
+      await expect(bodySlot).toBeVisible();
+      const tabs = bodySlot.locator('[role="tab"]');
+      const tabCount = await tabs.count();
+
+      for (let i = 0; i < Math.max(1, tabCount); i++) {
+        if (tabCount > 0) {
+          await tabs.nth(i).click();
+          await settle(page);
+        }
+        const check = await bodySlot.evaluate((slot) => ({
+          slotScrollWidth: slot.scrollWidth,
+          slotClientWidth: slot.clientWidth,
+          codeViewports: Array.from(slot.querySelectorAll<HTMLElement>('.shiki-container')).map((el) => ({
+            scrollWidth: el.scrollWidth,
+            clientWidth: el.clientWidth,
+            overflowX: getComputedStyle(el).overflowX,
+          })),
+        }));
+        expect(
+          check.slotScrollWidth,
+          `viewport ${viewport.width}, tab ${i}: the inspector body itself must never scroll sideways`,
+        ).toBeLessThanOrEqual(check.slotClientWidth + 1);
+        for (const [ci, cv] of check.codeViewports.entries()) {
+          const fits = cv.scrollWidth <= cv.clientWidth + 1;
+          const scrollable = cv.overflowX === 'auto' || cv.overflowX === 'scroll';
+          expect(
+            fits || scrollable,
+            `viewport ${viewport.width}, tab ${i}, code viewport ${ci}: must fit, or be horizontally scrollable, not clipped`,
+          ).toBe(true);
+        }
+      }
+    }
+  });
 });
 
 test.describe('phone sheet — Inspect tab', () => {
@@ -134,6 +190,33 @@ test.describe('phone sheet — Inspect tab', () => {
     // Tab count here is the sheet's own "Metrics"/"Inspect" pair plus the inspector body's own pane
     // tabs (api-service has more than one pane), so it must be more than 2, not just more than 1.
     expect(await page.getByRole('tab').count()).toBeGreaterThan(2);
+  });
+
+  test('the board is fitted and visible above the sheet once a node is selected (not squeezed to a sliver)', async ({ page }) => {
+    // Regression: `.player-body[data-inspector-open="true"] .player-canvas-area`
+    // reserves 340px of `padding-right` for the desktop/tablet inspector
+    // *overlay* — that rule lived under the tablet `@media` range only, but
+    // phone's own range is a subset of it, and `data-inspector-open` just
+    // tracks `selection !== null` with no breakpoint awareness. Selecting
+    // anything on phone therefore ate 340px of a 390px-wide viewport,
+    // leaving the board a ~2px sliver at the left edge. Fixed with a phone-
+    // width override resetting that padding back to 0 (the aside is
+    // `display: none` here regardless, so there's nothing to clear).
+    await page.goto('/solutions/url-shortener');
+    const node = page.locator('[data-node-id="api-service"]');
+    await node.waitFor({ state: 'visible' });
+    await node.click();
+    await settle(page);
+
+    // Selecting a node bumps the sheet to its 50% snap point (`PhoneSheet`).
+    const svg = page.locator('[data-drill-key=""] svg[aria-label]');
+    const board = await svg.boundingBox();
+    expect(board).toBeTruthy();
+    // A collapsed board (the regression) rendered at a few px wide; a
+    // properly fitted one fills most of the viewport's width.
+    expect(board!.width).toBeGreaterThan(300);
+    expect(board!.x).toBeGreaterThanOrEqual(0);
+    expect(board!.x + board!.width).toBeLessThanOrEqual(390 + 1);
   });
 });
 

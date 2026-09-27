@@ -94,6 +94,78 @@ describe('NodeInspectorBody', () => {
     expect(screen.getByRole('tab', { name: 'Operations' })).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('defaults to the Overview tab even when another pane appears first in the sheet', () => {
+    render(
+      <NodeInspectorBody
+        node={node({
+          parts: [
+            { shape: 'pairs', pane: 'operations', title: 'Ops specs', pairs: [['a', '1']] },
+            { shape: 'pairs', pane: 'overview', title: 'Overview specs', pairs: [['b', '2']] },
+          ],
+        })}
+      />,
+    );
+    // Strip order is still first-appearance (Operations, then Overview) …
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Operations', 'Overview']);
+    // … but Overview is the one that starts active, so the first thing shown is real content.
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('Overview specs')).toBeVisible();
+  });
+
+  it('falls back to first-appearance order for the default tab when there is no Overview pane', () => {
+    render(
+      <NodeInspectorBody
+        node={node({
+          parts: [
+            { shape: 'pairs', pane: 'operations', title: 'Ops specs', pairs: [['a', '1']] },
+            { shape: 'pairs', pane: 'architecture', title: 'Arch specs', pairs: [['b', '2']] },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByRole('tab', { name: 'Operations' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('moves a pane made entirely of deferred/"Coming soon" sections after every pane with real content, regardless of appearance order', () => {
+    render(
+      <NodeInspectorBody
+        node={node({
+          parts: [
+            // "deferred" appears FIRST in the sheet, but has no real (simple-shape) section.
+            { shape: 'trade', pane: 'deferred', title: 'Tradeoffs', axes: [['Speed', 9]], picks: [] },
+            { shape: 'pairs', pane: 'overview', title: 'Overview specs', pairs: [['a', '1']] },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Overview', 'Deferred']);
+    // And since Overview now also happens to be first, it's still what starts active.
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('keeps a mixed pane (real content + an advanced part) in its original spot — only an all-advanced pane is demoted', () => {
+    render(
+      <NodeInspectorBody
+        node={node({
+          parts: [
+            {
+              shape: 'trade',
+              pane: 'operations',
+              title: 'Tradeoffs',
+              axes: [['Speed', 9]],
+              picks: [],
+            },
+            { shape: 'risks', pane: 'operations', title: 'Bottlenecks', risks: [{ text: 'R1', danger: 'D1', remedy: 'M1' }] },
+            { shape: 'pairs', pane: 'overview', title: 'Overview specs', pairs: [['a', '1']] },
+          ],
+        })}
+      />,
+    );
+    // "operations" has a real `risks` section alongside the advanced `trade` one, so it is NOT
+    // demoted — strip order stays first-appearance (Operations, then Overview).
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Operations', 'Overview']);
+  });
+
   it('an advanced (not-yet-rendered) shape shows the "Coming soon" fallback instead of dropping the part', () => {
     render(
       <NodeInspectorBody

@@ -32,7 +32,7 @@ export function InspectorHeader({ title, kindLabel, onClose, closeLabel = 'Close
 /** T3.6's body slot: overview/architecture/operations/live tabs and their section renderers. */
 export function InspectorBodySlot({ children }: { children?: ReactNode }) {
   return (
-    <div className="flex-1 overflow-auto" data-inspector-body-slot>
+    <div className="min-w-0 flex-1 overflow-auto" data-inspector-body-slot>
       {children}
     </div>
   );
