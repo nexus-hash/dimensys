@@ -173,7 +173,14 @@ function renderLink(wire: LinkView, boardId: string, offset: XY) {
   if (!wire.route || wire.route.length === 0) return null; // spare link: not routed yet.
   const routeAbs = wire.route.map((p) => translate(p, offset));
   const d = routeToPath(routeAbs);
-  const labelPosition = wire.text ? routeMidpoint(routeAbs) : undefined;
+  // `cap` (collision-free anchor, engine v3.1+) wins when present — it's in
+  // the same route coordinate space as `wire.route` itself, so it needs the
+  // same `offset` translation. `axis` only says which route segment it
+  // sits on; the pill itself always renders horizontal regardless (`Link`
+  // never rotates its label group), so it's not read here. A link with
+  // `text` but no `cap` (an older/unsynced document) falls back to the
+  // route's own arc-length midpoint, same as before this existed.
+  const labelPosition = wire.text ? (wire.cap ? translate(wire.cap.pt, offset) : routeMidpoint(routeAbs)) : undefined;
 
   return (
     <Link

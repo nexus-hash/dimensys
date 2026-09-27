@@ -129,6 +129,15 @@ export interface LinkView {
   route?: XY[];
   /** Static particle density (only used when nothing is simulated). */
   flux?: Flux;
+  /**
+   * Collision-free label anchor: the label pill's centre, in route
+   * coordinates, plus which segment it sits on (`h` horizontal, `v`
+   * vertical — the pill itself always renders horizontal regardless).
+   * Present whenever both `text` and `route` are; a link with `text` but no
+   * `cap` (an older/unsynced document) falls back to the route's own
+   * arc-length midpoint.
+   */
+  cap?: { pt: XY; axis: 'h' | 'v' };
 }
 
 /** One graph level. */

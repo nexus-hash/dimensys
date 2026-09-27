@@ -74,6 +74,38 @@ describe('StaticBlueprint', () => {
     expect(g).toHaveAttribute('data-to', 'b');
   });
 
+  it("uses the link's collision-free `cap` anchor for the label, not the arc-length midpoint, when present", () => {
+    const board: Board = {
+      size: [400, 200],
+      blocks: [],
+      wires: [
+        {
+          id: 'l1',
+          a: 'a',
+          b: 'b',
+          line: 'sync',
+          text: 'Write/Read DB',
+          route: [[0, 0], [50, 0], [50, 100], [100, 100]],
+          cap: { pt: [50, 40], axis: 'v' },
+        },
+      ],
+    };
+    const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
+    const label = container.querySelector('[data-link-id="l1"] .cv-link-label');
+    expect(label).toHaveAttribute('transform', 'translate(50, 40)');
+  });
+
+  it("falls back to the arc-length midpoint when `cap` is absent (an older/unsynced document)", () => {
+    const board: Board = {
+      size: [400, 200],
+      blocks: [],
+      wires: [{ id: 'l1', a: 'a', b: 'b', line: 'sync', text: 'no cap here', route: [[0, 0], [100, 0]] }],
+    };
+    const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
+    const label = container.querySelector('[data-link-id="l1"] .cv-link-label');
+    expect(label).toHaveAttribute('transform', 'translate(50, 0)');
+  });
+
   it('skips a spare link with no route yet', () => {
     const board: Board = { size: [400, 200], blocks: [], wires: [{ id: 'future', a: 'a', b: 'b', line: 'sync' }] };
     const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
