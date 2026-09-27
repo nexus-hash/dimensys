@@ -9,7 +9,7 @@
  *
  * Marking convention:
  *   - `aria-disabled="true"` (never the native `disabled` attribute, so the
- *     control stays keyboard-reachable and announced, per UI_UX_SPEC §9).
+ *     control stays keyboard-reachable and announced, per the accessibility spec).
  *   - a `title`/tooltip reading "<action> — coming soon".
  *   - a stable `data-slot="<name>"` for the task that will wire it to find
  *     and replace, without hunting through the JSX.
@@ -17,7 +17,7 @@
  * Slots:
  *   - `data-slot="hero-kill-cache"`   — the "Kill the cache" action button.
  *     Wires to the same meltdown the full player's Break It mode runs
- *     (owner: a later "Break It on the hero" task, see UI_UX_SPEC §6.1).
+ *     (owner: a later "Break It on the hero" task).
  *   - `data-slot="hero-10x-traffic"`  — the "10× traffic" action button.
  *     Same owner as above.
  *   - `data-slot="hero-pause"`        — the hero card's pause/play control.
@@ -29,7 +29,7 @@
  *     Shows "—" for every value until T3.8's metrics hook is available to
  *     the hero; no fake numbers in the meantime.
  *   - `data-slot="hero-replay-tour"`  — "Replay tour" status-line link.
- *     Restarts the hero's first-visit caption tour (UI_UX_SPEC §15 decision
+ *     Restarts the hero's first-visit caption tour (a decision
  *     6); depends on that tour existing, which is a separate task.
  *   - Navbar `Streak` and `Avatar` (see their own files) are the equivalent
  *     inert slots outside the hero, both waiting on an accounts system.

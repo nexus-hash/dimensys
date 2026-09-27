@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
   <!--
-    Favicon: the "Fault line" brand mark (UI_UX_SPEC §2 Brand mark). Rendered
+    Favicon: the "Fault line" brand mark. Rendered
     as a standalone document by the browser (no access to app/globals.css
     custom properties), so the brand gradient stops are literal hex here —
     the same three values `--brand`/`--brand-strong`/`--brand-tertiary` hold

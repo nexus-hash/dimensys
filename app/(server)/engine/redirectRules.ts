@@ -53,7 +53,7 @@ export function legacy2dRedirect(): RedirectRule {
 }
 
 /**
- * `/problems` (the old catalog route) becomes `/explore` (UI_UX_SPEC §4.1:
+ * `/problems` (the old catalog route) becomes `/explore` (the approved design:
  * `/explore` replaces `/problems`). Needs no catalog data — a plain
  * top-level rename — so it's always present.
  */

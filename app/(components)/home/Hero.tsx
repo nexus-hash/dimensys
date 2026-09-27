@@ -6,7 +6,7 @@ import { loadPlayerDiagram, loadRuntimeUrl } from '@/app/(server)/engine/publicD
 /** The diagram the hero embeds, running at its healthy baseline. */
 export const HERO_DIAGRAM_ID = 'url-shortener';
 
-/** HUD strip metrics shown in the hero card header (UI_UX_SPEC §6.1). Every
+/** HUD strip metrics shown in the hero card header. Every
  *  value is "—" until T3.8's metrics hook reaches the hero — see
  *  `home/slots.ts` (`hero-hud`). Never a fake number. */
 const HERO_HUD_METRICS = [
@@ -41,11 +41,13 @@ export async function Hero() {
         <div className="flex flex-col gap-6">
           <h1
             id="home-heading"
-            className="text-[clamp(2.5rem,5vw+1.5rem,6rem)] font-bold leading-[1.02] tracking-tight text-ink-primary"
+            className="text-[clamp(2.25rem,4vw+1.25rem,4.5rem)] font-bold leading-[1.05] tracking-tight text-ink-primary"
           >
             Step inside
             <br />
-            <span className="bg-[image:var(--brand-gradient)] bg-clip-text text-transparent">real systems.</span>
+            <span className="whitespace-nowrap bg-[image:var(--brand-gradient)] bg-clip-text text-transparent">
+              real systems.
+            </span>
           </h1>
           <p className="max-w-lg text-body-lg text-ink-secondary">
             Real architectures, running live in your browser. Watch them run, feel them strain, break them, and fix
@@ -77,7 +79,7 @@ export async function Hero() {
 
         <div className="w-full">
           {diagram ? (
-            <div className="canvas-surface flex flex-col overflow-hidden rounded-card border border-line-hairline">
+            <div className="canvas-surface overflow-hidden rounded-card border border-line-hairline">
               {/* Header: live status, speed readout, pause + open-in-player. */}
               <div className="flex items-center justify-between gap-2 border-b border-line-hairline px-3 py-2">
                 <div className="flex min-w-0 items-center gap-2">
@@ -110,7 +112,8 @@ export async function Hero() {
                 </div>
               </div>
 
-              {/* Board: fills the card, no zoom cluster / HUD bands from the player itself. */}
+              {/* Board: fills the card, no zoom cluster / HUD bands from the player itself
+                  (see `DiagramPlayer`'s own `aspectRatio` fix for the embed/hero variant). */}
               <DiagramPlayer diagram={diagram} runtimeUrl={diagram.live ? runtimeUrl : null} variant="hero" />
 
               {/* HUD strip — "—" until wired (home/slots.ts: hero-hud). */}
@@ -144,22 +147,22 @@ export async function Hero() {
                 <div className="flex flex-wrap gap-2">
                   <Tooltip content="Kill the cache — coming soon">
                     <Button
+                      type="button"
                       variant="danger"
                       size="sm"
                       data-slot="hero-kill-cache"
                       aria-disabled="true"
-                      onClick={(event) => event.preventDefault()}
                     >
                       Kill the cache
                     </Button>
                   </Tooltip>
                   <Tooltip content="10× traffic — coming soon">
                     <Button
+                      type="button"
                       variant="glass"
                       size="sm"
                       data-slot="hero-10x-traffic"
                       aria-disabled="true"
-                      onClick={(event) => event.preventDefault()}
                     >
                       10× traffic
                     </Button>

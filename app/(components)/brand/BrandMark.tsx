@@ -19,7 +19,7 @@ export interface BrandMarkProps {
 }
 
 /**
- * The "Fault line" brand mark (UI_UX_SPEC §2 Brand mark, concept C): one
+ * The "Fault line" brand mark (the approved brand mark, concept C): one
  * diagram node, split and slipped along a diagonal fault — "break it" in one
  * shape. A single SVG on a 24px grid, two paths, no filters.
  *

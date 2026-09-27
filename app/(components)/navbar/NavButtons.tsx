@@ -9,18 +9,24 @@ interface NavButtonsProps {
 }
 
 /**
- * Global nav items (UI_UX_SPEC §4.2 / §6.1): Explore, Replays, Daily, Paths,
+ * Global nav items (the approved design): Explore, Replays, Daily, Paths,
  * Concepts. "Daily" carries a dot badge while today's puzzle is unsolved —
  * there's no accounts/progress system yet, so it's shown inert-on (nothing
  * to mark solved against) rather than faked as solved.
  */
-const NAV_LINKS = [
+interface NavLink {
+  name: string;
+  path: string;
+  dot?: boolean;
+}
+
+const NAV_LINKS: readonly NavLink[] = [
   { name: 'Explore', path: '/explore' },
   { name: 'Replays', path: '/replays' },
   { name: 'Daily', path: '/daily', dot: true },
   { name: 'Paths', path: '/paths' },
   { name: 'Concepts', path: '/concepts' },
-] as const;
+];
 
 export default function NavButtons({ isMobile = false, onClick }: NavButtonsProps) {
   const pathname = usePathname();

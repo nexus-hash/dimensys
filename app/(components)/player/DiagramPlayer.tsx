@@ -86,12 +86,26 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   // `embed`/`hero` (the home hero, a diagram embedded in a detail section)
   // drop the shell entirely — just the board and its overlay, no top bar,
   // rails or inspector frame.
+  //
+  // `style={{ aspectRatio }}` gives this `<section>` itself a real height:
+  // the board's own layers (`.player-drill-level`/`.player-drill-stage`,
+  // then the absolutely-positioned `.relative.overflow-visible` aspect box)
+  // are built for the full shell, where an ancestor (`PlayerShell`) supplies
+  // a definite height for their `h-full` chain to resolve against. Outside
+  // that shell there's no such ancestor, so without this the chain
+  // collapses to a 0px-tall box and the absolutely-positioned board paints
+  // over whatever sits below this section in normal flow — invisible while
+  // nothing did, but a real bug once a caller (the hero card) puts visible
+  // content there. `overflow-hidden` is the same fix's second half: it
+  // clips anything that still overshoots this now-correctly-sized box
+  // instead of letting it bleed into siblings.
   if (variant !== 'full') {
     return (
       <section
         data-player-variant={variant}
         aria-label={diagram.head.title}
-        className="canvas-surface rounded-lg border border-line-hairline"
+        className="canvas-surface overflow-hidden rounded-lg border border-line-hairline"
+        style={{ aspectRatio: `${board.size[0]} / ${board.size[1]}` }}
       >
         <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>{blueprint}</PlayerIsland>
       </section>
