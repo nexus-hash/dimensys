@@ -110,18 +110,10 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Build dms-engine
-        run: |
-          cd ../dms-engine
-          npm ci
-          npm run build
-
-      - name: Sync static assets to dimensys
-        run: node scripts/sync-engine.js
-
       - name: Build dms-engine v3
         run: |
           cd ../dms-engine
+          npm ci
           npm run build:v3
 
       - name: Sync v3 engine output to dimensys
@@ -146,11 +138,11 @@ jobs:
       # --- Guard: refuse to ship proprietary engine source in the output ---
       # The engine's LICENSE header ("This software and its source code are
       # proprietary and confidential ...") only ever appears in
-      # dms-engine/LICENSE — it is never emitted into generated pages, static
-      # assets, or the shared component templates that sync-engine.js copies
-      # into this repo. Its presence in the build output, or any path that
-      # references dms-engine/src directly, indicates the private engine
-      # source leaked into the deployable artifact.
+      # dms-engine/LICENSE — it is never emitted into the v3 output that
+      # sync-engine-v3.js copies into this repo. Its presence in the build
+      # output, or any path that references dms-engine/src directly,
+      # indicates the private engine source leaked into the deployable
+      # artifact.
       - name: Verify no engine source in build output
         run: |
           set -e

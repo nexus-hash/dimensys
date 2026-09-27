@@ -52,18 +52,10 @@ jobs:
         run: |
           mv dms-engine-checkout ../dms-engine
           
-      - name: Build dms-engine
-        run: |
-          cd ../dms-engine
-          npm ci
-          npm run build
-
-      - name: Sync static assets to dimensys
-        run: node scripts/sync-engine.js
-
       - name: Build dms-engine v3
         run: |
           cd ../dms-engine
+          npm ci
           npm run build:v3
 
       - name: Sync v3 engine output to dimensys

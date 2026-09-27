@@ -1,5 +1,5 @@
 #!/bin/bash
-# dev-engine.sh — Watch dms-engine for changes, rebuild + sync on save
+# dev-engine.sh — Watch dms-engine for changes, rebuild v3 + sync on save
 set -e
 
 ENGINE_DIR="../dms-engine"
@@ -14,5 +14,5 @@ fi
 echo "👁️  Watching dms-engine for changes..."
 cd "$ENGINE_DIR"
 npx chokidar-cli 'src/**/*.ts' 'src/**/*.tsx' 'data/**/*.json' 'src/assets/data/**/*' \
-  -c "echo '🔄 Change detected...' && npm run build && node $SCRIPT_DIR/sync-engine.js && npm run build:v3 && node $SCRIPT_DIR/sync-engine-v3.js" \
+  -c "echo '🔄 Change detected...' && npm run build:v3 && node $SCRIPT_DIR/sync-engine-v3.js" \
   --initial

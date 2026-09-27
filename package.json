@@ -23,7 +23,6 @@
     "test:e2e:prod": "./scripts/e2e-prod.sh"
   },
   "dependencies": {
-    "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.0",
     "mermaid": "^11.15.0",
     "next": "16.2.3",

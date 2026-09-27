@@ -1,5 +1,5 @@
 #!/bin/bash
-# prebuild.sh — One-shot build of dms-engine (both builds) + sync to dimensys
+# prebuild.sh — One-shot build of dms-engine v3 + sync to dimensys.
 # Used for local production builds. Skipped in CI (handled by workflow).
 set -e
 
@@ -18,24 +18,9 @@ if [ ! -d "$ENGINE_DIR" ]; then
   exit 0
 fi
 
-# Old build: only its `staticAssets[]` still matters to this app (CS concept
-# content under app/concepts/, synced to public/engine/data/). Its `pages[]`
-# (generated diagram routes) and `sharedComponents[]` (3D diagram-asset
-# templates) are no longer consumed — T3.13 replaced that whole path with
-# the v3 build below.
-echo "🔧 Building dms-engine..."
-cd "$ENGINE_DIR"
-npm install --silent
-npm run build
-
-echo ""
-echo "🔄 Syncing static assets to dimensys..."
-cd -
-node "$SCRIPT_DIR/sync-engine.js"
-
-echo ""
 echo "🔧 Building dms-engine v3..."
 cd "$ENGINE_DIR"
+npm install --silent
 npm run build:v3
 
 echo ""
