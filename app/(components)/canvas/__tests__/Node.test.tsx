@@ -155,19 +155,42 @@ describe('Node', () => {
     expect(container.querySelector('[data-node-id="n1"] > title')?.textContent).toBe('API Service — server · api');
   });
 
-  it('reserves the role pill width in the truncation budget, so the label/sub-label never run under the chip', () => {
+  it('folds the role into the sub-label instead of a top-right pill, so the label keeps its full width', () => {
     const { container } = render(
       <svg>
         <Node boardId="b1" id="n1" type="lb" label="API Service" sublabel="lb · ×2" role="primary" health="ok" />
       </svg>,
     );
-    const clipRect = container.querySelector(`clipPath rect`);
-    // Same budget the pill's own transform (`translate(w - 54, 8)`, 46px wide) leaves clear: w - 38 - 60.
-    expect(clipRect?.getAttribute('width')).toBe('46');
-    const labelText = container.querySelector('[data-node-id="n1"] .cv-label')?.textContent ?? '';
+    const g = container.querySelector('[data-node-id="n1"]');
+    // No more floating rect+text pill over the card's top-right border.
+    expect(g?.querySelector('.cv-role')).toBeNull();
+    // The label isn't squeezed by a reserved pill width anymore — "API
+    // Service" fits the ordinary (glyph-free) text area untruncated.
+    expect(container.querySelector('[data-node-id="n1"] .cv-label')?.textContent).toBe('API Service');
+    // The role reads inline, appended to the sub-label (truncated here, same
+    // as any other over-long sub-label — the full "lb · ×2 · primary" still
+    // ships in the title/aria-label below).
     const subText = container.querySelector('[data-node-id="n1"] .cv-sub')?.textContent ?? '';
-    expect(labelText).toMatch(/…$/);
-    expect(subText).toMatch(/…$/);
+    expect(subText).toMatch(/^lb · ×2 · pr.*…$/);
+    expect(g?.querySelector('title')?.textContent).toBe('API Service — lb · ×2 · primary');
+  });
+
+  it('shows the role in the sub-label even with no sub-label prop of its own', () => {
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="server" label="API" role="leader" health="ok" />
+      </svg>,
+    );
+    expect(container.querySelector('[data-node-id="n1"] .cv-sub')?.textContent).toBe('leader');
+  });
+
+  it('hides the role once a health glyph is showing (same top-right slot)', () => {
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="server" label="API" sublabel="server · api" role="primary" health="critical" />
+      </svg>,
+    );
+    expect(container.querySelector('[data-node-id="n1"] .cv-sub')?.textContent).toBe('server · api');
   });
 
   it('the down state keeps the label/sub-label legible (not folded into the heavily-dimmed inner group)', () => {

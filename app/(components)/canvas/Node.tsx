@@ -71,8 +71,8 @@ function healthSentence(health: HealthState, healthLabel?: string): string {
 
 /**
  * The HLD node: 144×72, monochrome body, icon + label + mono
- * sub-label, an optional meter, an optional role pill, and the health ring +
- * glyph + text label.
+ * sub-label (variant · replicas · role, when present), an optional meter,
+ * and the health ring + glyph + text label.
  * Hover/focus/selected/dimmed are the design spec states.
  */
 export function Node({
@@ -97,20 +97,32 @@ export function Node({
   const w = NODE_WIDTH;
   const h = NODE_HEIGHT;
   const showGlyphSlot = health !== 'ok';
-  const showRolePill = !showGlyphSlot && !!role;
+  // The role reads inline as part of the sub-label ("api · ×4 · primary")
+  // rather than as its own top-right pill: a fixed-width pill there sat
+  // partly over the card's own right border for longer role names (e.g.
+  // "follower") and ate a fixed 60px out of the label's line whether or not
+  // a role was even present long enough to need it, squeezing an ordinary
+  // label down to a couple of characters. Folding it into the sub-label
+  // costs it only the room its own text needs, same as any other sub-label
+  // content, and it can never cross the card's edge because it's truncated
+  // by the exact same estimate-and-clip guard as the rest of that line. It
+  // still only shows when there's no status glyph, same as before, since
+  // both live in that same top-right "extra state" slot conceptually.
+  const roleText = !showGlyphSlot && role ? ROLE_LABEL[role] : undefined;
+  const rawSublabel = sublabel ? (roleText ? `${sublabel} · ${roleText}` : sublabel) : roleText;
   const ariaLabel = `${label}, ${type}${variant ? ` · ${variant}` : ''}, ${healthSentence(health, healthLabel)}`;
-  // Label/sub-label are clipped to the space left of the health glyph / role
-  // pill so a long label never overlaps them (the design spec: "truncated with a full
+  // Label/sub-label are clipped to the space left of the health glyph so a
+  // long label never overlaps it (the design spec: "truncated with a full
   // tooltip"). The visible glyphs are truncated with an ellipsis at an estimated
   // width (`text.ts` — there's no DOM to measure against server-side); the
   // clipPath stays as a hard safety net for whatever that estimate gets wrong,
   // and the full text always ships in `aria-label` above plus a native `<title>`
   // tooltip below, regardless of what's visually truncated.
   const textClipId = `${boardId}-${id}-text-clip`;
-  const textAreaWidth = w - 38 - (showRolePill ? 60 : 12);
+  const textAreaWidth = w - 38 - 12;
   const displayLabel = truncateToWidth(label, textAreaWidth, LABEL_FONT_SIZE * SANS_CHAR_EM);
-  const displaySublabel = sublabel ? truncateToWidth(sublabel, textAreaWidth, SUBLABEL_FONT_SIZE * MONO_CHAR_EM) : undefined;
-  const titleText = sublabel ? `${label} — ${sublabel}` : label;
+  const displaySublabel = rawSublabel ? truncateToWidth(rawSublabel, textAreaWidth, SUBLABEL_FONT_SIZE * MONO_CHAR_EM) : undefined;
+  const titleText = rawSublabel ? `${label} — ${rawSublabel}` : label;
 
   return (
     <g
@@ -187,14 +199,6 @@ export function Node({
       {showGlyphSlot && (
         <g className="cv-glyph" transform={`translate(${w - 22}, 8)`}>
           <HealthGlyph state={health} size={16} />
-        </g>
-      )}
-      {!showGlyphSlot && role && (
-        <g className="cv-role" transform={`translate(${w - 54}, 8)`}>
-          <rect width={46} height={16} rx={8} />
-          <text x={23} y={11.5} textAnchor="middle">
-            {ROLE_LABEL[role]}
-          </text>
         </g>
       )}
 

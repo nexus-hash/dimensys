@@ -585,9 +585,6 @@
 .cv-node .cv-hatch { opacity: 0; transition: opacity 400ms; }
 .cv-node .cv-inner { transition: opacity 400ms; }
 .cv-node .cv-text { transition: opacity 400ms; }
-.cv-node .cv-role rect { fill: none; stroke: var(--color-line-strong); }
-.cv-node .cv-role text { font: 500 11px var(--font-mono); fill: var(--color-ink-muted); }
-
 .cv-node.cv-health-warn .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; }
 .cv-node.cv-health-critical .cv-ring { stroke: var(--color-signal-critical); stroke-width: 2; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-signal-critical) 35%, transparent)); }
 .cv-node.cv-health-critical.is-pulsing .cv-ring { animation: cv-ringpulse 1.2s ease-in-out infinite; }
@@ -603,7 +600,6 @@
 .cv-node.cv-health-down .cv-text { opacity: .6; }
 .cv-node.cv-health-down .cv-sub { fill: var(--color-ink-primary); }
 .cv-node.cv-health-recovering .cv-ring { stroke: var(--color-signal-warn); stroke-width: 1.5; stroke-dasharray: 7 5; animation: cv-dashrot 1.8s linear infinite; }
-.cv-node.cv-health-warn .cv-role, .cv-node.cv-health-critical .cv-role, .cv-node.cv-health-down .cv-role, .cv-node.cv-health-recovering .cv-role { display: none; }
 
 .cv-node.is-selected .cv-sel { stroke: var(--color-ink-primary); stroke-width: 2; }
 .cv-node.is-selected .cv-halo { stroke: var(--color-ink-primary); stroke-width: 8; stroke-opacity: .1; }
