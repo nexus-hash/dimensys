@@ -48,6 +48,7 @@ export function SubsystemCollapsed({
   height = NODE_HEIGHT,
   meter,
   childIds,
+  interactive = true,
 }: {
   boardId: string;
   id: string;
@@ -65,6 +66,8 @@ export function SubsystemCollapsed({
   meter?: NodeMeter;
   /** Ids of the nodes inside, for the live aggregate meter (`data-child-ids`). */
   childIds?: readonly string[];
+  /** False renders a non-focusable card (`role="img"`), as `Node` does. */
+  interactive?: boolean;
 }) {
   const showGlyph = health !== 'ok';
   const ariaLabel = `${label} subsystem, ${nodeCount} nodes, ${health === 'ok' ? 'healthy' : health}${
@@ -95,8 +98,8 @@ export function SubsystemCollapsed({
       data-node-id={id}
       data-meter-kind={meter?.kind}
       data-child-ids={childIds?.join(' ')}
-      tabIndex={0}
-      role="button"
+      tabIndex={interactive ? 0 : -1}
+      role={interactive ? 'button' : 'img'}
       aria-label={ariaLabel}
     >
       <title>{titleText}</title>
@@ -157,6 +160,7 @@ export function SubsystemFrame({
   y = 0,
   width,
   height,
+  interactive = true,
 }: {
   boardId: string;
   id: string;
@@ -165,6 +169,8 @@ export function SubsystemFrame({
   y?: number;
   width: number;
   height: number;
+  /** False drops the tab's button role and focus stop (a static, non-drillable frame). */
+  interactive?: boolean;
 }) {
   const tabClipId = `${boardId}-${id}-tab-clip`;
   // A little inset from the frame's own edges/corners on both sides.
@@ -180,10 +186,10 @@ export function SubsystemFrame({
       <g
         className="cv-tab-hit"
         clipPath={`url(#${tabClipId})`}
-        data-subsystem-tab-id={id}
-        role="button"
-        tabIndex={0}
-        aria-label={`Enter ${label} subsystem`}
+        data-subsystem-tab-id={interactive ? id : undefined}
+        role={interactive ? 'button' : undefined}
+        tabIndex={interactive ? 0 : undefined}
+        aria-label={interactive ? `Enter ${label} subsystem` : undefined}
       >
         <text className="cv-tab" x={2} y={-8}>
           {displayLabel}

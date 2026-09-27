@@ -64,4 +64,15 @@ describe('DrilldownBlueprint', () => {
     const { container } = renderIt(<DrilldownBlueprint board={flat} boardId="b1" rootLabel="Flat" />);
     expect(container.querySelectorAll('[data-drill-key]')).toHaveLength(1);
   });
+
+  it('interactive={false}: root level only, no zoom controls, nothing focusable, a static stage', () => {
+    const { container } = renderIt(<DrilldownBlueprint board={board} boardId="b1" rootLabel="URL shortener" interactive={false} />);
+    expect(container.querySelectorAll('[data-drill-key]')).toHaveLength(1);
+    expect(container.querySelector('.player-zoom-controls')).toBeNull();
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.querySelector('.player-drill-stage')).toHaveClass('is-static');
+    expect(container.querySelectorAll('svg [tabindex="0"]')).toHaveLength(0);
+    expect(container.querySelector('[data-subsystem-tab-id]')).toBeNull();
+    expect(container.querySelector('[data-node-id="client-web"]')).toHaveAttribute('role', 'img');
+  });
 });

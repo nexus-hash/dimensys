@@ -33,7 +33,7 @@ describe('ThemeButton', () => {
       </ThemeProvider>
     );
 
-    const button = screen.getByRole('button', { name: /toggle theme/i });
+    const button = screen.getByRole('button', { name: /toggle light or dark theme/i });
     expect(button).toBeInTheDocument();
   });
 });

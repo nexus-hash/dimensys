@@ -43,6 +43,8 @@ export interface InteractiveLayerProps {
   bootstrap: PlayerBootstrap;
   /** The player root element (`data-player-root`) — an ancestor of every drill level's SVG. */
   containerRef: RefObject<HTMLDivElement | null>;
+  /** False: health/meters and particles only — no hover tooltip, selection or keyboard input. Default true. */
+  interactive?: boolean;
 }
 
 interface LinkEntry {
@@ -116,7 +118,7 @@ function aggregateUtilization(
   return { kind: 'util', value: max, text: `${Math.round(max * 100)}%`, severity: meterSeverity(max) };
 }
 
-export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerProps) {
+export function InteractiveLayer({ bootstrap, containerRef, interactive = true }: InteractiveLayerProps) {
   const store = usePlayerStoreApi();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -233,9 +235,11 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
         applyLinkHealth(el, { bad: errRatio >= 0.3 });
       }
 
-      const sel = s.selection;
-      for (const [id, el] of nodeEls) setSelected(el, sel?.kind === 'node' && sel.id === id);
-      for (const [id, el] of linkEls) setSelected(el, sel?.kind === 'link' && sel.id === id);
+      if (interactive) {
+        const sel = s.selection;
+        for (const [id, el] of nodeEls) setSelected(el, sel?.kind === 'node' && sel.id === id);
+        for (const [id, el] of linkEls) setSelected(el, sel?.kind === 'link' && sel.id === id);
+      }
     });
 
     // ---- particles / static reduced-motion flow ----
@@ -626,12 +630,16 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
       if (nodeGroup && !e.defaultPrevented) selectFromTarget(nodeGroup);
     }
 
-    container.addEventListener('pointerover', onPointerOver);
-    container.addEventListener('pointerout', onPointerOut);
-    container.addEventListener('focusin', onFocusIn);
-    container.addEventListener('focusout', onFocusOut);
-    container.addEventListener('click', onClick);
-    container.addEventListener('keydown', onKeyDown);
+    // A static preview (`interactive: false`) keeps the live health/meters and
+    // particles above but takes no hover tooltip, selection or keyboard input.
+    if (interactive) {
+      container.addEventListener('pointerover', onPointerOver);
+      container.addEventListener('pointerout', onPointerOut);
+      container.addEventListener('focusin', onFocusIn);
+      container.addEventListener('focusout', onFocusOut);
+      container.addEventListener('click', onClick);
+      container.addEventListener('keydown', onKeyDown);
+    }
 
     const reducedMql = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     const onReducedChange = () => {
@@ -669,7 +677,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
           `hidden` toggle's own state, so it's never flagged as page content sitting
           outside every landmark (axe `region`) while the pointer happens to be over a
           node during a scan. */}
-      <div ref={tooltipRef} className="player-tooltip" role="tooltip" aria-hidden="true" hidden />
+      {interactive && <div ref={tooltipRef} className="player-tooltip" role="tooltip" aria-hidden="true" hidden />}
     </>
   );
 }

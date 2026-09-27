@@ -31,6 +31,13 @@ export interface DrillStageProps {
   boardSizes: Record<string, XY>;
   className?: string;
   /**
+   * False: a static preview (the home hero). The board still fits its box
+   * and re-fits on resize, but there are no zoom controls, no pointer/wheel
+   * pan or zoom (a wheel over it scrolls the page), no click/keyboard drill
+   * and no player keyboard scope. Default true.
+   */
+  interactive?: boolean;
+  /**
    * One `<div data-drill-key="…">` per level (root's key is `""`), each
    * wrapping that level's own `<StaticBlueprint>` — pre-rendered server-side
    * by `DrilldownBlueprint`. This component only toggles which one is
@@ -73,7 +80,7 @@ function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
  * user hits Fit (`0`, or the zoom cluster's Fit button), which re-fits and
  * flips `tracking` back to true.
  */
-export function DrillStage({ rootLabel, labelsById, boardSizes, className, children }: DrillStageProps) {
+export function DrillStage({ rootLabel, labelsById, boardSizes, className, interactive = true, children }: DrillStageProps) {
   const drill = usePlayerStore((s) => s.drill);
   const store = usePlayerStoreApi();
   const stageRef = useRef<HTMLDivElement>(null);
@@ -271,7 +278,7 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
   // `{ passive: false }` to `preventDefault` the page's own scroll/zoom.
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage) return;
+    if (!stage || !interactive) return;
 
     const pointers = new Map<number, XY>();
     let drag: { moved: boolean; startX: number; startY: number; lastX: number; lastY: number } | null = null;
@@ -415,13 +422,13 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
       stage.removeEventListener('wheel', onWheel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boardSizes]);
+  }, [boardSizes, interactive]);
 
   // `+`/`-`/`0` (BG part 2b): live whenever focus is anywhere in the player
   // (registered in the 'player' scope PlayerShell already pushes), per the
   // spec — unlike arrow-key panning below, which only applies with focus
   // actually inside the canvas stage.
-  useShortcutScope('player');
+  useShortcutScope('player', interactive);
   function zoomStep(factor: number) {
     const cur = { key: activeKeyRef.current, camera: cameraRef.current.get(activeKeyRef.current) };
     const stage = stageRef.current;
@@ -507,18 +514,27 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
 
   return (
     <div className={['player-drill-root', className].filter(Boolean).join(' ')}>
-      <div ref={stageRef} className="player-drill-stage" onClick={handleClick} onKeyDown={handleKeyDown}>
+      <div
+        ref={stageRef}
+        className={interactive ? 'player-drill-stage' : 'player-drill-stage is-static'}
+        onClick={interactive ? handleClick : undefined}
+        onKeyDown={interactive ? handleKeyDown : undefined}
+      >
         {children}
       </div>
-      <div ref={liveRef} aria-live="polite" role="status" className="sr-only" />
-      <ZoomControls
-        percent={readout.percent}
-        canZoomIn={canZoomIn}
-        canZoomOut={canZoomOut}
-        onZoomIn={() => zoomStep(ZOOM_STEP)}
-        onZoomOut={() => zoomStep(1 / ZOOM_STEP)}
-        onFit={fitActive}
-      />
+      {interactive && (
+        <>
+          <div ref={liveRef} aria-live="polite" role="status" className="sr-only" />
+          <ZoomControls
+            percent={readout.percent}
+            canZoomIn={canZoomIn}
+            canZoomOut={canZoomOut}
+            onZoomIn={() => zoomStep(ZOOM_STEP)}
+            onZoomOut={() => zoomStep(1 / ZOOM_STEP)}
+            onFit={fitActive}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -9,7 +9,13 @@ export interface DiagramPlayerProps {
   diagram: ViewData | null;
   /** Hashed worker bundle URL from the sync manifest; `null` when the synced output has no runtime. */
   runtimeUrl?: string | null;
-  /** `full` = /solutions/[id]; `embed` / `hero` drop the rails (S4.3, S4.6). */
+  /**
+   * `full` = /solutions/[id]; `embed` / `hero` drop the rails (S4.3, S4.6).
+   * `hero` is also a static preview: the sim and particles run, but there
+   * are no zoom controls, gestures, hover or selection, and it sizes to a
+   * fixed wide box (`.player-hero` in globals.css) instead of the board's
+   * own aspect ratio.
+   */
   variant?: 'full' | 'embed' | 'hero';
 }
 
@@ -81,9 +87,25 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   // A plain block box's default `width: auto` already fills its containing
   // block (the embed/hero, non-shell path below), and the shell's own
   // `.player-drill-level` centers a flex item sized the same way.
-  const blueprint = <DrilldownBlueprint board={board} boardId={`blueprint-${diagram.id}`} rootLabel={diagram.head.title} />;
+  const blueprint = (
+    <DrilldownBlueprint board={board} boardId={`blueprint-${diagram.id}`} rootLabel={diagram.head.title} interactive={variant !== 'hero'} />
+  );
 
-  // `embed`/`hero` (the home hero, a diagram embedded in a detail section)
+  // The home hero: a fixed wide box the card frames (no border/radius of its
+  // own), the board fitted inside it by the same camera fit the full player
+  // uses, and nothing to click, drag, zoom or focus — a wheel over it
+  // scrolls the page.
+  if (variant === 'hero') {
+    return (
+      <section data-player-variant={variant} aria-label={diagram.head.title} className="player-hero canvas-surface">
+        <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)} interactive={false}>
+          {blueprint}
+        </PlayerIsland>
+      </section>
+    );
+  }
+
+  // `embed` (a diagram embedded in a detail section)
   // drop the shell entirely — just the board and its overlay, no top bar,
   // rails or inspector frame.
   //
@@ -95,8 +117,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   // that shell there's no such ancestor, so without this the chain
   // collapses to a 0px-tall box and the absolutely-positioned board paints
   // over whatever sits below this section in normal flow — invisible while
-  // nothing did, but a real bug once a caller (the hero card) puts visible
-  // content there. `overflow-hidden` is the same fix's second half: it
+  // nothing did, but a real bug once a caller puts visible content there. `overflow-hidden` is the same fix's second half: it
   // clips anything that still overshoots this now-correctly-sized box
   // instead of letting it bleed into siblings.
   if (variant !== 'full') {
@@ -124,8 +145,8 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   // `<section>` is itself a landmark ("region"), and `PlayerShell` already
   // renders its own top-level `<main aria-label>` — nesting that inside
   // another landmark is exactly what axe's `landmark-main-is-top-level`
-  // flags. The embed/hero branch above has no `<main>` of its own, so it
-  // keeps the labelled section as its one landmark.
+  // flags. The embed/hero branches above have no `<main>` of their own, so they
+  // keep the labelled section as their one landmark.
   return (
     <div data-player-variant={variant} className="h-full">
       <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>

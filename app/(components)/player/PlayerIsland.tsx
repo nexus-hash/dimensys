@@ -15,22 +15,33 @@ import type { PlayerBootstrap } from './types';
  * timeline, overlay, mode switcher) are separate small client components
  * that read the store.
  */
-export function PlayerIsland({ bootstrap, children }: { bootstrap: PlayerBootstrap; children?: ReactNode }) {
+export function PlayerIsland({
+  bootstrap,
+  interactive = true,
+  children,
+}: {
+  bootstrap: PlayerBootstrap;
+  /** False: a static preview — the sim and particles run, but no hover, selection or keyboard input. */
+  interactive?: boolean;
+  children?: ReactNode;
+}) {
   return (
     <PlayerStoreProvider bootstrap={bootstrap}>
-      <PlayerRoot bootstrap={bootstrap}>{children}</PlayerRoot>
+      <PlayerRoot bootstrap={bootstrap} interactive={interactive}>
+        {children}
+      </PlayerRoot>
     </PlayerStoreProvider>
   );
 }
 
-function PlayerRoot({ bootstrap, children }: { bootstrap: PlayerBootstrap; children?: ReactNode }) {
+function PlayerRoot({ bootstrap, interactive, children }: { bootstrap: PlayerBootstrap; interactive: boolean; children?: ReactNode }) {
   const mode = usePlayerStore((s) => s.mode);
   const simStatus = usePlayerStore((s) => s.sim.status);
   const rootRef = useRef<HTMLDivElement | null>(null);
   return (
     <div ref={rootRef} data-player-root={bootstrap.diagramId} data-player-mode={mode} data-sim-status={simStatus} className="relative h-full">
       {children}
-      {bootstrap.canvas.w > 0 && <InteractiveLayer bootstrap={bootstrap} containerRef={rootRef} />}
+      {bootstrap.canvas.w > 0 && <InteractiveLayer bootstrap={bootstrap} containerRef={rootRef} interactive={interactive} />}
     </div>
   );
 }

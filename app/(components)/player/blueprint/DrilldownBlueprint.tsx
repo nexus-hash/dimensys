@@ -15,6 +15,12 @@ export interface DrilldownBlueprintProps {
   style?: CSSProperties;
   mode?: ColorByMode;
   health?: HealthLookup;
+  /**
+   * False renders a static preview: the top level only (no subsystem levels
+   * to drill into), non-focusable nodes, and a stage with no zoom controls,
+   * pan/zoom gestures or keyboard shortcuts. Default true.
+   */
+  interactive?: boolean;
 }
 
 /**
@@ -32,13 +38,13 @@ export interface DrilldownBlueprintProps {
  * this renders it as its own separate level/level-sized `<StaticBlueprint>`
  * rather than trying to inline it at the parent's scale.
  */
-export function DrilldownBlueprint({ board, boardId, rootLabel, className, style, mode, health }: DrilldownBlueprintProps) {
-  const levels = [{ path: [] as string[], label: rootLabel, board }, ...collectDrillLevels(board)];
+export function DrilldownBlueprint({ board, boardId, rootLabel, className, style, mode, health, interactive = true }: DrilldownBlueprintProps) {
+  const levels = [{ path: [] as string[], label: rootLabel, board }, ...(interactive ? collectDrillLevels(board) : [])];
   const labelsById = subsystemLabelsById(board);
   const boardSizes = boardSizesByDrillKey(board);
 
   return (
-    <DrillStage rootLabel={rootLabel} labelsById={labelsById} boardSizes={boardSizes}>
+    <DrillStage rootLabel={rootLabel} labelsById={labelsById} boardSizes={boardSizes} interactive={interactive}>
       {levels.map((level) => {
         const key = drillKey(level.path);
         const levelBoardId = level.path.length ? `${boardId}-${level.path.join('-')}` : boardId;
@@ -60,6 +66,7 @@ export function DrilldownBlueprint({ board, boardId, rootLabel, className, style
               style={style}
               mode={mode}
               health={health}
+              interactive={interactive}
             />
           </div>
         );

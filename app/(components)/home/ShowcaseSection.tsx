@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Pill } from '@/app/(components)/ui';
+import { ArrowRightIcon, Pill } from '@/app/(components)/ui';
 import { Reveal } from './Reveal';
 
 interface ShowcaseLink {
@@ -40,54 +40,38 @@ export function ShowcaseSection({
   flip = false,
 }: ShowcaseSectionProps) {
   return (
-    <section aria-labelledby={headingId} className="w-full py-20 sm:py-28">
-      <Reveal
-        className={`mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-4 sm:px-6 md:gap-16 ${
-          flip ? 'md:flex-row-reverse' : 'md:flex-row'
-        }`}
-      >
-        <div className="flex w-full flex-col gap-4 md:max-w-md">
-          <div className="flex items-center gap-2 font-mono text-label text-ink-muted">
-            <span aria-hidden className="text-brand-ink">
+    <section aria-labelledby={headingId} className="w-full">
+      <Reveal className="mx-auto grid w-full max-w-[720px] items-center gap-7 px-4 py-[72px] sm:gap-10 sm:px-6 sm:py-24 lg:max-w-[1200px] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-[72px] lg:py-[120px]">
+        <div className={`max-w-[30em] ${flip ? 'lg:order-2' : ''}`}>
+          <div className="flex items-center gap-2.5 font-mono text-[12px] font-medium uppercase leading-[1.4] tracking-[.06em] text-ink-muted">
+            <span aria-hidden className="font-semibold text-brand-ink">
               {index}
             </span>
             {eyebrow}
           </div>
-          <h2 id={headingId} className="text-title-1 text-ink-primary">
+          <h2
+            id={headingId}
+            className="mt-3.5 text-[28px] font-[650] leading-[1.12] tracking-[-0.022em] text-balance text-ink-primary sm:text-[clamp(28px,3.1vw,40px)]"
+          >
             {heading}
           </h2>
-          <p className="text-body-lg text-ink-secondary">{body}</p>
+          <p className="mt-[18px] text-[16px] leading-[1.65] text-ink-secondary sm:text-[17px]">{body}</p>
           {link ? (
             <Link
               href={link.href}
-              className="inline-flex w-fit items-center gap-1.5 text-body font-medium text-brand-ink transition-colors hover:text-ink-primary"
+              className="mt-[26px] inline-flex items-center gap-1.5 text-[15px] font-medium text-brand-ink hover:underline hover:underline-offset-[3px]"
             >
               {link.label}
-              <ArrowRightIcon />
+              <ArrowRightIcon className="h-4 w-4 flex-none" />
             </Link>
           ) : comingSoon ? (
-            <Pill variant="neutral">Coming soon</Pill>
+            <div className="mt-[26px]">
+              <Pill variant="neutral">Coming soon</Pill>
+            </div>
           ) : null}
         </div>
-        <div className="w-full md:flex-1">{visual}</div>
+        <div className="m-0 min-w-0">{visual}</div>
       </Reveal>
     </section>
-  );
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className="h-4 w-4 flex-none"
-    >
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
   );
 }

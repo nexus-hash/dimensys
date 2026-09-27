@@ -40,6 +40,8 @@ export interface StaticBlueprintProps {
   mode?: ColorByMode;
   /** Per-element static health; an id with no entry renders `ok`. */
   health?: HealthLookup;
+  /** False draws every node/subsystem as a non-focusable image (a preview, not a control). Default true. */
+  interactive?: boolean;
 }
 
 const LEAF_NODE_TYPES = new Set<LeafNodeType>([
@@ -102,6 +104,7 @@ function renderNode(
   offset: XY,
   mode: ColorByMode,
   health: HealthLookup | undefined,
+  interactive: boolean,
 ) {
   if (!block.box) return null; // spare node: not laid out yet.
   const type = asLeafNodeType(block.form);
@@ -129,6 +132,7 @@ function renderNode(
       y={cy}
       width={block.box[2]}
       height={block.box[3]}
+      interactive={interactive}
     />
   );
 }
@@ -139,6 +143,7 @@ function renderSubsystem(
   offset: XY,
   mode: ColorByMode,
   health: HealthLookup | undefined,
+  interactive: boolean,
 ) {
   if (!block.box) return null; // spare subsystem: not laid out yet.
   const { state, label: healthLabel } = resolveHealth(mode === 'health' ? health : undefined, block.id);
@@ -162,6 +167,7 @@ function renderSubsystem(
         y={cy}
         meter={baselineMeter('util')}
         childIds={block.inner?.blocks.map((b) => b.id)}
+        interactive={interactive}
       />
     );
   }
@@ -185,8 +191,9 @@ function renderSubsystem(
         y={frameY}
         width={width}
         height={height}
+        interactive={interactive}
       />
-      {renderLevel(inner, boardId, contentOffset, mode, health)}
+      {renderLevel(inner, boardId, contentOffset, mode, health, interactive)}
     </g>
   );
 }
@@ -227,6 +234,7 @@ function renderLevel(
   offset: XY,
   mode: ColorByMode,
   health: HealthLookup | undefined,
+  interactive: boolean,
 ) {
   return (
     <>
@@ -234,8 +242,8 @@ function renderLevel(
       {level.wires.map((wire) => renderLinkLabel(wire, offset))}
       {level.blocks.map((block) =>
         block.form === 'subSystem'
-          ? renderSubsystem(block, boardId, offset, mode, health)
-          : renderNode(block, boardId, offset, mode, health),
+          ? renderSubsystem(block, boardId, offset, mode, health, interactive)
+          : renderNode(block, boardId, offset, mode, health, interactive),
       )}
     </>
   );
@@ -278,7 +286,16 @@ function renderLevel(
  * 100%` in `globals.css` for the same fix applied through the player
  * shell's own chain).
  */
-export function StaticBlueprint({ board, boardId, label, className, style, mode = 'health', health }: StaticBlueprintProps) {
+export function StaticBlueprint({
+  board,
+  boardId,
+  label,
+  className,
+  style,
+  mode = 'health',
+  health,
+  interactive = true,
+}: StaticBlueprintProps) {
   return (
     <CanvasBoard
       id={boardId}
@@ -295,7 +312,7 @@ export function StaticBlueprint({ board, boardId, label, className, style, mode 
         ...style,
       }}
     >
-      {renderLevel(board, boardId, [0, 0], mode, health)}
+      {renderLevel(board, boardId, [0, 0], mode, health, interactive)}
     </CanvasBoard>
   );
 }

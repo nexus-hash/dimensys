@@ -728,6 +728,32 @@
   background-size: 24px 24px;
 }
 
+/* The home hero's board (`<DiagramPlayer variant="hero">`): a fixed wide box
+   inside the hero card, framed by the card itself (no border or radius of
+   its own). `DrillStage` fits the board inside the padded content box with
+   the same camera fit the full player uses. The stage takes no pointer
+   input at all (`.is-static`): no hover or selection styling, no drag, and
+   a wheel or touch scroll over it scrolls the page. */
+.player-hero { position: relative; aspect-ratio: 960 / 440; padding: 12px; overflow: hidden; }
+.player-drill-stage.is-static { pointer-events: none; touch-action: auto; }
+
+/* The hero card's live indicator: a brand dot with a soft expanding ring. */
+.live-dot { width: 8px; height: 8px; flex: none; border-radius: 9999px; background: var(--color-brand); animation: live-dot 2s ease-out infinite; }
+@keyframes live-dot {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 50%, transparent); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+/* Home closing section: a dot grid that fades out from the centre. */
+.closing-dots::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle, var(--color-grid-dot) 1.2px, transparent 1.7px) 0 0 / 24px 24px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 25%, transparent 70%);
+  mask-image: radial-gradient(ellipse at 50% 50%, black 25%, transparent 70%);
+}
+
 /* ============================================================================
  * Player shell (T3.16): top bar, left rail, canvas frame, right inspector,
  * and the HUD/timeline slots around the board. Structure and breakpoints

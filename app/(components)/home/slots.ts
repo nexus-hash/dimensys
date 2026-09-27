@@ -25,12 +25,12 @@
  *     player's HUD/timeline shell.
  *   - `data-slot="hero-speed"`        — the "simulated · 1×" speed readout.
  *     Same owner as `hero-pause`.
- *   - `data-slot="hero-hud"`         — the p99 / err / rps / retries strip.
+ *   - `data-slot="hero-hud"`         — the p99 / err / rps / retries metric strip.
  *     Shows "—" for every value until T3.8's metrics hook is available to
  *     the hero; no fake numbers in the meantime.
  *   - `data-slot="hero-replay-tour"`  — "Replay tour" status-line link.
- *     Restarts the hero's first-visit caption tour (a decision
- *     6); depends on that tour existing, which is a separate task.
+ *     Restarts the hero's first-visit caption tour; depends on that
+ *     tour existing, which is a separate task.
  *   - Navbar `Streak` and `Avatar` (see their own files) are the equivalent
  *     inert slots outside the hero, both waiting on an accounts system.
  */
