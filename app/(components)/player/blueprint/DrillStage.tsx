@@ -1,9 +1,13 @@
 'use client';
 
-import { useEffect, useRef, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { enterSubsystem, exitSubsystem } from '../store/playerStore';
+import { useShortcut, useShortcutScope } from '@/app/(components)/command';
 import { drillKey } from './drill';
+import { cameraTransform, computeFitScale, fitCamera, panBy, zoomAtPoint, zoomRange, ZOOM_STEP, DRAG_THRESHOLD_PX } from './camera';
+import type { Camera } from './camera';
+import { ZoomControls } from './ZoomControls';
 import type { XY } from '../types';
 
 export interface DrillStageProps {
@@ -25,28 +29,37 @@ export interface DrillStageProps {
 
 const EXIT_FALLBACK_MS = 700; // safety net if `animationend` never fires (animations disabled some other way, a hidden tab, …).
 
+/** Distance and stage-space midpoint between two tracked pointers (pinch). */
+function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
+  const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const mid: XY = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  return { dist, mid };
+}
+
 /**
- * The player's subsystem drill-down (T3.4): shows exactly one pre-rendered
- * level at a time, drives the enter/exit transition (a plain CSS
- * animation — `app/globals.css`'s blanket reduced-motion rule already
- * collapses it under `prefers-reduced-motion`/`data-motion="off"`, so there's
- * no separate reduced-motion branch here), and keeps focus and an aria-live
- * announcement in step.
+ * The player's subsystem drill-down (T3.4) and pan/zoom camera (BG part 2b):
+ * shows exactly one pre-rendered level at a time, drives the enter/exit
+ * transition, keeps focus and an aria-live announcement in step, and owns
+ * that level's own camera (translate + scale, applied as one CSS transform
+ * to the level's board element — see `camera.ts`).
  *
- * Entry points, both delegated from one click/keydown listener on the stage
- * (the canvas kit's SVG pieces are pure presentation with no handlers of
- * their own): a collapsed subsystem (`data-node-id` matching a known
- * subsystem id) or an expanded frame's tab (`data-subsystem-tab-id`).
+ * This measures only its own box (`stageRef`, a `ResizeObserver` on it) —
+ * never the HUD strip, timeline dock, rail or inspector. Those bands are
+ * laid out in CSS (`.player-canvas-area`'s flex column / `.player-body`'s
+ * grid columns in `globals.css`); however the owner rearranges that chrome
+ * later, this component and `camera.ts` don't need to change, because they
+ * only ever ask *this* element for its own `clientWidth`/`clientHeight`.
  *
- * The breadcrumb trail itself (T3.16) is a standalone `<Breadcrumbs>` in the
- * shell's top bar, not here — it reads `drill` from the same store and calls
- * `goToDrillDepth` directly. Navigating from a breadcrumb still lands on
- * this component's own `activeKey` effect (it fires on any `drill` change,
- * regardless of who called `setState`); the one thing it loses versus an
- * in-stage click is `pendingFocusIdRef`'s "return focus to the exact
- * trigger" — a breadcrumb click instead focuses the landing level itself,
- * which is an acceptable trade for keeping the crumb trail out of the canvas
- * area per the layout decision that nothing overlaps the diagram.
+ * Camera state is plain refs, not the shared store: chrome-only (never part
+ * of a share link, never synced across tabs), keyed by drill key so each
+ * level remembers its own camera independently — entering a subsystem
+ * starts that level at its own fit; going back finds the parent's entry
+ * still in the map, camera untouched. `tracking` (per level) is true until
+ * the user pans or zooms that level; while true, every resize (window,
+ * rail/inspector toggle, phone sheet snap) re-fits it, same as the old
+ * board-fit effect this replaces. Once false, the camera holds until the
+ * user hits Fit (`0`, or the zoom cluster's Fit button), which re-fits and
+ * flips `tracking` back to true.
  */
 export function DrillStage({ rootLabel, labelsById, boardSizes, className, children }: DrillStageProps) {
   const drill = usePlayerStore((s) => s.drill);
@@ -75,6 +88,78 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
   const levelGenerationRef = useRef<Map<HTMLElement, number>>(new Map());
 
   const activeKey = drillKey(drill);
+  const activeKeyRef = useRef(activeKey);
+  activeKeyRef.current = activeKey;
+
+  // ---- camera state (BG part 2b) ----
+  const cameraRef = useRef<Map<string, Camera>>(new Map());
+  const trackingRef = useRef<Map<string, boolean>>(new Map());
+  const fitScaleRef = useRef<Map<string, number>>(new Map());
+  const [readout, setReadout] = useState({ percent: 100, fitScale: 1 });
+  const readoutFrameRef = useRef(0);
+
+  function findBoardEl(key: string): HTMLElement | null {
+    const stage = stageRef.current;
+    if (!stage) return null;
+    const levels = Array.from(stage.querySelectorAll<HTMLElement>('[data-drill-key]'));
+    const levelEl = levels.find((el) => el.dataset.drillKey === key);
+    return (levelEl?.firstElementChild as HTMLElement | null) ?? null;
+  }
+
+  function applyCamera(key: string, camera: Camera) {
+    cameraRef.current.set(key, camera);
+    if (key !== activeKeyRef.current) return;
+    const boardEl = findBoardEl(key);
+    const size = boardSizes[key];
+    if (!boardEl || !size) return;
+    const [nativeW, nativeH] = size;
+    boardEl.style.position = 'absolute';
+    boardEl.style.left = '0';
+    boardEl.style.top = '0';
+    boardEl.style.maxWidth = 'none';
+    boardEl.style.maxHeight = 'none';
+    boardEl.style.width = `${nativeW}px`;
+    boardEl.style.height = `${nativeH}px`;
+    boardEl.style.transformOrigin = '0 0';
+    boardEl.style.transform = cameraTransform(camera);
+    stageRef.current?.dispatchEvent(new CustomEvent('playercamerachange', { bubbles: true }));
+    if (readoutFrameRef.current) cancelAnimationFrame(readoutFrameRef.current);
+    readoutFrameRef.current = requestAnimationFrame(() => {
+      readoutFrameRef.current = 0;
+      setReadout({ percent: Math.round(camera.scale * 100), fitScale: fitScaleRef.current.get(key) ?? 1 });
+    });
+  }
+
+  /** (Re)fits `key`'s camera to the stage's current free box. Always applied when `force` (the Fit action); otherwise only while that level is still `tracking`. */
+  function recompute(key: string, force = false) {
+    const stage = stageRef.current;
+    const size = boardSizes[key];
+    if (!stage || !size) return;
+    const [nativeW, nativeH] = size;
+    const freeW = stage.clientWidth;
+    const freeH = stage.clientHeight;
+    if (freeW <= 0 || freeH <= 0) return;
+    const fitScale = computeFitScale(freeW, freeH, nativeW, nativeH);
+    fitScaleRef.current.set(key, fitScale);
+
+    const tracking = trackingRef.current.get(key) ?? true;
+    if (force || tracking) {
+      trackingRef.current.set(key, true);
+      applyCamera(key, fitCamera(freeW, freeH, nativeW, nativeH));
+      return;
+    }
+    // Not tracking: keep the user's own camera, just re-clamp its scale in
+    // case the fit (and so the zoom floor) shifted under a resize.
+    const current = cameraRef.current.get(key);
+    if (!current) return;
+    const { min, max } = zoomRange(fitScale);
+    const scale = Math.min(max, Math.max(min, current.scale));
+    if (scale !== current.scale) applyCamera(key, { ...current, scale });
+  }
+
+  function fitActive() {
+    recompute(activeKeyRef.current, true);
+  }
 
   function beginPhase(el: HTMLElement): number {
     const gen = (levelGenerationRef.current.get(el) ?? 0) + 1;
@@ -134,56 +219,192 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
       const label = drill.length === 0 ? rootLabel : (labelsById[drill[drill.length - 1]] ?? drill[drill.length - 1]);
       liveRef.current.textContent = drill.length === 0 ? `Back to ${label}` : descending ? `Entered ${label}` : `At ${label}`;
     }
+    // The newly-active level starts at its own remembered camera (or a fresh fit, first visit).
+    recompute(activeKey);
     // `drill`/`rootLabel`/`labelsById` are read for the announcement only; the
     // effect's real trigger is `activeKey` (derived from `drill`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey]);
 
-  // Board fit (T3.16): contain-fit the active level's board within whatever
-  // free area the stage actually has — both axes, capped at 1 (never
-  // upscale past native size), centered (`.player-drill-level`'s own flex
-  // centering). A CSS-only "shrink to fit both max-width/max-height" attempt
-  // here didn't hold up under measurement (a plain, non-replaced box's
-  // aspect-ratio doesn't reliably get the same "auto" two-axis contain
-  // behaviour a real replaced element like `<img>` gets), so this computes
-  // the scale directly from the stage's own measured box and writes it as
-  // an explicit pixel width/height straight onto the active level's board
-  // element (its `<CanvasBoard>` div, the level wrapper's only child) —
-  // recomputed on every resize of the stage itself via `ResizeObserver`,
-  // which fires for *any* layout-driven change to that box (window resize,
-  // the rail collapsing, the inspector opening/closing, the phone sheet's
-  // snap height changing the canvas area's reserved bottom padding — none
-  // of those need special-casing here, `ResizeObserver` doesn't care why
-  // the box changed size). The CSS `aspect-ratio`/`max-width`/`max-height`
-  // still set on that element (`StaticBlueprint`'s own style) stay as the
-  // server-rendered, pre-hydration approximation this refines, not a
-  // fallback this replaces.
+  // Board fit (T3.16, extended by BG part 2b): re-fits the active level on
+  // every resize of the stage's own box — window resize, the rail
+  // collapsing, the inspector opening/closing, the phone sheet's snap
+  // height changing the canvas area's reserved bottom padding — for as long
+  // as that level is still `tracking` (the user hasn't panned/zoomed it).
   useEffect(() => {
     const stage = stageRef.current;
-    const size = boardSizes[activeKey];
-    if (!stage || !size) return;
-    const [nativeW, nativeH] = size;
-
-    function apply() {
-      const stageEl = stageRef.current;
-      if (!stageEl) return;
-      const freeW = stageEl.clientWidth;
-      const freeH = stageEl.clientHeight;
-      if (freeW <= 0 || freeH <= 0) return;
-      const levels = Array.from(stageEl.querySelectorAll<HTMLElement>('[data-drill-key]'));
-      const levelEl = levels.find((el) => el.dataset.drillKey === activeKey);
-      const boardEl = levelEl?.firstElementChild as HTMLElement | null;
-      if (!boardEl) return;
-      const scale = Math.min(1, freeW / nativeW, freeH / nativeH);
-      boardEl.style.width = `${nativeW * scale}px`;
-      boardEl.style.height = `${nativeH * scale}px`;
-    }
-
-    apply();
-    const ro = new ResizeObserver(apply);
+    if (!stage) return;
+    recompute(activeKeyRef.current);
+    const ro = new ResizeObserver(() => recompute(activeKeyRef.current));
     ro.observe(stage);
     return () => ro.disconnect();
-  }, [activeKey, boardSizes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardSizes]);
+
+  // Pointer/wheel pan+zoom (BG part 2b). Native listeners (not JSX handlers):
+  // panning needs `setPointerCapture` and a capture-phase click swallow that
+  // React's synthetic bubble dispatch can't give us, and wheel needs
+  // `{ passive: false }` to `preventDefault` the page's own scroll/zoom.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const pointers = new Map<number, XY>();
+    let drag: { moved: boolean; startX: number; startY: number; lastX: number; lastY: number } | null = null;
+    let pinch: { startDist: number; startCamera: Camera; fitScale: number } | null = null;
+    let suppressClick = false;
+
+    function stageXY(clientX: number, clientY: number): XY {
+      const rect = stage!.getBoundingClientRect();
+      return [clientX - rect.left, clientY - rect.top];
+    }
+
+    function currentCamera(): { key: string; camera: Camera; fitScale: number } | null {
+      const key = activeKeyRef.current;
+      const camera = cameraRef.current.get(key);
+      if (!camera) return null;
+      return { key, camera, fitScale: fitScaleRef.current.get(key) ?? 1 };
+    }
+
+    function onPointerDown(e: PointerEvent) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (!currentCamera()) return;
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      stage!.setPointerCapture(e.pointerId);
+      if (pointers.size === 1) {
+        drag = { moved: false, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastY: e.clientY };
+        pinch = null;
+      } else if (pointers.size === 2) {
+        const [a, b] = Array.from(pointers.values());
+        const { dist } = pointerGeometry(a, b);
+        const cur = currentCamera();
+        if (cur && dist > 0) pinch = { startDist: dist, startCamera: cur.camera, fitScale: cur.fitScale };
+        drag = null;
+      }
+    }
+
+    function onPointerMove(e: PointerEvent) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, [e.clientX, e.clientY]);
+      const cur = currentCamera();
+      if (!cur) return;
+
+      if (pointers.size >= 2 && pinch) {
+        const [a, b] = Array.from(pointers.values());
+        const { dist, mid } = pointerGeometry(a, b);
+        if (dist <= 0) return;
+        // `mid` is in viewport coordinates (the two pointers' own clientX/Y
+        // average) — convert to stage-space once, same space `camera.x/y` live in.
+        const stagePoint = stageXY(mid[0], mid[1]);
+        const nextScale = pinch.startCamera.scale * (dist / pinch.startDist);
+        const next = zoomAtPoint(pinch.startCamera, stagePoint[0], stagePoint[1], nextScale, pinch.fitScale);
+        trackingRef.current.set(cur.key, false);
+        applyCamera(cur.key, next);
+        return;
+      }
+
+      if (pointers.size === 1 && drag) {
+        const dx = e.clientX - drag.lastX;
+        const dy = e.clientY - drag.lastY;
+        if (!drag.moved) {
+          if (Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD_PX && Math.abs(e.clientY - drag.startY) < DRAG_THRESHOLD_PX) {
+            return;
+          }
+          drag.moved = true;
+        }
+        drag.lastX = e.clientX;
+        drag.lastY = e.clientY;
+        trackingRef.current.set(cur.key, false);
+        applyCamera(cur.key, panBy(cur.camera, dx, dy));
+      }
+    }
+
+    function endPointer(e: PointerEvent) {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinch = null;
+      if (pointers.size === 1) {
+        // A pinch just ended with one finger still down: resume as a drag
+        // from here (already past the click/drag threshold — the pinch
+        // itself was a multi-touch gesture, never a tap) rather than
+        // re-arming a fresh threshold and eating the finger's first bit of
+        // movement.
+        const [remaining] = Array.from(pointers.values());
+        drag = { moved: true, startX: remaining[0], startY: remaining[1], lastX: remaining[0], lastY: remaining[1] };
+      } else if (pointers.size === 0) {
+        if (drag?.moved) suppressClick = true;
+        drag = null;
+      }
+    }
+
+    function onClickCapture(e: Event) {
+      if (!suppressClick) return;
+      suppressClick = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }
+
+    function onWheel(e: WheelEvent) {
+      const cur = currentCamera();
+      if (!cur) return;
+      e.preventDefault();
+      const [cx, cy] = stageXY(e.clientX, e.clientY);
+      trackingRef.current.set(cur.key, false);
+      if (e.ctrlKey) {
+        // Trackpad pinch (synthesized as wheel+ctrlKey) or an actual ctrl+wheel: zoom about the cursor.
+        const factor = Math.exp(-e.deltaY * 0.01);
+        applyCamera(cur.key, zoomAtPoint(cur.camera, cx, cy, cur.camera.scale * factor, cur.fitScale));
+      } else {
+        // Plain wheel, and a bare trackpad two-finger scroll: pan.
+        applyCamera(cur.key, panBy(cur.camera, -e.deltaX, -e.deltaY));
+      }
+    }
+
+    stage.addEventListener('pointerdown', onPointerDown);
+    stage.addEventListener('pointermove', onPointerMove);
+    stage.addEventListener('pointerup', endPointer);
+    stage.addEventListener('pointercancel', endPointer);
+    stage.addEventListener('click', onClickCapture, true);
+    stage.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      stage.removeEventListener('pointerdown', onPointerDown);
+      stage.removeEventListener('pointermove', onPointerMove);
+      stage.removeEventListener('pointerup', endPointer);
+      stage.removeEventListener('pointercancel', endPointer);
+      stage.removeEventListener('click', onClickCapture, true);
+      stage.removeEventListener('wheel', onWheel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardSizes]);
+
+  // `+`/`-`/`0` (BG part 2b): live whenever focus is anywhere in the player
+  // (registered in the 'player' scope PlayerShell already pushes), per the
+  // spec — unlike arrow-key panning below, which only applies with focus
+  // actually inside the canvas stage.
+  useShortcutScope('player');
+  function zoomStep(factor: number) {
+    const cur = { key: activeKeyRef.current, camera: cameraRef.current.get(activeKeyRef.current) };
+    const stage = stageRef.current;
+    if (!stage || !cur.camera) return;
+    const fitScale = fitScaleRef.current.get(cur.key) ?? 1;
+    trackingRef.current.set(cur.key, false);
+    applyCamera(cur.key, zoomAtPoint(cur.camera, stage.clientWidth / 2, stage.clientHeight / 2, cur.camera.scale * factor, fitScale));
+  }
+  useShortcut({ id: 'player:zoom-in', keys: '+', label: 'Zoom in', group: 'Player', when: 'player' }, (e) => {
+    e.preventDefault();
+    zoomStep(ZOOM_STEP);
+  });
+  useShortcut({ id: 'player:zoom-in-eq', keys: '=', label: 'Zoom in', group: 'Player', when: 'player', hidden: true }, (e) => {
+    e.preventDefault();
+    zoomStep(ZOOM_STEP);
+  });
+  useShortcut({ id: 'player:zoom-out', keys: '-', label: 'Zoom out', group: 'Player', when: 'player' }, (e) => {
+    e.preventDefault();
+    zoomStep(1 / ZOOM_STEP);
+  });
+  useShortcut({ id: 'player:zoom-fit', keys: '0', label: 'Fit diagram', group: 'Player', when: 'player' }, (e) => {
+    e.preventDefault();
+    fitActive();
+  });
 
   function enter(id: string, trigger: HTMLElement) {
     triggerRef.current.set(id, trigger);
@@ -213,6 +434,8 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
     activateFromTarget(event.target);
   }
 
+  const PAN_STEP_PX = 40;
+
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Escape') {
       if (drill.length === 0) return;
@@ -221,9 +444,25 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
       store.setState((s) => exitSubsystem(s));
       return;
     }
+    // Arrow-key pan (BG part 2b): only while focus is inside this stage
+    // (this handler only ever fires for a bubbling keydown from a focused
+    // descendant) — deliberately not a global 'player'-scope shortcut like
+    // `+`/`-`/`0` above, which would fight a node's own roving focus/typing.
+    const cur = cameraRef.current.get(activeKeyRef.current);
+    if (cur && (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+      event.preventDefault();
+      trackingRef.current.set(activeKeyRef.current, false);
+      const dx = event.key === 'ArrowLeft' ? PAN_STEP_PX : event.key === 'ArrowRight' ? -PAN_STEP_PX : 0;
+      const dy = event.key === 'ArrowUp' ? PAN_STEP_PX : event.key === 'ArrowDown' ? -PAN_STEP_PX : 0;
+      applyCamera(activeKeyRef.current, panBy(cur, dx, dy));
+      return;
+    }
     if (event.key !== 'Enter' && event.key !== ' ') return;
     if (activateFromTarget(event.target)) event.preventDefault();
   }
+
+  const canZoomIn = readout.percent < Math.round(4 * 100) - 1;
+  const canZoomOut = readout.percent > Math.round(Math.min(readout.fitScale, 0.25) * 100) + 1;
 
   return (
     <div className={['player-drill-root', className].filter(Boolean).join(' ')}>
@@ -231,6 +470,14 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
         {children}
       </div>
       <div ref={liveRef} aria-live="polite" role="status" className="sr-only" />
+      <ZoomControls
+        percent={readout.percent}
+        canZoomIn={canZoomIn}
+        canZoomOut={canZoomOut}
+        onZoomIn={() => zoomStep(ZOOM_STEP)}
+        onZoomOut={() => zoomStep(1 / ZOOM_STEP)}
+        onFit={fitActive}
+      />
     </div>
   );
 }

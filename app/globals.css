@@ -653,15 +653,20 @@
    sat in a cell shrunk to whatever size the pre-JS-fit CSS fallback gave it,
    not the stage's true full box, and the board-fit effect below measured
    that shrunk cell instead of the real free area. */
-.player-drill-stage { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; width: 100%; height: 100%; min-width: 0; min-height: 0; }
-/* `display: flex` + centering (T3.16): each level's own `StaticBlueprint` wrapper
-   sizes itself to at most its native pixel size on both axes (see that
-   component's own style block) — centering it here is what keeps a board
-   smaller than the available canvas area from sitting flush in a corner
-   instead of in the middle of the free space. */
+.player-drill-stage { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; width: 100%; height: 100%; min-width: 0; min-height: 0; position: relative; touch-action: none; }
+/* No flex-centering here (BG part 2b): once hydrated, `DrillStage`'s camera
+   effect takes over positioning its one child (the board) entirely —
+   `position: absolute; left/top: 0` plus a `translate()/scale()` transform
+   (see `camera.ts`) — since a camera needs to place the board anywhere in
+   this box, not just centered. Pre-hydration/no-JS, this stays a plain
+   block box: the child's own inline styles (`aspect-ratio` +
+   `max-width`/`max-height` capping it at its native pixel size, plus
+   `margin-inline: auto`) center it exactly as before, because plain block
+   layout (unlike a flex/grid parent) honors `margin: auto` centering on its
+   own — see `StaticBlueprint`'s own comment for that box's sizing. */
 .player-drill-level {
   grid-area: 1 / 1; outline: none; width: 100%; height: 100%; min-width: 0; min-height: 0;
-  display: flex; align-items: center; justify-content: center;
+  position: relative;
 }
 .player-drill-level.is-entering { animation: player-drill-in var(--transition-duration-scene) var(--ease-emphasized) both; }
 .player-drill-level.is-leaving { animation: player-drill-out var(--transition-duration-small) var(--ease-exit) both; }
@@ -860,6 +865,32 @@
 }
 .player-narration-slot { min-height: 56px; }
 .player-timeline-slot { min-height: 40px; display: flex; align-items: center; gap: 6px; }
+
+/* The zoom cluster (BG part 2b): floats bottom-right of the free area
+   itself — `.player-drill-root` is `display: contents` (see above), so this
+   positions against `.player-board-wrap` (its nearest positioned ancestor),
+   matching the prototype's `.zoomctl` placement. `--player-sheet-peek`
+   (already tracked by the canvas area's own bottom padding on phone) keeps
+   it clear of the bottom sheet the same way that padding does. */
+.player-zoom-controls {
+  position: absolute;
+  right: 12px;
+  bottom: calc(12px + var(--player-sheet-peek, 0px));
+  z-index: var(--z-index-chrome);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--color-line-hairline);
+}
+.player-zoom-readout {
+  min-width: 40px;
+  padding: 0 4px;
+  text-align: center;
+  font: 500 12px var(--font-mono);
+  color: var(--color-ink-secondary);
+}
 
 /* Tablet (640–1023px): the rail becomes an overlay drawer and the inspector
    becomes a right-edge overlay, both sliding over the canvas area (never

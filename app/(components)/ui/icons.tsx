@@ -109,3 +109,34 @@ export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
     </Base>
   );
 }
+
+/** Zoom in (prototype `data-ic="plus"`, the player's zoom control cluster). */
+export function ZoomInIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M11 8v6M8 11h6" />
+      <path d="m20 20-3.2-3.2" />
+    </Base>
+  );
+}
+
+/** Zoom out (prototype `data-ic="minus"`). */
+export function ZoomOutIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M8 11h6" />
+      <path d="m20 20-3.2-3.2" />
+    </Base>
+  );
+}
+
+/** Fit to view (prototype `data-ic="fit"`). */
+export function FitIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4" />
+    </Base>
+  );
+}

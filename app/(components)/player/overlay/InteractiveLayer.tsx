@@ -407,6 +407,17 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
     };
     document.addEventListener('visibilitychange', onVisibility);
 
+    // The pan/zoom camera (BG part 2b, `DrillStage`) moves/scales the active
+    // level's board via a CSS `transform` — a translate/scale never fires
+    // `ResizeObserver` (the content box itself doesn't change), so without
+    // this the overlay canvas (and its particles) would drift out of step
+    // with the board on every pan or zoom. `DrillStage` dispatches this
+    // event (bubbling) on every camera update; `sizeCanvas` just re-reads
+    // the board SVG's current (post-transform) `getBoundingClientRect()`,
+    // which already reflects the camera regardless of how it got there.
+    const onCameraChange = () => sizeCanvas();
+    container.addEventListener('playercamerachange', onCameraChange);
+
     // ---- hover tooltip + click/keyboard selection ----
     function describeTarget(el: Element): { title: string; lines: string[] } | null {
       const nodeGroup = el.closest<SVGGElement>('[data-node-id]');
@@ -537,6 +548,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
       stopLoop();
       ro?.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
+      container.removeEventListener('playercamerachange', onCameraChange);
       reducedMql?.removeEventListener?.('change', onReducedChange);
       container.removeEventListener('pointerover', onPointerOver);
       container.removeEventListener('pointerout', onPointerOut);
