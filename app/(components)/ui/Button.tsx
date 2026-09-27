@@ -4,8 +4,8 @@ import * as React from 'react';
 import { Slot } from 'radix-ui';
 import { cn } from './utils';
 
-export type ButtonVariant = 'primary' | 'glass' | 'ghost' | 'danger';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+type ButtonVariant = 'primary' | 'glass' | 'ghost' | 'danger';
+type ButtonSize = 'sm' | 'md' | 'lg';
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary: 'text-on-brand font-semibold bg-[image:var(--brand-gradient)] hover:shadow-brand-glow',

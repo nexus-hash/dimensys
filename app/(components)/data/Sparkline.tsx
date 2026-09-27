@@ -2,7 +2,7 @@ import { Tooltip } from '@/app/(components)/ui';
 import { TableView } from './TableView';
 import type { Severity } from './format';
 
-export interface SparklineProps {
+interface SparklineProps {
   /** Samples, oldest first. `NaN`/`null`/`undefined` entries are gaps. */
   values: Array<number | null | undefined>;
   /**

@@ -97,4 +97,3 @@ export async function AnnotatedCode({
   );
 }
 
-export default AnnotatedCode;

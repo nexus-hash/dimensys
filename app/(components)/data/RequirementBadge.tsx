@@ -1,8 +1,8 @@
 import { HealthGlyph } from '@/app/(components)/canvas';
 
-export type RequirementStatus = 'pass' | 'fail' | 'pending' | 'not-simulated';
+type RequirementStatus = 'pass' | 'fail' | 'pending' | 'not-simulated';
 
-export interface RequirementBadgeProps {
+interface RequirementBadgeProps {
   /** The requirement text, e.g. "p99 < 50 ms". */
   text: string;
   status: RequirementStatus;

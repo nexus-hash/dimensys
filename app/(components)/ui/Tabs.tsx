@@ -5,7 +5,7 @@ import { Tabs as RadixTabs } from 'radix-ui';
 import { cn } from './utils';
 import { useReducedMotion } from './useReducedMotion';
 
-export interface TabItem {
+interface TabItem {
   value: string;
   label: React.ReactNode;
   disabled?: boolean;

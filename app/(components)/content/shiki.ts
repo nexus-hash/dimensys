@@ -72,7 +72,7 @@ function getHighlighter(): Promise<Highlighter> {
 }
 
 /** Resolve a caller-supplied language string to a Shiki grammar id, or 'text'. */
-export function resolveLanguage(language: string | undefined): string {
+function resolveLanguage(language: string | undefined): string {
   if (!language) return 'text';
   return LANGUAGE_ALIASES[language.toLowerCase()] ?? 'text';
 }

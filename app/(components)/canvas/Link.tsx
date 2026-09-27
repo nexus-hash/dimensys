@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { arrowId } from './CanvasDefs';
 import type { LinkProtocol } from './types';
 
-export interface LinkProps {
+interface LinkProps {
   boardId: string;
   id: string;
   /** Precomputed SVG path data (the layout algorithm, T2.1/T3.2, owns the

@@ -10,7 +10,7 @@ import { Button, cn } from '@/app/(components)/ui';
  * link between them and every page agrees on the list. Keep this in sync with
  * `app/dev/ui/**\/page.tsx`.
  */
-export const DEV_UI_KITS = [
+const DEV_UI_KITS = [
   { href: '/dev/ui', label: 'DS3 · Primitives' },
   { href: '/dev/ui/canvas', label: 'DS5 · Canvas' },
   { href: '/dev/ui/data', label: 'DS4 · Data' },
@@ -24,7 +24,7 @@ export const DEV_UI_KITS = [
  * gallery page. `current` is the page's own pathname, so it can mark itself
  * with `aria-current="page"` instead of a plain link.
  */
-export function DevUiNav({ current }: { current: string }) {
+function DevUiNav({ current }: { current: string }) {
   return (
     <nav aria-label="Component kit galleries" className="mb-4 flex flex-wrap gap-2">
       {DEV_UI_KITS.map((kit) => {
@@ -55,7 +55,7 @@ export function DevUiNav({ current }: { current: string }) {
  * Reads `resolvedTheme` from next-themes; renders a neutral label until
  * mounted so SSR and the first client paint agree.
  */
-export function ThemeToggle() {
+function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);

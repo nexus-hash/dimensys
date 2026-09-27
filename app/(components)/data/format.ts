@@ -110,7 +110,7 @@ export function formatMetric(value: number | null | undefined, unit: MetricUnit,
 export type Severity = 0 | 1 | 2;
 
 /** The prototype's `HEALTH` thresholds, `[warnAt, criticalAt]` per metric kind. */
-export const HEALTH_THRESHOLDS = {
+const HEALTH_THRESHOLDS = {
   util: [0.7, 0.9],
   err: [0.01, 0.05],
   p99: [500, 2000],

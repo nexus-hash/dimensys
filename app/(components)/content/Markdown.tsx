@@ -151,4 +151,3 @@ export async function Markdown({ content, className = '' }: MarkdownProps) {
   );
 }
 
-export default Markdown;

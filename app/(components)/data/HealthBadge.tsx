@@ -1,6 +1,6 @@
 import { HealthGlyph, type HealthState } from '@/app/(components)/canvas';
 
-export interface HealthBadgeProps {
+interface HealthBadgeProps {
   state: HealthState;
   /** e.g. "critical", "Redis Cache: critical". */
   label: string;

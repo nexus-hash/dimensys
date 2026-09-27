@@ -50,4 +50,3 @@ export async function CodeBlock({
   );
 }
 
-export default CodeBlock;

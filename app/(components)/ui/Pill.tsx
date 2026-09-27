@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from './utils';
 
-export type PillVariant = 'neutral' | 'brand' | 'ok' | 'warn' | 'critical';
+type PillVariant = 'neutral' | 'brand' | 'ok' | 'warn' | 'critical';
 
 export interface PillProps {
   children: ReactNode;

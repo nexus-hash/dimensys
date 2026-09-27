@@ -6,7 +6,7 @@ import { cn } from './utils';
 import { IconButton } from './Button';
 import { CloseIcon } from './icons';
 
-export type SheetSide = 'left' | 'right';
+type SheetSide = 'left' | 'right';
 
 export interface SheetProps {
   trigger?: React.ReactElement;
@@ -259,6 +259,3 @@ export function BottomSheet({
     </RadixDialog.Root>
   );
 }
-
-/** Alias — the design spec lists both names for the same snap-point sheet. */
-export const Drawer = BottomSheet;

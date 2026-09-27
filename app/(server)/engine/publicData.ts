@@ -24,7 +24,7 @@ function dataPath(...segments: string[]): string {
 }
 
 /** Thrown when a synced file declares a `runtimeFormat`/`fmt` this app wasn't built for. */
-export class UnsupportedRuntimeFormatError extends Error {
+class UnsupportedRuntimeFormatError extends Error {
   constructor(label: string, found: number) {
     super(`${label} has runtimeFormat/fmt ${found}, this app only supports ${RUNTIME_FORMAT}`);
     this.name = 'UnsupportedRuntimeFormatError';
@@ -58,13 +58,6 @@ export const loadCatalog = cache(async (): Promise<CatalogView> => {
 export async function listDiagramIds(): Promise<string[]> {
   const manifest = await loadManifest();
   return manifest.diagrams.map((d) => d.id);
-}
-
-/** Maps a former ID (catalog `formerly` aliases) to its canonical ID, or `null`. Used by next.config `redirects()`. */
-export async function resolveAlias(id: string): Promise<string | null> {
-  const catalog = await loadCatalog();
-  const card = catalog.cards.find((c) => c.formerly?.includes(id));
-  return card ? card.id : null;
 }
 
 /** The player's view-data document for one diagram, or `null` when the ID is unknown or unsynced. */
@@ -143,7 +136,7 @@ export async function listRuntimeBundleFilenames(): Promise<string[]> {
 // build/render time — never fetched raw by the browser.
 // ---------------------------------------------------------------------------
 
-export interface ConceptsCategoryEntry {
+interface ConceptsCategoryEntry {
   id: string;
   title: string;
   description?: string;
@@ -154,7 +147,7 @@ export interface ConceptsIndex {
   categories: ConceptsCategoryEntry[];
 }
 
-export interface ConceptEntry {
+interface ConceptEntry {
   id: string;
   title: string;
   readTime: string;
@@ -162,7 +155,7 @@ export interface ConceptEntry {
   contentFile?: string;
 }
 
-export interface ConceptModule {
+interface ConceptModule {
   id: string;
   title: string;
   concepts: ConceptEntry[];

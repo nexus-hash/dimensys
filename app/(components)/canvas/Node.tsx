@@ -11,7 +11,7 @@ const SUBLABEL_FONT_SIZE = 12;
 
 export type LeafNodeType = Exclude<HldNodeType, 'subSystem'>;
 
-export interface NodeProps {
+interface NodeProps {
   /** The board this node is drawn on — namespaces the hatch pattern id. */
   boardId: string;
   id: string;

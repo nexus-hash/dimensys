@@ -79,4 +79,3 @@ export function Popover({
   );
 }
 
-export const PopoverClose = RadixPopover.Close;

@@ -45,9 +45,6 @@ export type DsaCellState = 'default' | 'active' | 'compare' | 'visited' | 'done'
 /** LLD member visibility glyph. */
 export type LldVisibility = 'public' | 'private' | 'protected' | 'package';
 
-/** LLD relation notation. */
-export type LldRelation = 'inherits' | 'implements' | 'composes' | 'aggregates' | 'associates' | 'depends';
-
 /** A node's meter kind. */
 export type NodeMeterKind = 'util' | 'hit' | 'backlog' | 'lag';
 
@@ -68,7 +65,7 @@ export interface LldField {
   static?: boolean;
 }
 
-export interface LldParam {
+interface LldParam {
   name: string;
   type: string;
 }
@@ -81,8 +78,6 @@ export interface LldMethod {
   static?: boolean;
 }
 
-/** Node geometry: 144×72 desktop, 104×64 phone. */
+/** Node geometry (desktop). */
 export const NODE_WIDTH = 144;
 export const NODE_HEIGHT = 72;
-export const NODE_WIDTH_PHONE = 104;
-export const NODE_HEIGHT_PHONE = 64;

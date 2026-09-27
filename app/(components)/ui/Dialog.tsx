@@ -93,4 +93,3 @@ export function Dialog({
   );
 }
 
-export const DialogClose = RadixDialog.Close;
