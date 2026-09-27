@@ -5,7 +5,7 @@ import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider'
 import { enterSubsystem, exitSubsystem } from '../store/playerStore';
 import { useShortcut, useShortcutScope } from '@/app/(components)/command';
 import { drillKey } from './drill';
-import { cameraTransform, computeFitScale, fitCamera, panBy, zoomAtPoint, zoomRange, ZOOM_STEP, DRAG_THRESHOLD_PX } from './camera';
+import { cameraTransform, computeFitScale, fitCamera, panBy, clampPan, zoomAtPoint, zoomRange, ZOOM_STEP, DRAG_THRESHOLD_PX } from './camera';
 import type { Camera } from './camera';
 import { ZoomControls } from './ZoomControls';
 import type { XY } from '../types';
@@ -107,12 +107,24 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, child
   }
 
   function applyCamera(key: string, camera: Camera) {
-    cameraRef.current.set(key, camera);
-    if (key !== activeKeyRef.current) return;
+    if (key !== activeKeyRef.current) {
+      cameraRef.current.set(key, camera);
+      return;
+    }
     const boardEl = findBoardEl(key);
     const size = boardSizes[key];
-    if (!boardEl || !size) return;
+    if (!boardEl || !size) {
+      cameraRef.current.set(key, camera);
+      return;
+    }
+    const stage = stageRef.current;
     const [nativeW, nativeH] = size;
+    // Pan bounds (BG owner review): clamped against *this* stage's current
+    // free box, not the fit-time box — a pan/zoom can't be produced without
+    // the stage already being measurable, so `stage` is never null here in
+    // practice, but the fallback (no clamp) is harmless if it ever were.
+    camera = stage ? clampPan(camera, stage.clientWidth, stage.clientHeight, nativeW, nativeH) : camera;
+    cameraRef.current.set(key, camera);
     boardEl.style.position = 'absolute';
     boardEl.style.left = '0';
     boardEl.style.top = '0';

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 /**
  * T3.16 (board-fit review follow-up): numeric proof that the board
@@ -339,11 +340,39 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
     // Actually zoomed (not a no-op): the node grew.
     expect(nodeBoxAfter.width).toBeGreaterThan(nodeBoxBefore.width * 1.05);
 
-    // The overlay canvas stays glued to the (now zoomed) board.
+    // The overlay canvas tracks the (now zoomed) board, clipped to the free
+    // area — it may be *smaller* than the board's own rect once the board
+    // outgrows the wrap (see the dedicated clip test below), but never sits
+    // off from where the board and the wrap actually overlap.
+    const boardBox = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const wrapBox = (await page.locator('.player-board-wrap').boundingBox())!;
+    const canvasBox = (await page.locator('.player-overlay-canvas').boundingBox())!;
+    const expectedLeft = Math.max(boardBox.x, wrapBox.x);
+    const expectedRight = Math.min(boardBox.x + boardBox.width, wrapBox.x + wrapBox.width);
+    expect(Math.abs(canvasBox.x - expectedLeft)).toBeLessThanOrEqual(1);
+    expect(Math.abs(canvasBox.x + canvasBox.width - expectedRight)).toBeLessThanOrEqual(1);
+  });
+
+  test('at 400% zoom, the overlay canvas is clipped to the board-wrap region, not the (now larger) board rect', async ({ page }) => {
+    await page.goto('/solutions/url-shortener');
+    await settle(page);
+    const wrapBox = (await page.locator('.player-board-wrap').boundingBox())!;
+    const cursor = { x: wrapBox.x + wrapBox.width / 2, y: wrapBox.y + wrapBox.height / 2 };
+    await page.mouse.move(cursor.x, cursor.y);
+    await page.keyboard.down('Control');
+    await page.mouse.wheel(0, -600); // clamped to the 4× ceiling — reliably bigger than the wrap.
+    await page.keyboard.up('Control');
+    await settle(page);
+
     const boardBox = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
     const canvasBox = (await page.locator('.player-overlay-canvas').boundingBox())!;
-    expect(Math.abs(canvasBox.x - boardBox.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(canvasBox.width - boardBox.width)).toBeLessThanOrEqual(1);
+    // The board itself now overflows the wrap...
+    expect(boardBox.width).toBeGreaterThan(wrapBox.width);
+    // ...but the overlay canvas — and so every particle it draws — never does.
+    expect(canvasBox.x).toBeGreaterThanOrEqual(wrapBox.x - TOLERANCE_PX);
+    expect(canvasBox.y).toBeGreaterThanOrEqual(wrapBox.y - TOLERANCE_PX);
+    expect(canvasBox.x + canvasBox.width).toBeLessThanOrEqual(wrapBox.x + wrapBox.width + TOLERANCE_PX);
+    expect(canvasBox.y + canvasBox.height).toBeLessThanOrEqual(wrapBox.y + wrapBox.height + TOLERANCE_PX);
   });
 
   test('Fit restores the fitted rect after a pan and a zoom', async ({ page }) => {
@@ -389,6 +418,31 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
     await page.keyboard.press('0');
     await settle(page);
     expect(await readout.textContent()).toBe(initial);
+  });
+
+  test('pan is clamped: the board can never be dragged entirely offscreen, and Fit always recovers', async ({ page }) => {
+    await page.goto('/solutions/url-shortener');
+    await settle(page);
+    const wrapBox = (await page.locator('.player-board-wrap').boundingBox())!;
+    const start = await emptyCanvasPoint(page);
+    // Several large drags in the same direction, well past any single-drag reach.
+    for (let i = 0; i < 6; i++) {
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(start.x - 2000, start.y - 2000, { steps: 3 });
+      await page.mouse.up();
+    }
+    await settle(page);
+    const boardBox = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    // At least a sliver of the board must still overlap the wrap on both axes.
+    const overlapX = Math.min(boardBox.x + boardBox.width, wrapBox.x + wrapBox.width) - Math.max(boardBox.x, wrapBox.x);
+    const overlapY = Math.min(boardBox.y + boardBox.height, wrapBox.y + wrapBox.height) - Math.max(boardBox.y, wrapBox.y);
+    expect(overlapX).toBeGreaterThan(0);
+    expect(overlapY).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: 'Fit to view' }).click();
+    await settle(page);
+    expectFit(await measureFit(page));
   });
 });
 
@@ -458,4 +512,23 @@ test.describe('player camera — touch pan/pinch (Mobile Chrome emulation, 390x8
     const after = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
     expect(after.width).toBeGreaterThan(before.width * 1.2);
   });
+});
+
+/** Standalone axe pass (BG owner review) at the three reference viewports, on the real full player (not just the dev fixture `player-drilldown.spec.ts` already covers). */
+test.describe('player camera — axe', () => {
+  for (const [name, viewport] of [
+    ['1440', { width: 1440, height: 900 }],
+    ['834', { width: 834, height: 1112 }],
+    ['390', { width: 390, height: 844 }],
+  ] as const) {
+    test(`no serious/critical axe violations at ${name}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/solutions/url-shortener');
+      await settle(page);
+      const results = await new AxeBuilder({ page }).analyze();
+      const seriousOrCritical = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+      if (seriousOrCritical.length > 0) console.log(JSON.stringify(seriousOrCritical, null, 2));
+      expect(seriousOrCritical).toEqual([]);
+    });
+  }
 });

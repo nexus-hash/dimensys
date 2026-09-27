@@ -73,6 +73,39 @@ export function panBy(camera: Camera, dx: number, dy: number): Camera {
   return { ...camera, x: camera.x + dx, y: camera.y + dy };
 }
 
+/**
+ * Keeps the board from being panned entirely out of the free area: on each
+ * axis independently, at least `min(120, 20% of that axis's *rendered*
+ * size)` of the board must overlap the free area. Fit is always a no-op
+ * here (a centered, ≤1× board always clears this by construction) — this
+ * only ever bites an intentional pan/zoom past the edge, and "Fit" (`0`)
+ * always recovers regardless of how far the camera drifted.
+ */
+export function clampPan(camera: Camera, freeW: number, freeH: number, nativeW: number, nativeH: number): Camera {
+  const renderedW = nativeW * camera.scale;
+  const renderedH = nativeH * camera.scale;
+  const minVisibleX = Math.min(120, 0.2 * renderedW);
+  const minVisibleY = Math.min(120, 0.2 * renderedH);
+
+  function clampAxis(pos: number, rendered: number, free: number, minVisible: number): number {
+    const lower = minVisible - rendered;
+    const upper = free - minVisible;
+    // Defensive only: with `minVisible = min(120, 20% of rendered)` and a
+    // non-negative `free`, `lower <= upper` always holds, so this never
+    // actually triggers today — kept so a degenerate rendered size (0, or a
+    // future change to the visibility-floor formula) can't divide the
+    // clamp into an empty range.
+    if (lower > upper) return (free - rendered) / 2;
+    return Math.min(upper, Math.max(lower, pos));
+  }
+
+  return {
+    scale: camera.scale,
+    x: clampAxis(camera.x, renderedW, freeW, minVisibleX),
+    y: clampAxis(camera.y, renderedH, freeH, minVisibleY),
+  };
+}
+
 /** The CSS `transform` string for a `Camera`, `transform-origin: 0 0`. */
 export function cameraTransform(camera: Camera): string {
   return `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`;

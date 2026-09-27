@@ -869,13 +869,18 @@
 /* The zoom cluster (BG part 2b): floats bottom-right of the free area
    itself — `.player-drill-root` is `display: contents` (see above), so this
    positions against `.player-board-wrap` (its nearest positioned ancestor),
-   matching the prototype's `.zoomctl` placement. `--player-sheet-peek`
-   (already tracked by the canvas area's own bottom padding on phone) keeps
-   it clear of the bottom sheet the same way that padding does. */
+   matching the prototype's `.zoomctl` placement, independent of the
+   board/camera underneath it. Plain `12px` inset here, *not*
+   `--player-sheet-peek` — that custom property is set inline on
+   `.player-shell` unconditionally (every breakpoint), not just phone (see
+   `PlayerShell`'s own comment), so reading it here would have quietly
+   offset the cluster upward on desktop/tablet too, by whatever the current
+   snap height happens to compute to, even though the sheet itself doesn't
+   exist there. Cleared on phone instead, below. */
 .player-zoom-controls {
   position: absolute;
   right: 12px;
-  bottom: calc(12px + var(--player-sheet-peek, 0px));
+  bottom: 12px;
   z-index: var(--z-index-chrome);
   display: flex;
   align-items: center;
@@ -939,6 +944,10 @@
   .player-topbar .player-phone-only { display: inline-flex; }
   .player-rail, .player-inspector { display: none; }
   .player-canvas-area { padding-bottom: var(--player-sheet-peek, 12dvh); }
+  /* Only on phone does the bottom sheet actually exist, so only here does
+     the zoom cluster need to clear its peek height (same value the canvas
+     area's own bottom padding above already tracks). */
+  .player-zoom-controls { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
   .player-hud-strip { padding: 6px 8px; gap: 6px; }
   .player-timeline-dock { padding: 6px 8px; gap: 6px; }
   .player-timeline-dock .player-narration-slot { display: none; }

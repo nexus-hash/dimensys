@@ -7,6 +7,7 @@ import {
   zoomAtPoint,
   zoomByFactor,
   panBy,
+  clampPan,
   cameraTransform,
 } from '../camera';
 
@@ -82,6 +83,37 @@ describe('panBy', () => {
   it('translates without touching scale', () => {
     const cam = { x: 10, y: 20, scale: 1.5 };
     expect(panBy(cam, 5, -5)).toEqual({ x: 15, y: 15, scale: 1.5 });
+  });
+});
+
+describe('clampPan', () => {
+  it('leaves a well-inside camera untouched', () => {
+    const cam = { x: 100, y: 100, scale: 1 };
+    expect(clampPan(cam, 1000, 800, 640, 360)).toEqual(cam);
+  });
+
+  it('never fully evicts a normal-sized board off either edge', () => {
+    // Panned way off to the left/up.
+    const cam = { x: -5000, y: -5000, scale: 1 };
+    const clamped = clampPan(cam, 1000, 800, 640, 360);
+    // At least min(120, 20% of 640)=120px of the board's right edge stays on screen.
+    expect(clamped.x + 640 * 1).toBeGreaterThanOrEqual(120 - 0.001);
+    // Panned way off to the right/down.
+    const cam2 = { x: 5000, y: 5000, scale: 1 };
+    const clamped2 = clampPan(cam2, 1000, 800, 640, 360);
+    expect(clamped2.x).toBeLessThanOrEqual(1000 - 120 + 0.001);
+  });
+
+  it("fit's own centered camera is always already inside the clamp", () => {
+    const fit = fitCamera(1000, 800, 640, 360);
+    expect(clampPan(fit, 1000, 800, 640, 360)).toEqual(fit);
+  });
+
+  it('is a defensive no-op (never divides by an empty range) even for a degenerate zero-size board', () => {
+    const cam = { x: 9999, y: -9999, scale: 1 };
+    const clamped = clampPan(cam, 500, 500, 0, 0);
+    expect(Number.isFinite(clamped.x)).toBe(true);
+    expect(Number.isFinite(clamped.y)).toBe(true);
   });
 });
 

@@ -215,17 +215,46 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
       const rect = svg.getBoundingClientRect();
       const hostRect = container.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
-      canvas.style.left = `${rect.left - hostRect.left}px`;
-      canvas.style.top = `${rect.top - hostRect.top}px`;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-      canvas.width = Math.max(1, Math.round(rect.width * dpr));
-      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+
+      // Clip to the canvas *region* (BG part 2b owner review), not the SVG's
+      // own rect: the camera can pan/zoom the board past the region's own
+      // edges (that's the point — see `DrillStage`'s pan clamp, which still
+      // allows most of the board to leave the region on purpose), and
+      // without this the overlay canvas — sized to the full, now-larger-
+      // than-the-region SVG rect — drew particles that visually spilled
+      // into the HUD strip/timeline dock above/below it. `.player-board-wrap`
+      // is that region for the player shell; a standalone caller with no
+      // such wrapper (the embed/hero variant) has no chrome to spill into,
+      // so it falls back to the whole root box (`hostRect`).
+      const regionEl = (svg.closest('.player-board-wrap') as HTMLElement | null) ?? container;
+      const region = regionEl === container ? hostRect : regionEl.getBoundingClientRect();
+      const clipLeft = Math.max(rect.left, region.left);
+      const clipTop = Math.max(rect.top, region.top);
+      const clipWidth = Math.max(0, Math.min(rect.right, region.right) - clipLeft);
+      const clipHeight = Math.max(0, Math.min(rect.bottom, region.bottom) - clipTop);
+
+      canvas.style.left = `${clipLeft - hostRect.left}px`;
+      canvas.style.top = `${clipTop - hostRect.top}px`;
+      canvas.style.width = `${clipWidth}px`;
+      canvas.style.height = `${clipHeight}px`;
+      canvas.width = Math.max(1, Math.round(clipWidth * dpr));
+      canvas.height = Math.max(1, Math.round(clipHeight * dpr));
+
       const vb = svg.viewBox.baseVal;
-      const scaleX = vb.width > 0 ? canvas.width / vb.width : dpr;
-      const scaleY = vb.height > 0 ? canvas.height / vb.height : dpr;
+      // Scale is still derived from the SVG's own full rect/viewBox (how many
+      // device pixels one viewBox unit covers on screen) — clipping only
+      // shrinks *which* of those device pixels this canvas actually owns,
+      // it never changes the mapping itself.
+      const scaleX = vb.width > 0 ? (rect.width * dpr) / vb.width : dpr;
+      const scaleY = vb.height > 0 ? (rect.height * dpr) / vb.height : dpr;
+      // The canvas's own origin moved from the SVG's top-left to the clip
+      // rect's top-left (always <= 0, in device px): shift the transform by
+      // exactly that so a viewBox point still lands at its true on-screen
+      // position, just measured from the new (clipped) canvas origin.
+      const originShiftX = (rect.left - clipLeft) * dpr;
+      const originShiftY = (rect.top - clipTop) * dpr;
       ctx = canvas.getContext('2d');
-      ctx?.setTransform(scaleX, 0, 0, scaleY, -vb.x * scaleX, -vb.y * scaleY);
+      ctx?.setTransform(scaleX, 0, 0, scaleY, -vb.x * scaleX + originShiftX, -vb.y * scaleY + originShiftY);
     }
 
     function applyStaticFlow() {
