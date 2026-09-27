@@ -667,6 +667,34 @@
 .cv-link-cut text { font: 600 14px var(--font-sans); fill: var(--color-ink-primary); }
 .cv-link-cut circle { fill: var(--color-surface-canvas); stroke: var(--color-line-strong); }
 
+/* Reduced motion's static substitute for the particle canvas (T3.3): a plain
+   dashed stroke on a link currently carrying traffic, no animation. */
+.cv-link.is-flow-static { stroke-dasharray: 2 6; }
+
+/* Interactive layer overlay (T3.3): the particle canvas sits over the active
+   drill level's SVG (positioned/sized imperatively in `InteractiveLayer.tsx`
+   to match that SVG's own box within `data-player-root`) and never captures
+   pointer events itself — hover/click targets stay the static SVG's own
+   nodes/links underneath it. */
+.player-overlay-canvas { position: absolute; pointer-events: none; z-index: 1; }
+
+.player-tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 8px));
+  pointer-events: none;
+  z-index: 2;
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--color-surface-overlay);
+  border: 1px solid var(--color-line-strong);
+  box-shadow: var(--elevation-2, 0 2px 8px rgba(0, 0, 0, .2));
+  font: 500 12px var(--font-mono);
+  color: var(--color-ink-primary);
+  line-height: 1.5;
+}
+.player-tooltip strong { display: block; font: 600 12px var(--font-sans); margin-bottom: 2px; }
+
 /* DSA cells */
 .cv-cell rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
 .cv-cell text { font: 600 14px var(--font-mono); fill: var(--color-ink-primary); }
