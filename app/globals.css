@@ -810,7 +810,13 @@
 .player-hud-slot { display: flex; gap: 6px; flex: 1; min-width: 0; min-height: 56px; }
 .player-canvas-toolbar-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 32px; }
 
-.player-board-wrap { position: relative; flex: 1 1 auto; min-width: 0; min-height: 160px; }
+/* 24px inner padding (T3.16 board-fit follow-up): without it the board sits
+   flush against the rail's border and the far viewport edge whenever it's
+   wide enough to be width-bound — `.player-drill-stage`'s `width/height:
+   100%` resolves against this box's *content* box, so the padding shrinks
+   the free area the fit effect (`DrillStage`) measures for free, no JS
+   change needed. */
+.player-board-wrap { position: relative; flex: 1 1 auto; min-width: 0; min-height: 160px; padding: 24px; }
 
 /* Narration + timeline: below the board, never over it. The board
    shrinks and re-fits above this dock; it is never covered or dimmed. */

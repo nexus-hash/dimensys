@@ -5,17 +5,37 @@ import { test, expect, type Page } from '@playwright/test';
  * contain-fits its free area — both axes, capped at 1 (never upscale past
  * native size), centered, fully inside the free area — at each breakpoint,
  * and that it re-fits when the free area itself changes (rail collapsed,
- * inspector closed, the phone sheet dragged to a taller snap point).
+ * inspector closed, the phone sheet dragged to a taller snap point). Also
+ * proves the particle overlay canvas tracks the board's own rect after
+ * every one of those refits — `InteractiveLayer`'s `ResizeObserver` used to
+ * watch a box that didn't change size when `DrillStage`'s fit effect wrote
+ * a new size onto the board element, leaving the canvas (and its particles)
+ * stuck at the pre-refit rect.
  *
- * "Free area" here is `.player-board-wrap`'s own rendered box: the region
- * below the HUD/toolbar strip and above the timeline dock, with whatever
- * width the rail/inspector's *current* grid columns leave it (desktop),
- * the full canvas width (tablet — the inspector is an overlay there), or
- * up to the phone sheet's current top edge (`--player-sheet-peek` tracks
- * the live snap index, not just the lowest one).
+ * "Free area" is `.player-board-wrap`'s own rendered box, *inset by its own
+ * 24px padding* (`globals.css` — so the board never sits flush against the
+ * rail's border or the far viewport edge): the region below the HUD/toolbar
+ * strip and above the timeline dock, with whatever width the rail/
+ * inspector's *current* grid columns leave it (desktop), the full canvas
+ * width (tablet — the inspector is an overlay there, though its width is
+ * still reserved via padding so the board doesn't sit under it), or up to
+ * the phone sheet's current top edge (`--player-sheet-peek` tracks the live
+ * snap index, not just the lowest one).
  */
 
 const TOLERANCE_PX = 2;
+const WRAP_PADDING_PX = 24; // `.player-board-wrap`'s own CSS padding.
+
+interface FreeBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function insetBox(box: FreeBox, inset: number): FreeBox {
+  return { x: box.x + inset, y: box.y + inset, width: box.width - 2 * inset, height: box.height - 2 * inset };
+}
 
 async function measureFit(page: Page) {
   const svg = page.locator('[data-drill-key=""] svg').first();
@@ -25,16 +45,20 @@ async function measureFit(page: Page) {
   const nativeW = parseFloat(wStr);
   const nativeH = parseFloat(hStr);
 
-  const wrapBox = await page.locator('.player-board-wrap').boundingBox();
-  if (!wrapBox) throw new Error('.player-board-wrap has no box (not visible?)');
+  const wrapOuterBox = await page.locator('.player-board-wrap').boundingBox();
+  if (!wrapOuterBox) throw new Error('.player-board-wrap has no box (not visible?)');
+  const wrapBox = insetBox(wrapOuterBox, WRAP_PADDING_PX);
 
   const boardBox = await page.locator('[data-drill-key=""] > div').first().boundingBox();
   if (!boardBox) throw new Error('board element has no box');
 
-  return { nativeW, nativeH, wrapBox, boardBox };
+  const canvasBox = await page.locator('.player-overlay-canvas').boundingBox();
+  if (!canvasBox) throw new Error('.player-overlay-canvas has no box');
+
+  return { nativeW, nativeH, wrapBox, wrapOuterBox, boardBox, canvasBox };
 }
 
-function expectFit({ nativeW, nativeH, wrapBox, boardBox }: Awaited<ReturnType<typeof measureFit>>) {
+function expectFit({ nativeW, nativeH, wrapBox, boardBox, canvasBox }: Awaited<ReturnType<typeof measureFit>>) {
   const scale = Math.min(1, wrapBox.width / nativeW, wrapBox.height / nativeH);
   const expectedW = nativeW * scale;
   const expectedH = nativeH * scale;
@@ -61,6 +85,23 @@ function expectFit({ nativeW, nativeH, wrapBox, boardBox }: Awaited<ReturnType<t
   // Never upscaled past native size.
   expect(boardBox.width).toBeLessThanOrEqual(nativeW + TOLERANCE_PX);
   expect(boardBox.height).toBeLessThanOrEqual(nativeH + TOLERANCE_PX);
+
+  // The particle overlay canvas must track the board's own rect exactly —
+  // this is what a stale `ResizeObserver` target broke (particles drawn off
+  // the links, over whatever used to be free space before a refit).
+  expect(canvasBox.x).toBeGreaterThanOrEqual(boardBox.x - 1);
+  expect(canvasBox.x).toBeLessThanOrEqual(boardBox.x + 1);
+  expect(canvasBox.y).toBeGreaterThanOrEqual(boardBox.y - 1);
+  expect(canvasBox.y).toBeLessThanOrEqual(boardBox.y + 1);
+  expect(canvasBox.width).toBeGreaterThanOrEqual(boardBox.width - 1);
+  expect(canvasBox.width).toBeLessThanOrEqual(boardBox.width + 1);
+  expect(canvasBox.height).toBeGreaterThanOrEqual(boardBox.height - 1);
+  expect(canvasBox.height).toBeLessThanOrEqual(boardBox.height + 1);
+}
+
+/** A settle wait matching how the orchestrator's own review measured (≥1.5s after the last interaction) — the fit effect and the canvas resize observer are both async (rAF/microtask-batched), and the panel-open transitions are 320ms. */
+async function settle(page: Page) {
+  await page.waitForTimeout(1500);
 }
 
 test.describe('player board fit — desktop (1440x900)', () => {
@@ -69,17 +110,23 @@ test.describe('player board fit — desktop (1440x900)', () => {
   test('default state (rail open, inspector closed)', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await expect(page.locator('.player-board-wrap')).toBeVisible();
+    await settle(page);
     expectFit(await measureFit(page));
   });
 
-  test('inspector open (a node selected) — free area narrows to exclude its column', async ({ page }) => {
+  test('inspector open (a node selected) — free area narrows to exclude its column, canvas follows', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
+    const before = await measureFit(page);
     await page.locator('[data-node-id]').first().click();
     await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeVisible();
+    await expect
+      .poll(async () => (await page.locator('.player-board-wrap').boundingBox())?.width ?? 0)
+      .toBeLessThan(before.wrapOuterBox.width - 100);
+    await settle(page);
     expectFit(await measureFit(page));
   });
 
-  test('rail collapsed (mod+B) — free area widens to reclaim the rail column', async ({ page }) => {
+  test('rail collapsed (mod+B) — free area widens to reclaim the rail column, canvas follows', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     const before = await measureFit(page);
     await page.keyboard.down('Meta');
@@ -88,11 +135,12 @@ test.describe('player board fit — desktop (1440x900)', () => {
     // The rail's own column is expected to disappear (reclaimed for the canvas).
     await expect
       .poll(async () => (await page.locator('.player-board-wrap').boundingBox())?.width ?? 0)
-      .toBeGreaterThan(before.wrapBox.width + 100);
+      .toBeGreaterThan(before.wrapOuterBox.width + 100);
+    await settle(page);
     expectFit(await measureFit(page));
   });
 
-  test('rail collapsed AND inspector closed together', async ({ page }) => {
+  test('rail collapsed AND inspector closed together, canvas follows', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await page.locator('[data-node-id]').first().click();
     await page.keyboard.press('Escape'); // closes the inspector (selection cleared)
@@ -103,6 +151,7 @@ test.describe('player board fit — desktop (1440x900)', () => {
     // widths (desktop collapses via the shortcut only, matching the
     // prototype) — check the state via the shell's own data attribute instead.
     await expect(page.locator('.player-body')).toHaveAttribute('data-rail-open', 'false');
+    await settle(page);
     expectFit(await measureFit(page));
   });
 });
@@ -112,10 +161,11 @@ test.describe('player board fit — tablet (834x1112)', () => {
 
   test('uses the full canvas width (inspector is an overlay, not a column)', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
+    await settle(page);
     expectFit(await measureFit(page));
   });
 
-  test('re-fits to a narrower free area with the inspector open, and never sits under it', async ({ page }) => {
+  test('re-fits to a narrower free area with the inspector open, canvas follows, and never sits under it', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     const before = await measureFit(page);
     await page.locator('[data-node-id]').first().click();
@@ -133,12 +183,14 @@ test.describe('player board fit — tablet (834x1112)', () => {
     // to settle before measuring, same as the rail-collapse case above.
     await expect
       .poll(async () => (await page.locator('.player-board-wrap').boundingBox())?.width ?? 0)
-      .toBeLessThan(before.wrapBox.width - 100);
+      .toBeLessThan(before.wrapOuterBox.width - 100);
+    await settle(page);
     const after = await measureFit(page);
     expect(after.wrapBox.width).toBeLessThan(before.wrapBox.width - 100);
     expectFit(after);
     if (inspBox) {
       expect(after.boardBox.x + after.boardBox.width).toBeLessThanOrEqual(inspBox.x + TOLERANCE_PX);
+      expect(after.canvasBox.x + after.canvasBox.width).toBeLessThanOrEqual(inspBox.x + TOLERANCE_PX);
     }
   });
 });
@@ -148,10 +200,11 @@ test.describe('player board fit — phone (390x844)', () => {
 
   test('fits above the sheet at its default (12%) peek', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
+    await settle(page);
     expectFit(await measureFit(page));
   });
 
-  test('re-fits to a smaller free area once the sheet is dragged to 50%', async ({ page }) => {
+  test('re-fits to a smaller free area once the sheet is dragged to 50%, canvas follows', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     const before = await measureFit(page);
 
@@ -165,15 +218,20 @@ test.describe('player board fit — phone (390x844)', () => {
     await page.mouse.move(x, y - 300, { steps: 10 });
     await page.mouse.up();
     await expect(handle).toHaveAttribute('aria-valuetext', '50% of screen');
+    await expect
+      .poll(async () => (await page.locator('.player-board-wrap').boundingBox())?.height ?? 0)
+      .toBeLessThan(before.wrapOuterBox.height - 100);
+    await settle(page);
 
     const after = await measureFit(page);
     expect(after.wrapBox.height).toBeLessThan(before.wrapBox.height - 100);
     expectFit(after);
 
-    // The board must be entirely above the sheet's current top edge.
+    // The board (and the canvas tracking it) must be entirely above the sheet's current top edge.
     const sheetBox = await page.locator('[role="dialog"]').boundingBox();
     if (sheetBox) {
       expect(after.boardBox.y + after.boardBox.height).toBeLessThanOrEqual(sheetBox.y + TOLERANCE_PX);
+      expect(after.canvasBox.y + after.canvasBox.height).toBeLessThanOrEqual(sheetBox.y + TOLERANCE_PX);
     }
   });
 });

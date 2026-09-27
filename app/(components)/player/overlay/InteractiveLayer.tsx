@@ -178,6 +178,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
     let rafId = 0;
     let lastTs = 0;
     let ro: ResizeObserver | null = null;
+    let observedSvg: Element | null = null;
     let reduced = isMotionReduced();
 
     function rebuildLinks() {
@@ -361,11 +362,32 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
     if (reduced) cleanupReduced = store.subscribe(applyStaticFlow);
     startLoop();
 
+    // Two things need watching, not one, for the canvas to always match the
+    // active level's board box (T3.16 board-fit follow-up): the free area
+    // itself (`.player-drill-stage`, stable across drill changes — its own
+    // size changes whenever the rail collapses, the inspector opens/closes,
+    // the phone sheet's snap changes, or the window resizes) *and* the
+    // active board element (`DrillStage`'s fit effect writes an explicit
+    // pixel width/height straight onto it, which is its own resize — and,
+    // separately, a board already capped at its native size can *recenter*
+    // within a still-growing free area with no size change of its own at
+    // all, which a free-area-only observer would miss entirely since
+    // `ResizeObserver` never fires for a position-only reflow).
     ro = new ResizeObserver(() => {
       sizeCanvas();
     });
-    const canvasEl = canvasRef.current;
-    if (canvasEl) ro.observe(canvasEl.parentElement ?? canvasEl);
+    const stageEl = container.querySelector<HTMLElement>('.player-drill-stage');
+    if (stageEl) ro.observe(stageEl);
+
+    function observeActiveSvg() {
+      const level = findActiveLevel(container);
+      const svg = findBoardSvg(level);
+      if (svg === observedSvg) return;
+      if (observedSvg) ro?.unobserve(observedSvg);
+      observedSvg = svg;
+      if (svg) ro?.observe(svg);
+    }
+    observeActiveSvg();
 
     let prevDrill = store.getState().drill;
     const unsubDrill = store.subscribe(() => {
@@ -374,6 +396,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
         prevDrill = d;
         rebuildLinks();
         sizeCanvas();
+        observeActiveSvg();
       }
     });
 
