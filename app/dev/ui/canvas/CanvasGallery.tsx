@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useTheme } from 'next-themes';
+import { DevUiHeader } from '../DevUiChrome';
 import {
   Board,
   Node,
@@ -254,30 +254,14 @@ function LldSection() {
 }
 
 export function CanvasGallery() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
-
   return (
     <div className="min-h-screen bg-surface-page px-6 py-8 text-ink-primary">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-line-hairline pb-4">
-        <div>
-          <h1 className="text-title-1">DS5 — Canvas visual kit gallery</h1>
-          <p className="mt-1 text-body text-ink-secondary">
-            Development only (404s in production). Every node type × health state, link styles, subsystems, DSA
-            cells, markers and an LLD card, in both themes.
-          </p>
-        </div>
-        {mounted && (
-          <button
-            type="button"
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-            className="rounded-control border border-line-hairline px-3 py-1.5 text-body text-ink-secondary hover:text-ink-primary"
-          >
-            Toggle theme ({resolvedTheme})
-          </button>
-        )}
-      </header>
+      <DevUiHeader
+        current="/dev/ui/canvas"
+        title="DS5 — Canvas visual kit gallery"
+        description="Development only (404s in production). Every node type × health state, link styles, subsystems, DSA
+            cells, markers and an LLD card, in both themes."
+      />
 
       <Section title="Node anatomy — every type × every health state">
         <NodeGrid />

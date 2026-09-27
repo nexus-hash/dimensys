@@ -49,35 +49,35 @@ function splitContentByFences(content: string): MarkdownSegment[] {
 const markdownComponents: Components = {
   h1: ({ ...props }) => (
     <h1
-      className="text-text-display font-bold text-brand dark:text-brand mt-12 mb-6"
+      className="text-display font-bold text-brand-ink mt-12 mb-6"
       {...props}
     />
   ),
   h2: ({ ...props }) => (
     <h2
-      className="text-text-title-1 font-semibold text-brand dark:text-brand mt-10 mb-4 border-b border-line-hairline pb-2"
+      className="text-title-1 font-semibold text-brand-ink mt-10 mb-4 border-b border-line-hairline pb-2"
       {...props}
     />
   ),
   h3: ({ ...props }) => (
     <h3
-      className="text-text-title-2 font-semibold text-brand-strong dark:text-brand-strong mt-8 mb-3"
+      className="text-title-2 font-semibold text-brand-strong dark:text-brand-strong mt-8 mb-3"
       {...props}
     />
   ),
   h4: ({ ...props }) => (
     <h4
-      className="text-text-title-3 font-semibold text-ink-primary dark:text-ink-primary mt-6 mb-2"
+      className="text-title-3 font-semibold text-ink-primary dark:text-ink-primary mt-6 mb-2"
       {...props}
     />
   ),
-  p: ({ ...props }) => <p className="mb-4 text-text-body-lg" {...props} />,
+  p: ({ ...props }) => <p className="mb-4 text-body-lg" {...props} />,
   ul: ({ ...props }) => <ul className="list-disc pl-6 mb-4 space-y-2" {...props} />,
   ol: ({ ...props }) => <ol className="list-decimal pl-6 mb-4 space-y-2" {...props} />,
-  li: ({ ...props }) => <li className="text-text-body-lg" {...props} />,
+  li: ({ ...props }) => <li className="text-body-lg" {...props} />,
   a: ({ ...props }) => (
     <a
-      className="text-brand hover:text-brand-strong dark:text-brand dark:hover:text-brand-strong underline"
+      className="text-brand-ink hover:text-brand-strong underline"
       {...props}
     />
   ),
@@ -99,13 +99,13 @@ const markdownComponents: Components = {
     />
   ),
   td: ({ ...props }) => (
-    <td className="px-4 py-3 border-t border-line-hairline text-text-body" {...props} />
+    <td className="px-4 py-3 border-t border-line-hairline text-body" {...props} />
   ),
   // Any `code` node reaching this renderer is inline — fenced blocks are
   // split out and rendered through CodeBlock before ReactMarkdown ever sees
   // them (see splitContentByFences).
   code: ({ children }: CodeProps) => (
-    <code className="bg-surface-overlay dark:bg-surface-overlay px-1.5 py-0.5 rounded text-brand dark:text-brand font-mono text-text-body">
+    <code className="bg-surface-overlay dark:bg-surface-overlay px-1.5 py-0.5 rounded text-brand-ink font-mono text-body">
       {children}
     </code>
   ),

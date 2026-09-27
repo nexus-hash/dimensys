@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { useTheme } from 'next-themes';
 import {
   Button,
   IconButton,
@@ -26,6 +25,7 @@ import {
   CloseIcon,
   InfoIcon,
 } from '@/app/(components)/ui';
+import { DevUiHeader } from './DevUiChrome';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -46,10 +46,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 export function DevUiGallery() {
-  const { resolvedTheme, setTheme } = useTheme();
   const [motionOff, setMotionOff] = React.useState(false);
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
   React.useEffect(() => {
     document.documentElement.setAttribute('data-motion', motionOff ? 'off' : 'on');
   }, [motionOff]);
@@ -67,27 +64,17 @@ export function DevUiGallery() {
 
   return (
     <div className="min-h-screen bg-surface-page px-6 py-8 text-ink-primary">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-line-hairline pb-4">
-        <div>
-          <h1 className="text-title-1">DS3 — UI primitives gallery</h1>
-          <p className="mt-1 text-body text-ink-secondary">
-            Development only (404s in production). Every primitive, every state, both themes.
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
+      <DevUiHeader
+        current="/dev/ui"
+        title="DS3 — UI primitives gallery"
+        description="Development only (404s in production). Every primitive, every state, both themes."
+        right={
           <label className="flex items-center gap-2 text-body text-ink-secondary">
             <Switch checked={motionOff} onCheckedChange={setMotionOff} aria-label="Toggle reduced motion (data-motion)" />
             data-motion=off
           </label>
-          <Button
-            variant="glass"
-            size="sm"
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-          >
-            {mounted ? `Theme: ${resolvedTheme}` : 'Theme'}
-          </Button>
-        </div>
-      </header>
+        }
+      />
 
       <Section title="Button">
         <Row label="primary">
