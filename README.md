@@ -27,7 +27,7 @@ Dimensys is an open-source Next.js application designed to showcase complex syst
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 24+
 
 ### Local Development
 
