@@ -75,6 +75,14 @@ describe('PlayerShell', () => {
     expect(screen.queryByRole('complementary', { name: 'Inspector' })).toBeNull();
   });
 
+  it('has exactly one main landmark and one level-one heading (axe: landmark-one-main, page-has-heading-one)', () => {
+    renderShell();
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    const h1s = screen.getAllByRole('heading', { level: 1 });
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0]).toHaveTextContent('URL shortener');
+  });
+
   it('shows the mode switcher with Explore available and Break it/Walkthrough hidden (no kit, no stories)', () => {
     renderShell();
     const seg = screen.getByRole('radiogroup', { name: 'Mode' });
