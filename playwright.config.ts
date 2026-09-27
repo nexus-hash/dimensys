@@ -13,7 +13,9 @@ export default defineConfig({
 
   webServer: {
     command: 'npm run dev:next',
-    url: 'http://localhost:3000',
+    // Readiness probe: a page that needs no synced engine data, so jobs
+    // that only exercise the dev-only UI gallery (no engine build) can start.
+    url: 'http://localhost:3000/dev/ui',
     reuseExistingServer: !process.env.CI,
   },
 
