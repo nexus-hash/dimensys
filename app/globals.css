@@ -715,6 +715,20 @@
 }
 .player-tooltip strong { display: block; font: 600 12px var(--font-sans); margin-bottom: 2px; }
 
+/* `--surface-canvas` + a 24px dot grid — the diagram canvas's own background,
+   painted by whatever wrapper owns the *free area* the board sits in, not by
+   the board itself (`app/(components)/canvas/Board.tsx` paints no background
+   of its own; see its own comment). Matches the prototype's `.board` token
+   and grid spacing exactly. `.player-board-wrap` below applies it to the
+   player shell's free area, full bleed; any standalone caller (a dev page,
+   the homepage embed/hero) applies this same class to its own board
+   wrapper instead of relying on the board to paint it. */
+.canvas-surface {
+  background-color: var(--color-surface-canvas);
+  background-image: radial-gradient(circle, var(--color-grid-dot) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+}
+
 /* ============================================================================
  * Player shell (T3.16): top bar, left rail, canvas frame, right inspector,
  * and the HUD/timeline slots around the board. Structure and breakpoints
@@ -816,7 +830,22 @@
    100%` resolves against this box's *content* box, so the padding shrinks
    the free area the fit effect (`DrillStage`) measures for free, no JS
    change needed. */
-.player-board-wrap { position: relative; flex: 1 1 auto; min-width: 0; min-height: 160px; padding: 24px; }
+.player-board-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 160px;
+  padding: 24px;
+  overflow: hidden;
+  background-color: var(--color-surface-canvas);
+  background-image: radial-gradient(circle, var(--color-grid-dot) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+  /* Pan/zoom surface (BG part 2b): the free area itself is what the user
+     drags/pinches on, edge to edge — `touch-action: none` here only (not the
+     whole page) so a one-finger drag pans the diagram instead of scrolling
+     the page, while everything outside the canvas keeps native scroll. */
+  touch-action: none;
+}
 
 /* Narration + timeline: below the board, never over it. The board
    shrinks and re-fits above this dock; it is never covered or dimmed. */

@@ -150,7 +150,7 @@ export default async function DevPlayerPage() {
           board={BLUEPRINT_FIXTURE_BOARD}
           boardId="blueprint-fixture"
           label="Static blueprint fixture"
-          className="h-[420px] w-full rounded-lg border border-line-hairline"
+          className="canvas-surface h-[420px] w-full rounded-lg border border-line-hairline"
         />
       </section>
 
@@ -163,7 +163,7 @@ export default async function DevPlayerPage() {
           board={BLUEPRINT_FIXTURE_BOARD}
           boardId="blueprint-fixture-health"
           label="Static blueprint fixture, with health"
-          className="h-[420px] w-full rounded-lg border border-line-hairline"
+          className="canvas-surface h-[420px] w-full rounded-lg border border-line-hairline"
           health={HEALTH_DEMO}
         />
       </section>

@@ -87,7 +87,11 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full' }: 
   // rails or inspector frame.
   if (variant !== 'full') {
     return (
-      <section data-player-variant={variant} aria-label={diagram.head.title} className="rounded-lg border border-line-hairline">
+      <section
+        data-player-variant={variant}
+        aria-label={diagram.head.title}
+        className="canvas-surface rounded-lg border border-line-hairline"
+      >
         <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>{blueprint}</PlayerIsland>
       </section>
     );

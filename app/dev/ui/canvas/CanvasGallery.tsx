@@ -58,7 +58,7 @@ function NodeGrid() {
   const height = rowH * rows + 40;
 
   return (
-    <Board id="gallery-nodes" label="Every node type by health state" viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ minHeight: height }}>
+    <Board id="gallery-nodes" label="Every node type by health state" viewBox={`0 0 ${width} ${height}`} className="canvas-surface w-full" style={{ minHeight: height }}>
       {HEALTH_STATES.map((state, c) => (
         <text
           key={state}
@@ -106,7 +106,7 @@ function NodeGrid() {
 
 function NodeStates() {
   return (
-    <Board id="gallery-states" label="Selection, hover, focus and dimmed states" viewBox="0 0 900 220" className="w-full" style={{ minHeight: 220 }}>
+    <Board id="gallery-states" label="Selection, hover, focus and dimmed states" viewBox="0 0 900 220" className="canvas-surface w-full" style={{ minHeight: 220 }}>
       <Node boardId="gallery-states" id="s-default" type="server" label="Default" sublabel="server · ×1" x={110} y={100} />
       <Node boardId="gallery-states" id="s-selected" type="server" label="Selected" sublabel="server · ×1" selected x={330} y={100} />
       <Node boardId="gallery-states" id="s-dimmed" type="server" label="Dimmed" sublabel="server · ×1" dimmed x={550} y={100} />
@@ -126,7 +126,7 @@ function NodeStates() {
 
 function LinksSection() {
   return (
-    <Board id="gallery-links" label="Link styles" viewBox="0 0 900 420" className="w-full" style={{ minHeight: 420 }}>
+    <Board id="gallery-links" label="Link styles" viewBox="0 0 900 420" className="canvas-surface w-full" style={{ minHeight: 420 }}>
       <Node boardId="gallery-links" id="l-a1" type="lb" label="LB" x={80} y={40} />
       <Node boardId="gallery-links" id="l-b1" type="server" label="API" x={400} y={40} />
       <Link boardId="gallery-links" id="link-sync" d="M152,40 L328,40" protocol="sync" label="sync" labelPosition={{ x: 240, y: 40 }} />
@@ -180,7 +180,7 @@ function LinksSection() {
 
 function SubsystemSection() {
   return (
-    <Board id="gallery-subsystem" label="Subsystem" viewBox="0 0 900 340" className="w-full" style={{ minHeight: 340 }}>
+    <Board id="gallery-subsystem" label="Subsystem" viewBox="0 0 900 340" className="canvas-surface w-full" style={{ minHeight: 340 }}>
       <SubsystemCollapsed boardId="gallery-subsystem" id="sub-ok" label="Key Gen Service" nodeCount={5} x={130} y={80} />
       <SubsystemCollapsed
         boardId="gallery-subsystem"
@@ -214,7 +214,7 @@ function SubsystemSection() {
 function DsaSection() {
   const values = [4, 8, 15, 16, 23, 42];
   return (
-    <Board id="gallery-dsa" label="DSA cells and markers" viewBox="0 0 720 140" className="w-full" style={{ minHeight: 140 }}>
+    <Board id="gallery-dsa" label="DSA cells and markers" viewBox="0 0 720 140" className="canvas-surface w-full" style={{ minHeight: 140 }}>
       {values.map((v, i) => (
         <DsaCell
           key={i}
@@ -243,7 +243,7 @@ function LldSection() {
   // path; `LldCard` itself still truncates defensively for any content that
   // wouldn't fit.
   return (
-    <Board id="gallery-lld" label="LLD UML card" viewBox="0 0 270 220" style={{ width: 270, height: 220 }}>
+    <Board id="gallery-lld" label="LLD UML card" viewBox="0 0 270 220" className="canvas-surface" style={{ width: 270, height: 220 }}>
       <LldCard
         id="card-url"
         name="UrlShortener"
