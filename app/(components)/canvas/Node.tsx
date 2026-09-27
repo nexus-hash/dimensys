@@ -9,6 +9,32 @@ import { MONO_CHAR_EM, SANS_CHAR_EM, truncateToWidth } from './text';
 const LABEL_FONT_SIZE = 13;
 const SUBLABEL_FONT_SIZE = 12;
 
+// ---------------------------------------------------------------------------
+// Meter row (FID): a thin bar plus a right-aligned value. The bar and the
+// value must never overlap — the value gets a fixed reserved width (from
+// `METER_VALUE_CHARS`, the longest realistic reading for that meter's
+// `kind`, not the current text, so live updates — which only ever change
+// `.cv-mfill`'s width and `.cv-mtext`'s content, never these `x`/`width`
+// attributes, see `overlay/domHealth.ts` — can't drift the geometry this
+// computed) and the bar fills the rest, with `METER_GAP` of hairline between
+// them. `Math.min` against a live `meter.text` still truncates the rare
+// reading that's longer than its own kind's reservation (e.g. three-digit
+// utilization), so the two rects stay disjoint regardless.
+// ---------------------------------------------------------------------------
+const METER_TEXT_FONT_SIZE = 11;
+const METER_TRACK_X = 12;
+const METER_RIGHT_PAD = 12;
+const METER_GAP = 6;
+/** Minimum bar width kept even if a meter's value text is implausibly long. */
+const METER_MIN_BAR_WIDTH = 24;
+/** Longest realistic reading per meter kind, in characters (`"142%"`, `"hit 100%"`, `"lag 820 ms"`). */
+const METER_VALUE_CHARS: Record<NodeMeter['kind'], number> = {
+  util: 4,
+  hit: 8,
+  backlog: 10,
+  lag: 10,
+};
+
 export type LeafNodeType = Exclude<HldNodeType, 'subSystem'>;
 
 interface NodeProps {
@@ -135,6 +161,7 @@ export function Node({
       }
       transform={`translate(${x - w / 2}, ${y - h / 2})`}
       data-node-id={id}
+      data-meter-kind={meter?.kind}
       tabIndex={interactive ? 0 : -1}
       role={interactive ? 'button' : 'img'}
       aria-label={ariaLabel}
@@ -163,22 +190,29 @@ export function Node({
         <clipPath id={textClipId}>
           <rect x={38} y={0} width={Math.max(0, textAreaWidth)} height={h} />
         </clipPath>
-        {meter && (
-          <>
-            <rect className="cv-mtrack" x={12} y={57} width={w - 60} height={2} rx={1} />
-            <rect
-              className="cv-mfill"
-              x={12}
-              y={57}
-              width={(w - 60) * Math.min(1, Math.max(0, meter.value))}
-              height={2}
-              rx={1}
-            />
-            <text className="cv-mtext" x={w - 12} y={61} textAnchor="end">
-              {meter.text}
-            </text>
-          </>
-        )}
+        {meter && (() => {
+          const valueCharWidth = METER_TEXT_FONT_SIZE * MONO_CHAR_EM;
+          const reservedValueWidth = METER_VALUE_CHARS[meter.kind] * valueCharWidth;
+          const barWidth = Math.max(METER_MIN_BAR_WIDTH, w - METER_TRACK_X - METER_RIGHT_PAD - METER_GAP - reservedValueWidth);
+          const valueAreaWidth = Math.max(0, w - METER_RIGHT_PAD - (METER_TRACK_X + barWidth + METER_GAP));
+          const displayMeterText = truncateToWidth(meter.text, valueAreaWidth, valueCharWidth);
+          return (
+            <>
+              <rect className="cv-mtrack" x={METER_TRACK_X} y={57} width={barWidth} height={2} rx={1} />
+              <rect
+                className="cv-mfill"
+                x={METER_TRACK_X}
+                y={57}
+                width={barWidth * Math.min(1, Math.max(0, meter.value))}
+                height={2}
+                rx={1}
+              />
+              <text className="cv-mtext" x={w - METER_RIGHT_PAD} y={61} textAnchor="end">
+                {displayMeterText}
+              </text>
+            </>
+          );
+        })()}
       </g>
 
       <rect className="cv-hatch" width={w} height={h} rx={10} fill={`url(#${hatchId(boardId)})`} />

@@ -80,6 +80,18 @@ export const REPLICA_CODE = 'i';
 /** Code for a node's own utilization gauge (`n:<id>.c`). */
 export const UTILIZATION_CODE = 'c';
 
+/** Code for a node's hit ratio (`n:<id>.j`) — the meter row's reading for `cache` nodes (FID). */
+export const HIT_RATIO_CODE = 'j';
+
+/**
+ * Code for a node's own message backlog (`n:<id>.g`) — the meter row's
+ * reading for `queue`/`messageBus` nodes (FID). The simulator has no
+ * separate "seconds behind" figure for a queue, only the depth behind it
+ * (`src/sim/behaviors/queue.ts`: "Consumer lag is `queueDepth`"), so the
+ * meter shows that count, not a derived time.
+ */
+export const QUEUE_DEPTH_CODE = 'g';
+
 /**
  * Per-scope code sets (format 2). Letters are the same everywhere (`<code>`
  * above), but which ones a given scope actually publishes differs — this is

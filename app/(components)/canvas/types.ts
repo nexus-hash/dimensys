@@ -58,6 +58,26 @@ export interface NodeMeter {
   severity?: 'ok' | 'warn' | 'critical';
 }
 
+/**
+ * Every HLD node gets a meter row (FID) — which reading depends on the node
+ * shape: `cache` shows its hit ratio, `queue`/`messageBus` show their
+ * message backlog (`queueDepth` — the simulator publishes a consumer's own
+ * *drain time* nowhere, only the depth behind it, per `src/sim/behaviors/
+ * queue.ts`'s "Consumer lag is `queueDepth`", so this reads that, not a
+ * fabricated seconds figure), everything else shows utilization. `client`
+ * (a traffic source with no server-side behavior to meter) gets no meter
+ * row at all — `null` tells a caller to omit the `meter` prop entirely,
+ * same as the prototype's source nodes. `subSystem` isn't a `LeafNodeType`
+ * (the collapsed card computes its own aggregate meter, out of scope here)
+ * and falls back to `'util'` if ever passed in by mistake.
+ */
+export function meterKindForType(form: string): NodeMeterKind | null {
+  if (form === 'client') return null;
+  if (form === 'cache') return 'hit';
+  if (form === 'queue' || form === 'messageBus') return 'backlog';
+  return 'util';
+}
+
 export interface LldField {
   name: string;
   type: string;

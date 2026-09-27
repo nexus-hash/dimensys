@@ -5,8 +5,9 @@ import {
   Link,
   SubsystemCollapsed,
   SubsystemFrame,
+  meterKindForType,
 } from '@/app/(components)/canvas';
-import type { LeafNodeType, LinkProtocol, NodeRole } from '@/app/(components)/canvas';
+import type { LeafNodeType, LinkProtocol, NodeMeter, NodeRole } from '@/app/(components)/canvas';
 import type { Board as BoardView, LinkView, NodeView, XY } from '../types';
 import { routeToPath, routeMidpoint, translate } from './geometry';
 import { resolveHealth } from './colorBy';
@@ -72,6 +73,26 @@ function asLinkProtocol(line: string): LinkProtocol {
   return LINK_PROTOCOLS.has(line as LinkProtocol) ? (line as LinkProtocol) : 'sync';
 }
 
+/**
+ * The meter row's healthy-baseline reading (FID: "the server render shows
+ * the baseline or an empty bar"). The interactive layer (T3.3) overwrites
+ * `value`/`text` in place once the worker's first frame lands — see
+ * `overlay/InteractiveLayer.tsx` and `metricKindText`, which must read the
+ * same `kind` this produces.
+ */
+function baselineMeter(kind: NonNullable<ReturnType<typeof meterKindForType>>): NodeMeter {
+  switch (kind) {
+    case 'hit':
+      return { kind, value: 0, text: 'hit 0%' };
+    case 'lag':
+      return { kind, value: 0, text: 'lag 0 s' };
+    case 'backlog':
+      return { kind, value: 0, text: '0 msgs' };
+    default:
+      return { kind: 'util', value: 0, text: '0%' };
+  }
+}
+
 /** `type · variant`, plus a replica count once there's more than one — the visual contract's node sub-label. */
 function buildSublabel(form: string, flavor: string | undefined, stack: number | undefined): string | undefined {
   const parts = [form, flavor].filter((p): p is string => !!p);
@@ -93,6 +114,7 @@ function renderNode(
 
   const { state, label: healthLabel } = resolveHealth(mode === 'health' ? health : undefined, block.id);
   const [cx, cy] = translate([block.box[0], block.box[1]], offset);
+  const meterKind = meterKindForType(block.form);
 
   return (
     <Node
@@ -105,6 +127,7 @@ function renderNode(
       sublabel={buildSublabel(block.form, block.flavor, block.stack)}
       role={asNodeRole(block.duty)}
       replicas={block.stack ?? 1}
+      meter={meterKind ? baselineMeter(meterKind) : undefined}
       health={state}
       healthLabel={healthLabel}
       x={cx}

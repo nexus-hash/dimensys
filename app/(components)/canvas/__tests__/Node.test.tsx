@@ -229,4 +229,67 @@ describe('Node', () => {
     const text = container.querySelector('[data-node-id="n1"] .cv-text');
     expect(text?.querySelector('.cv-label')?.textContent).toBe('Redis Cache');
   });
+
+  describe('meter row (FID)', () => {
+    function rectRight(el: Element | null): number {
+      return Number(el?.getAttribute('x')) + Number(el?.getAttribute('width'));
+    }
+    function textLeft(el: Element | null, charWidth: number): number {
+      // `textAnchor="end"`: the rendered text runs left from `x` by its own estimated width.
+      const x = Number(el?.getAttribute('x'));
+      const len = (el?.textContent ?? '').length;
+      return x - len * charWidth;
+    }
+
+    it('sets a `data-meter-kind` attribute matching the meter passed in, and none when there is no meter', () => {
+      const { container: withMeter } = render(
+        <svg>
+          <Node boardId="b1" id="n1" type="cache" label="Redis" meter={{ kind: 'hit', value: 0.9, text: 'hit 90%' }} />
+        </svg>,
+      );
+      expect(withMeter.querySelector('[data-node-id="n1"]')?.getAttribute('data-meter-kind')).toBe('hit');
+
+      const { container: without } = render(
+        <svg>
+          <Node boardId="b1" id="n2" type="client" label="Web" />
+        </svg>,
+      );
+      expect(without.querySelector('[data-node-id="n2"]')?.hasAttribute('data-meter-kind')).toBe(false);
+    });
+
+    it.each([
+      ['util', '0%'],
+      ['util', '142%'],
+      ['hit', 'hit 90%'],
+      ['backlog', '9999 msgs'],
+    ] as const)('keeps the bar and the %s meter value ("%s") disjoint, regardless of text length', (kind, text) => {
+      const { container } = render(
+        <svg>
+          <Node boardId="b1" id="n1" type="server" label="API" meter={{ kind, value: 0.5, text }} />
+        </svg>,
+      );
+      const track = container.querySelector('.cv-mtrack');
+      const valueText = container.querySelector('.cv-mtext');
+      expect(valueText?.textContent).toBe(text);
+      const barRight = rectRight(track);
+      // Mono 11px at the estimate this component itself uses (`METER_TEXT_FONT_SIZE * MONO_CHAR_EM`).
+      const valueLeft = textLeft(valueText, 11 * 0.6);
+      expect(barRight).toBeLessThanOrEqual(valueLeft + 1e-6);
+    });
+
+    it('never overlaps the meter value for the longest reading each kind can realistically show', () => {
+      const longest: Record<string, string> = { util: '142%', hit: 'hit 100%', backlog: '9999 msgs', lag: 'lag 999 s' };
+      for (const [kind, text] of Object.entries(longest)) {
+        const { container } = render(
+          <svg>
+            <Node boardId="b1" id={`n-${kind}`} type="server" label="API" meter={{ kind: kind as never, value: 1, text }} />
+          </svg>,
+        );
+        const track = container.querySelector('.cv-mtrack');
+        const barRight = rectRight(track);
+        const valueLeft = textLeft(container.querySelector('.cv-mtext'), 11 * 0.6);
+        expect({ kind, disjoint: barRight <= valueLeft + 1e-6 }).toEqual({ kind, disjoint: true });
+      }
+    });
+  });
 });

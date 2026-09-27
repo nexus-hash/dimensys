@@ -37,6 +37,39 @@ describe('StaticBlueprint', () => {
     expect(container.querySelector('[data-node-id="api"] .cv-sub')?.textContent).toBe('server · x ×4');
   });
 
+  describe('meter row baseline (FID: every simulated node gets one, server-rendered at baseline)', () => {
+    it.each([
+      ['server', 'util'],
+      ['cache', 'hit'],
+      ['queue', 'backlog'],
+      ['messageBus', 'backlog'],
+      ['db', 'util'],
+    ] as const)('a %s node gets a %s meter at value 0', (form, kind) => {
+      const board: Board = {
+        size: [400, 200],
+        blocks: [{ id: 'n', form, text: 'Node', box: [100, 80, 144, 72] }],
+        wires: [],
+      };
+      const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
+      const g = container.querySelector('[data-node-id="n"]');
+      expect(g?.getAttribute('data-meter-kind')).toBe(kind);
+      expect(g?.querySelector('.cv-mtrack')).toBeTruthy();
+      expect(g?.querySelector('.cv-mfill')?.getAttribute('width')).toBe('0');
+    });
+
+    it('a client (traffic source) node gets no meter row at all', () => {
+      const board: Board = {
+        size: [400, 200],
+        blocks: [{ id: 'n', form: 'client', text: 'Browser', box: [100, 80, 144, 72] }],
+        wires: [],
+      };
+      const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
+      const g = container.querySelector('[data-node-id="n"]');
+      expect(g?.hasAttribute('data-meter-kind')).toBe(false);
+      expect(g?.querySelector('.cv-mtrack')).toBeNull();
+    });
+  });
+
   it('skips a spare node with no box yet', () => {
     const board: Board = {
       size: [400, 200],

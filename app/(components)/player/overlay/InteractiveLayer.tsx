@@ -21,6 +21,8 @@ import {
   metricCodeLabel,
   metricCodeUnit,
   UTILIZATION_CODE,
+  HIT_RATIO_CODE,
+  QUEUE_DEPTH_CODE,
   NODE_UP_CODE,
   LINK_ERROR_RATE_CODE,
   LINK_RETRY_RPS_CODE,
@@ -34,7 +36,7 @@ import { classifyHealth, healthChipText, meterSeverity } from './health';
 import { applyNodeHealth, applyLinkHealth, setSelected, setStaticFlow } from './domHealth';
 import { findActiveLevel, findBoardSvg, linkPath as findLinkPath } from './readBoard';
 import { MAX_PARTICLES, ParticlePool, particleSpawnHz, particleTravelMs, pickParticleKind, progressForPileup } from './particleMath';
-import type { HealthState } from '@/app/(components)/canvas';
+import type { HealthState, NodeMeterKind } from '@/app/(components)/canvas';
 import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
 
 export interface InteractiveLayerProps {
@@ -51,6 +53,45 @@ interface LinkEntry {
   path: SVGPathElement;
   length: number;
   spawnAccMs: number;
+}
+
+/**
+ * The meter row's live reading for one node (FID), from whichever raw metric
+ * its `data-meter-kind` (set by `Node.tsx` from `meterKindForType`) calls
+ * for: utilization, hit ratio, or (`queue`/`messageBus`) message backlog.
+ * `undefined` when that node's meter kind has no reading published this
+ * epoch — `applyNodeHealth` then leaves the server-rendered baseline in
+ * place rather than clearing it.
+ */
+function meterReading(
+  kind: NodeMeterKind,
+  idx: MetricIndex,
+  frame: { metrics: Float64Array },
+  id: string,
+  down: boolean,
+): { kind: NodeMeterKind; value: number; text: string; severity: 'ok' | 'warn' | 'critical' } | undefined {
+  if (kind === 'hit') {
+    const hit = readMetric(idx.nodeCols, frame.metrics, id, HIT_RATIO_CODE);
+    if (hit === undefined) return undefined;
+    const v = down ? 0 : hit;
+    return { kind, value: v, text: `hit ${Math.round(v * 100)}%`, severity: 'ok' };
+  }
+  if (kind === 'backlog') {
+    const depth = readMetric(idx.nodeCols, frame.metrics, id, QUEUE_DEPTH_CODE);
+    if (depth === undefined) return undefined;
+    // No natural 0..1 ceiling for a message count (unlike a ratio): scaled
+    // against a soft, generous reference depth just so the bar has
+    // *something* to fill toward, same idea as a browser download bar with
+    // no known total. The warn/critical thresholds below are absolute counts,
+    // not tied to that scale.
+    const REFERENCE_DEPTH = 500;
+    const value = Math.min(1, depth / REFERENCE_DEPTH);
+    const severity = depth >= 2000 ? 'critical' : depth >= 200 ? 'warn' : 'ok';
+    return { kind, value, text: `${Math.round(depth)} msgs`, severity };
+  }
+  const util = readMetric(idx.nodeCols, frame.metrics, id, UTILIZATION_CODE);
+  if (util === undefined) return undefined;
+  return { kind: 'util', value: util, text: `${Math.round(util * 100)}%`, severity: meterSeverity(util) };
 }
 
 export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerProps) {
@@ -146,18 +187,17 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
         const state = classifyHealth(prevHealth.get(id), token, up);
         prevHealth.set(id, state);
 
-        const util = readMetric(idx.nodeCols, frame.metrics, id, UTILIZATION_CODE);
         const chipCode = NODE_TOOLTIP_CODES.find((c) => readMetric(idx.nodeCols, frame.metrics, id, c) !== undefined);
         const chipValue = chipCode ? readMetric(idx.nodeCols, frame.metrics, id, chipCode) : undefined;
+
+        const meterKind = (el.dataset.meterKind as NodeMeterKind | undefined) ?? undefined;
+        const meter = meterKind ? meterReading(meterKind, idx, frame, id, up === 0) : undefined;
 
         applyNodeHealth(el, {
           state,
           pulsing: state === 'critical',
           chipText: chipCode ? healthChipText(state, metricCodeLabel(chipCode), chipValue, metricCodeUnit(chipCode)) : undefined,
-          meter:
-            util !== undefined
-              ? { kind: 'util', value: util, text: `${Math.round(util * 100)}%`, severity: meterSeverity(util) }
-              : undefined,
+          meter,
         });
       }
 
