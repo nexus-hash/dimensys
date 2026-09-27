@@ -24,6 +24,20 @@ import { CanvasDefs } from './CanvasDefs';
  * boards never collide. Server-renderable: no client state, no pan/zoom
  * (that's T3.3). `label` is the SVG's `aria-label` (the board reads as one
  * accessible group; individual nodes carry their own `role`/`aria-label`).
+ *
+ * GEOM: neither this wrapper nor the `<svg>` itself clips. A node's own
+ * decorations (replica stack cards, the selection ring, the health halo)
+ * and a subsystem's frame/tab can all extend past the diagram's nominal
+ * `viewBox` size, and at a pan/zoom past the old edge they must stay
+ * visible rather than being cut by a second clip stacked on top of the
+ * canvas region. The *only* clip in the player is the canvas region itself
+ * (`.player-board-wrap`, `globals.css`) — the area between the HUD and
+ * timeline bands — which every caller of this kit is expected to provide
+ * its own equivalent of if it isn't the player (a standalone embed with no
+ * such region simply never clips at all). `overflow: visible` on the
+ * `<svg>` matters on its own: an SVG's UA default is `overflow: hidden` on
+ * its own viewport, so leaving it unset would still clip regardless of
+ * this wrapper.
  */
 export function Board({
   id,
@@ -42,10 +56,10 @@ export function Board({
 }) {
   return (
     <div
-      className={'relative overflow-hidden' + (className ? ` ${className}` : '')}
+      className={'relative overflow-visible' + (className ? ` ${className}` : '')}
       style={style}
     >
-      <svg role="group" aria-label={label} viewBox={viewBox} width="100%" height="100%">
+      <svg role="group" aria-label={label} viewBox={viewBox} width="100%" height="100%" style={{ overflow: 'visible' }}>
         <CanvasDefs boardId={id} />
         {children}
       </svg>
