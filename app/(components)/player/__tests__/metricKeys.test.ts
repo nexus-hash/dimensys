@@ -7,6 +7,17 @@ import {
   globalMetricKey,
   metricCodeLabel,
   metricCodeUnit,
+  LINK_RPS_CODE,
+  LINK_ERROR_RATE_CODE,
+  LINK_RETRY_RPS_CODE,
+  LINK_UP_CODE,
+  LINK_TOOLTIP_CODES,
+  NODE_UP_CODE,
+  NODE_LATENCY_CODE,
+  NODE_P99_LATENCY_CODE,
+  NODE_ERROR_RATE_CODE,
+  NODE_TOOLTIP_CODES,
+  UTILIZATION_CODE,
 } from '../metricKeys';
 
 describe('parseMetricKey', () => {
@@ -67,5 +78,24 @@ describe('metricCodeLabel / metricCodeUnit', () => {
   it('knows the lost-writes code (u)', () => {
     expect(metricCodeLabel('u')).toBe('lost writes');
     expect(metricCodeUnit('u')).toBe('writes');
+  });
+});
+
+describe('per-scope code sets', () => {
+  it('fixes the exact link code letters (no per-link latency)', () => {
+    expect(LINK_RPS_CODE).toBe('n');
+    expect(LINK_ERROR_RATE_CODE).toBe('f');
+    expect(LINK_RETRY_RPS_CODE).toBe('o');
+    expect(LINK_UP_CODE).toBe('h');
+    expect(LINK_TOOLTIP_CODES).toEqual(['n', 'f', 'o']);
+  });
+
+  it('fixes the exact node code letters the interactive layer reads', () => {
+    expect(UTILIZATION_CODE).toBe('c');
+    expect(NODE_UP_CODE).toBe('h');
+    expect(NODE_LATENCY_CODE).toBe('d');
+    expect(NODE_P99_LATENCY_CODE).toBe('e');
+    expect(NODE_ERROR_RATE_CODE).toBe('f');
+    expect(NODE_TOOLTIP_CODES).toEqual(['c', 'd', 'e', 'f']);
   });
 });

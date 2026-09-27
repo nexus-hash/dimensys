@@ -80,6 +80,37 @@ export const REPLICA_CODE = 'i';
 /** Code for a node's own utilization gauge (`n:<id>.c`). */
 export const UTILIZATION_CODE = 'c';
 
+/**
+ * Per-scope code sets (format 2). Letters are the same everywhere (`<code>`
+ * above), but which ones a given scope actually publishes differs — this is
+ * the one place that says so, rather than each caller guessing a plausible
+ * fallback chain across unrelated codes.
+ *
+ * Links publish exactly these four: request rate, error ratio, retry rate
+ * and up/down. There is no per-link latency — a link's speed is the
+ * *target node's* own latency (`NODE_LATENCY_CODE`/`NODE_P99_LATENCY_CODE`).
+ */
+export const LINK_RPS_CODE = 'n';
+export const LINK_ERROR_RATE_CODE = 'f';
+export const LINK_RETRY_RPS_CODE = 'o';
+export const LINK_UP_CODE = 'h';
+/** Every code a link publishes, in the order the interactive layer's tooltip shows them. */
+export const LINK_TOOLTIP_CODES = [LINK_RPS_CODE, LINK_ERROR_RATE_CODE, LINK_RETRY_RPS_CODE] as const;
+
+/** A node's up/down flag (`n:<id>.h`; `0` = down). Same letter as `LINK_UP_CODE`. */
+export const NODE_UP_CODE = 'h';
+/** A node's mean latency (some diagrams only publish this one). */
+export const NODE_LATENCY_CODE = 'd';
+/** A node's p99 latency (some diagrams publish this instead of/alongside the mean). */
+export const NODE_P99_LATENCY_CODE = 'e';
+export const NODE_ERROR_RATE_CODE = 'f';
+/**
+ * Codes the interactive layer's node tooltip/health-chip try, in order:
+ * utilization, then whichever latency this diagram actually publishes (mean
+ * before p99), then error rate.
+ */
+export const NODE_TOOLTIP_CODES = [UTILIZATION_CODE, NODE_LATENCY_CODE, NODE_P99_LATENCY_CODE, NODE_ERROR_RATE_CODE] as const;
+
 interface MetricCodeInfo {
   /** Display label, e.g. "p99 latency" — UI text, not an engine field name. */
   label: string;

@@ -69,6 +69,9 @@ describe('StaticBlueprint', () => {
     expect(g?.querySelector('.cv-link')?.getAttribute('class')).toContain('is-async');
     expect(g?.querySelector('.cv-link')).toHaveAttribute('d', 'M0,0 L100,0');
     expect(getByText('write path')).toBeTruthy();
+    // The target node id travels onto the DOM (`data-to`): the interactive layer (T3.3)
+    // reads it to find a link's speed from its *target node's* own latency (a link has none).
+    expect(g).toHaveAttribute('data-to', 'b');
   });
 
   it('skips a spare link with no route yet', () => {

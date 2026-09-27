@@ -17,7 +17,18 @@ import { usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { WorkerBridge } from '../worker/bridge';
 import { HEALTH_CODES } from '../worker/protocol';
 import type { PlayerBootstrap, SimHealthToken } from '../types';
-import { metricCodeLabel, metricCodeUnit, UTILIZATION_CODE } from '../metricKeys';
+import {
+  metricCodeLabel,
+  metricCodeUnit,
+  UTILIZATION_CODE,
+  NODE_UP_CODE,
+  LINK_ERROR_RATE_CODE,
+  LINK_RETRY_RPS_CODE,
+  LINK_RPS_CODE,
+  LINK_TOOLTIP_CODES,
+  NODE_LATENCY_CODE,
+  NODE_TOOLTIP_CODES,
+} from '../metricKeys';
 import { buildMetricIndex, readMetric, type MetricIndex } from './metricIndex';
 import { classifyHealth, healthChipText, meterSeverity } from './health';
 import { applyNodeHealth, applyLinkHealth, setSelected, setStaticFlow } from './domHealth';
@@ -32,22 +43,10 @@ export interface InteractiveLayerProps {
   containerRef: RefObject<HTMLDivElement | null>;
 }
 
-/** Candidate metric codes, tried in order, for a quantity the engine may publish under any one of a few related codes. */
-const RPS_CODES = ['q', 'n', 'a', 'p'];
-const LATENCY_CODES = ['e', 'd', 'r'];
-const TOOLTIP_NODE_CODES = ['c', 'e', 'f'];
-const TOOLTIP_LINK_CODES = ['q', 'e', 'f'];
-
-function firstMetric(cols: MetricIndex['nodeCols'] | MetricIndex['linkCols'], metrics: Float64Array, id: string, codes: string[]): number | undefined {
-  for (const code of codes) {
-    const v = readMetric(cols, metrics, id, code);
-    if (v !== undefined) return v;
-  }
-  return undefined;
-}
-
 interface LinkEntry {
   id: string;
+  /** The link's target node id (`data-to`, from `Link.tsx`) — a link has no latency of its own; particle speed reads this node's. */
+  toNodeId: string | undefined;
   group: SVGGElement;
   path: SVGPathElement;
   length: number;
@@ -143,12 +142,12 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
       for (const [id, el] of nodeEls) {
         const row = idx.healthRow.get(id);
         const token = (row !== undefined ? HEALTH_CODES[frame.health[row]] : 'ok') as SimHealthToken;
-        const up = readMetric(idx.nodeCols, frame.metrics, id, 'h');
+        const up = readMetric(idx.nodeCols, frame.metrics, id, NODE_UP_CODE);
         const state = classifyHealth(prevHealth.get(id), token, up);
         prevHealth.set(id, state);
 
         const util = readMetric(idx.nodeCols, frame.metrics, id, UTILIZATION_CODE);
-        const chipCode = TOOLTIP_NODE_CODES.find((c) => readMetric(idx.nodeCols, frame.metrics, id, c) !== undefined);
+        const chipCode = NODE_TOOLTIP_CODES.find((c) => readMetric(idx.nodeCols, frame.metrics, id, c) !== undefined);
         const chipValue = chipCode ? readMetric(idx.nodeCols, frame.metrics, id, chipCode) : undefined;
 
         applyNodeHealth(el, {
@@ -163,7 +162,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
       }
 
       for (const [id, el] of linkEls) {
-        const errRatio = readMetric(idx.linkCols, frame.metrics, id, 'f') ?? 0;
+        const errRatio = readMetric(idx.linkCols, frame.metrics, id, LINK_ERROR_RATE_CODE) ?? 0;
         applyLinkHealth(el, { bad: errRatio >= 0.3 });
       }
 
@@ -199,7 +198,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
         } catch {
           length = 0;
         }
-        if (length > 0) links.push({ id, group, path, length, spawnAccMs: 0 });
+        if (length > 0) links.push({ id, toNodeId: group.dataset.to, group, path, length, spawnAccMs: 0 });
       }
     }
 
@@ -233,7 +232,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
       const frame = s.sim.frame;
       if (!frame || !metricIndex) return;
       for (const [id, el] of linkEls) {
-        const rps = firstMetric(metricIndex.linkCols, frame.metrics, id, RPS_CODES) ?? 0;
+        const rps = readMetric(metricIndex.linkCols, frame.metrics, id, LINK_RPS_CODE) ?? 0;
         setStaticFlow(el, rps > 0.1);
       }
     }
@@ -257,11 +256,14 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
 
       for (let li = 0; li < links.length; li++) {
         const link = links[li];
-        const rps = firstMetric(idx.linkCols, frame.metrics, link.id, RPS_CODES) ?? 0;
-        const latency = firstMetric(idx.linkCols, frame.metrics, link.id, LATENCY_CODES) ?? 120;
-        const errRps = readMetric(idx.linkCols, frame.metrics, link.id, 'f');
-        const retryRps = readMetric(idx.linkCols, frame.metrics, link.id, 'o');
-        const errRatio = rps > 0 && errRps !== undefined ? Math.min(1, errRps <= 1 ? errRps : errRps / rps) : 0;
+        const rps = readMetric(idx.linkCols, frame.metrics, link.id, LINK_RPS_CODE) ?? 0;
+        // A link has no latency of its own (see `metricKeys.ts`): particle speed
+        // reads the *target node's* own latency instead, falling back to the
+        // pool's own default only when that node doesn't publish it.
+        const latency = link.toNodeId !== undefined ? readMetric(idx.nodeCols, frame.metrics, link.toNodeId, NODE_LATENCY_CODE) : undefined;
+        // `f` is already a ratio (0..1); `o` is a rps that needs dividing by the link's own rps to become one.
+        const errRatio = readMetric(idx.linkCols, frame.metrics, link.id, LINK_ERROR_RATE_CODE) ?? 0;
+        const retryRps = readMetric(idx.linkCols, frame.metrics, link.id, LINK_RETRY_RPS_CODE);
         const retryRatio = rps > 0 && retryRps !== undefined ? Math.min(1, retryRps / rps) : 0;
         const cut = errRatio >= 0.85;
 
@@ -273,7 +275,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
             link.spawnAccMs -= intervalMs;
             const kind = pickParticleKind(Math.random(), errRatio, retryRatio);
             const kindCode = kind === 'ok' ? 0 : kind === 'retry' ? 1 : 2;
-            pool.spawn(li, kindCode, particleTravelMs(latency), cut);
+            pool.spawn(li, kindCode, particleTravelMs(latency ?? 0), cut);
           }
         }
 
@@ -394,7 +396,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
         const title = nodeGroup.querySelector('title')?.textContent ?? id;
         const lines: string[] = [];
         if (frame && metricIndex) {
-          for (const code of TOOLTIP_NODE_CODES) {
+          for (const code of NODE_TOOLTIP_CODES) {
             const v = readMetric(metricIndex.nodeCols, frame.metrics, id, code);
             if (v !== undefined) lines.push(`${metricCodeLabel(code)}: ${formatMetric(v, metricCodeUnit(code))}`);
             if (lines.length >= 3) break;
@@ -408,7 +410,7 @@ export function InteractiveLayer({ bootstrap, containerRef }: InteractiveLayerPr
         const title = label || id;
         const lines: string[] = [];
         if (frame && metricIndex) {
-          for (const code of TOOLTIP_LINK_CODES) {
+          for (const code of LINK_TOOLTIP_CODES) {
             const v = readMetric(metricIndex.linkCols, frame.metrics, id, code);
             if (v !== undefined) lines.push(`${metricCodeLabel(code)}: ${formatMetric(v, metricCodeUnit(code))}`);
             if (lines.length >= 3) break;

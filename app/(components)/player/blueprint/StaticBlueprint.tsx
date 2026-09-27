@@ -181,6 +181,7 @@ function renderLink(wire: LinkView, boardId: string, offset: XY) {
       boardId={boardId}
       id={wire.id}
       d={d}
+      toNodeId={wire.b}
       protocol={asLinkProtocol(wire.line)}
       bidirectional={!!wire.two}
       label={wire.text}

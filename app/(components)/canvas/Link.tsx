@@ -8,6 +8,14 @@ export interface LinkProps {
   /** Precomputed SVG path data (the layout algorithm, T2.1/T3.2, owns the
    * curve/port geometry — this component only draws it). */
   d: string;
+  /**
+   * The link's target node id (`data-to`). A link has no latency metric of
+   * its own (see `metricKeys.ts`'s per-scope code sets); the interactive
+   * layer's particle speed reads the *target node's* own latency instead,
+   * and needs this to find it without re-deriving the board from view data
+   * on the client.
+   */
+  toNodeId?: string;
   protocol: LinkProtocol;
   bidirectional?: boolean;
   label?: string;
@@ -43,6 +51,7 @@ export function Link({
   boardId,
   id,
   d,
+  toNodeId,
   protocol,
   bidirectional = false,
   label,
@@ -65,6 +74,7 @@ export function Link({
         'cv-linkgroup' + (dimmed ? ' is-dimmed' : '') + (selected ? ' is-selected' : '')
       }
       data-link-id={id}
+      data-to={toNodeId}
     >
       <path
         className={
