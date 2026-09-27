@@ -1,43 +1,45 @@
-import type { ReactNode } from 'react';
-import { HudTiles } from '../hud/HudTiles';
+'use client';
+
+import { useId, useMemo, useState, type ReactNode } from 'react';
+import { HudTable, HudSummary, HudTileRow, useHudReadings } from '../hud/HudTiles';
 import { PlaybackControls } from '../hud/PlaybackControls';
+import { ZoomSlotContext } from '../blueprint/zoomSlot';
 import type { GaugeView } from '../types';
 
 export interface HudStripProps {
   gauges: readonly GaugeView[];
+  /** Receives the element the board's zoom cluster renders into (see `ZoomSlotContext`). */
+  zoomHostRef?: (el: HTMLElement | null) => void;
 }
 
 /**
- * The HUD strip: a slim strip above the board, never over it — matching the
- * design spec's chrome strip. Two rows: HUD tiles on top (T3.8 fills
- * `data-hud-slot`, sized for up to 4 tiles), the Break It toolbar below
- * (`data-canvas-toolbar-slot`, T3.9's Kill/Spike/Partition/Slow/Flush
- * strip — empty here; this task only builds the labelled slot).
+ * The chrome strip above the board, never over it. One compact row: the HUD
+ * tiles (flexing, up to 4, each capped at 230px) and then the zoom cluster.
+ * The Break It toolbar slot (`data-canvas-toolbar-slot`, filled by a later
+ * task) sits in its own row underneath and takes no space while empty.
  *
- * Requirement badges do *not* render here: they're a per-requirement list
- * row (glyph, text, observed value — the data-display kit's own
- * `RequirementBadge`), sized for the left rail's "Problem" section
- * (`LeftRail.tsx`), not a slim horizontal strip — the board-fit effect
- * (`DrillStage`, off-limits here) sizes the canvas off this strip's own
- * height, so keeping it tiles-only keeps that height fixed regardless of
- * how many requirements a diagram has. Phone (where the rail doesn't
- * render) gets the same badges through the bottom sheet's Metrics tab
- * instead (`PhoneSheet.tsx`), alongside this same `<HudStrip>`.
+ * Requirement badges don't render here: they're a per-requirement list
+ * sized for the left rail (`LeftRail.tsx`), and the phone sheet's Metrics
+ * tab (`PhoneSheet.tsx`).
+ *
+ * Phone: the tiles collapse behind one summary button (the first two
+ * values); tapping it expands them into a 2×2 grid inside the strip, and
+ * the board re-fits to the space left.
  */
-export function HudStrip({ gauges }: HudStripProps) {
+export function HudStrip({ gauges, zoomHostRef }: HudStripProps) {
+  const readings = useHudReadings(gauges);
+  const [expanded, setExpanded] = useState(false);
+  const tilesId = useId();
+
   return (
-    <div className="player-hud-strip">
+    <div className="player-hud-strip" data-hud-expanded={expanded}>
       <div className="player-hud-strip-row">
-        {/* `tabIndex={0}`: this row scrolls horizontally on phone (one row of
-            tiles rather than wrapping — see the `.hud-tile` phone rule in
-            globals.css); a scrollable region must itself be reachable by
-            keyboard (axe `scrollable-region-focusable`), not just the
-            focusable buttons/links it happens to contain — a HUD tile has
-            neither, so without this the row fails that check below the
-            breakpoint where it actually overflows. */}
-        <div className="player-hud-slot" role="group" aria-label="Live metrics, last 60 seconds" data-hud-slot tabIndex={0}>
-          <HudTiles gauges={gauges} />
+        <div id={tilesId} className="player-hud-slot" role="group" aria-label="Live metrics, last 60 seconds" data-hud-slot>
+          <HudTileRow readings={readings} />
+          <HudTable readings={readings} />
         </div>
+        <HudSummary readings={readings} expanded={expanded} onToggle={() => setExpanded((v) => !v)} controls={tilesId} />
+        <div ref={zoomHostRef} className="player-zoom-slot" data-zoom-slot />
       </div>
       <div className="player-canvas-toolbar-slot" role="toolbar" aria-label="Break it tools" data-canvas-toolbar-slot />
     </div>
@@ -45,16 +47,16 @@ export function HudStrip({ gauges }: HudStripProps) {
 }
 
 export interface TimelineDockProps {
-  /** `false` for the phone sheet's own copy of this dock (`PhoneSheet.tsx`) — see `PlaybackControls`' doc comment: only one mounted instance may own the Space/`[`/`]` shortcuts. */
+  /** `false` for the phone sheet's own copy of this dock (`PhoneSheet.tsx`) — see `PlaybackControls`' doc comment: only one mounted instance may own the Space/`[`/`]`/R shortcuts. */
   registerShortcuts?: boolean;
 }
 
 /**
- * The narration + timeline dock: below the board, never
- * over it — the board shrinks and re-fits above this dock rather than being
- * covered or dimmed. T3.8 renders the free-play/scenario transport controls
- * and the scrubber into `data-timeline-slot`; story captions and checkpoint
- * decision cards render into `data-narration-slot`.
+ * The narration + transport dock: below the board, never over it — the
+ * board shrinks and re-fits above this dock rather than being covered or
+ * dimmed. One 40px transport row; the narration slot above it
+ * (`data-narration-slot`, for story captions and checkpoint cards) takes
+ * no space while empty.
  */
 export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {}) {
   return (
@@ -68,17 +70,21 @@ export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {
 }
 
 /**
- * The canvas frame (T3.16 scope item 5, "Timeline/HUD frame"): wraps the
- * board (`children`, i.e. `DrilldownBlueprint` + its `InteractiveLayer`
- * overlay) between the HUD strip above and the narration/timeline dock
- * below — nothing floats over the diagram; the two chrome
- * regions sit outside the board's own box instead.
+ * The canvas frame: wraps the board (`children`, i.e. `DrilldownBlueprint`
+ * + its `InteractiveLayer` overlay) between the chrome strip above and the
+ * narration/transport dock below — nothing floats over the diagram. The
+ * board's zoom cluster is portalled up into the strip through
+ * `ZoomSlotContext`.
  */
-export function HudTimelineFrame({ gauges, children }: HudStripProps & { children: ReactNode }) {
+export function HudTimelineFrame({ gauges, children }: { gauges: readonly GaugeView[]; children: ReactNode }) {
+  const [zoomHost, setZoomHost] = useState<HTMLElement | null>(null);
+  const zoomSlot = useMemo(() => ({ host: zoomHost }), [zoomHost]);
   return (
     <div className="player-canvas-area">
-      <HudStrip gauges={gauges} />
-      <div className="player-board-wrap">{children}</div>
+      <HudStrip gauges={gauges} zoomHostRef={setZoomHost} />
+      <ZoomSlotContext.Provider value={zoomSlot}>
+        <div className="player-board-wrap">{children}</div>
+      </ZoomSlotContext.Provider>
       <TimelineDock />
     </div>
   );

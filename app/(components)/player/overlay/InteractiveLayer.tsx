@@ -30,6 +30,8 @@ import {
   LINK_TOOLTIP_CODES,
   NODE_LATENCY_CODE,
   NODE_TOOLTIP_CODES,
+  NODE_ERROR_RATE_CODE,
+  NODE_P99_LATENCY_CODE,
 } from '../metricKeys';
 import { buildMetricIndex, readMetric, type MetricIndex } from './metricIndex';
 import { classifyHealth, healthChipText, meterSeverity } from './health';
@@ -211,8 +213,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         const state = classifyHealth(prevHealth.get(id), token, up);
         prevHealth.set(id, state);
 
-        const chipCode = NODE_TOOLTIP_CODES.find((c) => readMetric(idx.nodeCols, frame.metrics, id, c) !== undefined);
-        const chipValue = chipCode ? readMetric(idx.nodeCols, frame.metrics, id, chipCode) : undefined;
+        const chipText = healthChipText(state, {
+          util: readMetric(idx.nodeCols, frame.metrics, id, UTILIZATION_CODE),
+          err: readMetric(idx.nodeCols, frame.metrics, id, NODE_ERROR_RATE_CODE),
+          p99: readMetric(idx.nodeCols, frame.metrics, id, NODE_P99_LATENCY_CODE),
+        });
 
         const meterKind = (el.dataset.meterKind as NodeMeterKind | undefined) ?? undefined;
         const childIds = el.dataset.childIds;
@@ -225,7 +230,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         applyNodeHealth(el, {
           state,
           pulsing: state === 'critical',
-          chipText: chipCode ? healthChipText(state, metricCodeLabel(chipCode), chipValue, metricCodeUnit(chipCode)) : undefined,
+          chipText,
           meter,
         });
       }

@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 /**
  * T3.8: HUD tiles, requirement badges and playback controls, against the
@@ -80,7 +81,10 @@ test.describe('/solutions/url-shortener HUD + timeline', () => {
     const transport = page.locator('.player-canvas-area .player-timeline-slot');
     await page.locator('.player-board-wrap').click();
     await page.keyboard.press(']');
-    await expect(transport.getByText('2×', { exact: true })).toBeVisible();
+    // The clock readout carries a non-1× speed ("running 00:04 · 2×") at
+    // every width; the speed button itself is desktop/tablet-only.
+    await expect(transport.locator('.player-tl-run')).toContainText('· 2×');
+    if ((page.viewportSize()?.width ?? 0) >= 640) await expect(transport.getByText('2×', { exact: true })).toBeVisible();
   });
 
   test('requirement badges render (in the rail) with accessible pass/fail text, not color alone', async ({ page }) => {
@@ -122,4 +126,145 @@ test.describe('/solutions/url-shortener HUD + timeline', () => {
     await expect(sheetTiles).toHaveCount(4);
     await expect(page.locator('[role="dialog"] .hud-req-badges > *').first()).toBeVisible();
   });
+});
+
+/** Number of points in a sparkline's line path (one `M`/`L` command per point). */
+async function sparkPointCount(page: Page, tileIndex: number): Promise<number> {
+  const d = await page
+    .locator('.player-canvas-area .hud-tile')
+    .nth(tileIndex)
+    .locator('svg[role="img"] path[fill="none"]')
+    .first()
+    .getAttribute('d');
+  return (d?.match(/[ML]/g) ?? []).length;
+}
+
+/**
+ * HUDFIX: the chrome strip above the board is one compact row (HUD tiles,
+ * then the zoom cluster), nothing floats over the diagram, and the height
+ * the old two-row strip and the empty narration band used is the board's.
+ */
+test.describe('/solutions/url-shortener chrome strip + dock layout (1440x900)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  /** `.player-board-wrap` height at 1440x900 before this layout (app v3 at 8d5d23a): 577.4px. */
+  const BOARD_HEIGHT_BEFORE = 577.4;
+
+  test('the zoom cluster sits inside the strip and never overlaps the board', async ({ page }) => {
+    await waitForReady(page);
+    const strip = (await page.locator('.player-canvas-area .player-hud-strip').boundingBox())!;
+    const zoom = page.locator('.player-hud-strip .player-zoom-controls');
+    await expect(zoom).toBeVisible();
+    await expect(page.locator('.player-board-wrap .player-zoom-controls')).toHaveCount(0);
+    const z = (await zoom.boundingBox())!;
+    const board = (await page.locator('.player-board-wrap').boundingBox())!;
+    expect(z.y).toBeGreaterThanOrEqual(strip.y);
+    expect(z.y + z.height).toBeLessThanOrEqual(strip.y + strip.height);
+    expect(z.y + z.height, 'zoom cluster must end above the board').toBeLessThanOrEqual(board.y);
+    for (const name of ['Zoom in', 'Zoom out', 'Fit to view']) {
+      await expect(zoom.getByRole('button', { name })).toBeVisible();
+    }
+  });
+
+  test('HUD tiles are compact (<= 48px tall) and the strip is one row', async ({ page }) => {
+    await waitForReady(page);
+    const tiles = page.locator('.player-canvas-area .hud-tile');
+    await expect(tiles).toHaveCount(4, { timeout: READY_TIMEOUT });
+    const tops = new Set<number>();
+    for (let i = 0; i < 4; i++) {
+      const box = (await tiles.nth(i).boundingBox())!;
+      expect(box.height, `tile ${i} height`).toBeLessThanOrEqual(48);
+      expect(box.width, `tile ${i} width`).toBeLessThanOrEqual(230.5);
+      tops.add(Math.round(box.y));
+    }
+    expect(tops.size, 'all four tiles on one row').toBe(1);
+    // No per-tile table link; one table for the whole HUD, for assistive tech.
+    await expect(page.locator('.player-canvas-area .hud-tile').getByText('View as table')).toHaveCount(0);
+    await expect(page.locator('.player-hud-slot table caption')).toHaveText('Live metrics, last 60 seconds');
+    const strip = (await page.locator('.player-canvas-area .player-hud-strip').boundingBox())!;
+    expect(strip.height).toBeLessThanOrEqual(66);
+  });
+
+  test('sparklines draw from the live history (>= 2 points after 3s of sim)', async ({ page }) => {
+    await waitForReady(page);
+    await page.waitForTimeout(3000);
+    for (let i = 0; i < 4; i++) {
+      expect(await sparkPointCount(page, i), `tile ${i} sparkline points`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test('no requirement row in the rail has a line that is only a dash', async ({ page }) => {
+    await waitForReady(page);
+    const rows = page.locator('.player-rail .hud-req-badges > *');
+    await expect(rows.first()).toBeVisible();
+    const lines = await rows.evaluateAll((els) => els.flatMap((el) => (el as HTMLElement).innerText.split('\n').map((l) => l.trim())));
+    expect(lines.filter((l) => /^[-–—]$/.test(l))).toEqual([]);
+  });
+
+  test('the board is taller than before (strip and dock sized to their content)', async ({ page }) => {
+    await waitForReady(page);
+    const board = (await page.locator('.player-board-wrap').boundingBox())!;
+    const dock = (await page.locator('.player-canvas-area .player-timeline-dock').boundingBox())!;
+    expect(dock.height, 'dock is one transport row').toBeLessThanOrEqual(60);
+    expect(board.height, `board height (was ${BOARD_HEIGHT_BEFORE}px)`).toBeGreaterThan(BOARD_HEIGHT_BEFORE + 100);
+  });
+
+  test('the transport row reads LIVE with the running clock, and Reset (R) is at its far end', async ({ page }) => {
+    await waitForReady(page);
+    const row = page.locator('.player-canvas-area .player-timeline-slot');
+    await expect(row.locator('.player-tl-live')).toContainText(/LIVE\s*running \d\d:\d\d/);
+    const reset = row.getByRole('button', { name: 'Reset (R)' });
+    await expect(reset).toBeVisible();
+    const rowBox = (await row.boundingBox())!;
+    const resetBox = (await reset.boundingBox())!;
+    expect(rowBox.x + rowBox.width - (resetBox.x + resetBox.width)).toBeLessThanOrEqual(2);
+  });
+});
+
+test.describe('/solutions/url-shortener phone HUD summary', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('one summary button expands the tiles into a 2x2 grid and the board re-fits', async ({ page }) => {
+    await waitForReady(page);
+    const summary = page.locator('.player-canvas-area .player-hud-summary');
+    await expect(summary).toBeVisible();
+    await expect(summary).toHaveAttribute('aria-expanded', 'false');
+    await expect(summary).toContainText(/p99 .* ms/);
+    await expect(page.locator('.player-canvas-area .hud-tile').first()).toBeHidden();
+    const boardBefore = (await page.locator('.player-board-wrap').boundingBox())!;
+
+    await summary.click();
+    await expect(summary).toHaveAttribute('aria-expanded', 'true');
+    const tiles = page.locator('.player-canvas-area .hud-tile');
+    await expect(tiles.first()).toBeVisible();
+    const boxes = await Promise.all([0, 1, 2, 3].map(async (i) => (await tiles.nth(i).boundingBox())!));
+    expect(Math.round(boxes[0].y)).toBe(Math.round(boxes[1].y));
+    expect(Math.round(boxes[2].y)).toBe(Math.round(boxes[3].y));
+    expect(boxes[2].y).toBeGreaterThan(boxes[0].y);
+    await expect
+      .poll(async () => (await page.locator('.player-board-wrap').boundingBox())?.height ?? 0)
+      .toBeLessThan(boardBefore.height - 40);
+  });
+});
+
+/** axe, every rule (not just serious/critical), at the three reference viewports in both themes, after the sim has run. */
+test.describe('/solutions/url-shortener player axe (light + dark)', () => {
+  for (const scheme of ['light', 'dark'] as const) {
+    for (const [name, viewport] of [
+      ['1440', { width: 1440, height: 900 }],
+      ['834', { width: 834, height: 1112 }],
+      ['390', { width: 390, height: 844 }],
+    ] as const) {
+      test(`0 axe violations at ${name}, ${scheme}`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.setViewportSize(viewport);
+        await waitForReady(page);
+        await expect(page.locator('html')).toHaveAttribute('data-theme', scheme);
+        await page.waitForTimeout(3000);
+        const results = await new AxeBuilder({ page }).analyze();
+        if (results.violations.length > 0) console.log(name, scheme, JSON.stringify(results.violations, null, 2));
+        expect(results.violations).toEqual([]);
+      });
+    }
+  }
 });

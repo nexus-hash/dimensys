@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { enterSubsystem, exitSubsystem } from '../store/playerStore';
 import { useShortcut, useShortcutScope } from '@/app/(components)/command';
@@ -20,6 +21,7 @@ import {
 } from './camera';
 import type { Camera } from './camera';
 import { ZoomControls } from './ZoomControls';
+import { useZoomSlot } from './zoomSlot';
 import type { XY } from '../types';
 
 export interface DrillStageProps {
@@ -79,6 +81,11 @@ function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
  * board-fit effect this replaces. Once false, the camera holds until the
  * user hits Fit (`0`, or the zoom cluster's Fit button), which re-fits and
  * flips `tracking` back to true.
+ *
+ * The zoom cluster itself renders into the chrome strip above the board
+ * when the player shell provides one (`ZoomSlotContext`), never over the
+ * board; a bare embed board keeps it inside its own box, and a
+ * non-interactive (hero preview) board renders none.
  */
 export function DrillStage({ rootLabel, labelsById, boardSizes, className, interactive = true, children }: DrillStageProps) {
   const drill = usePlayerStore((s) => s.drill);
@@ -512,6 +519,19 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
   const canZoomIn = readout.percent < Math.round(4 * 100) - 1;
   const canZoomOut = readout.percent > Math.round(Math.min(readout.fitScale, 0.25) * 100) + 1;
 
+  const zoomSlot = useZoomSlot();
+  const zoomControls = (placement: 'strip' | 'overlay') => (
+    <ZoomControls
+      placement={placement}
+      percent={readout.percent}
+      canZoomIn={canZoomIn}
+      canZoomOut={canZoomOut}
+      onZoomIn={() => zoomStep(ZOOM_STEP)}
+      onZoomOut={() => zoomStep(1 / ZOOM_STEP)}
+      onFit={fitActive}
+    />
+  );
+
   return (
     <div className={['player-drill-root', className].filter(Boolean).join(' ')}>
       <div
@@ -525,14 +545,7 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
       {interactive && (
         <>
           <div ref={liveRef} aria-live="polite" role="status" className="sr-only" />
-          <ZoomControls
-            percent={readout.percent}
-            canZoomIn={canZoomIn}
-            canZoomOut={canZoomOut}
-            onZoomIn={() => zoomStep(ZOOM_STEP)}
-            onZoomOut={() => zoomStep(1 / ZOOM_STEP)}
-            onFit={fitActive}
-          />
+          {zoomSlot === null ? zoomControls('overlay') : zoomSlot.host ? createPortal(zoomControls('strip'), zoomSlot.host) : null}
         </>
       )}
     </div>

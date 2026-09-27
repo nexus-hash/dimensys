@@ -26,6 +26,8 @@ export interface PlaybackCommands {
   togglePlay(): void;
   cycleSpeed(dir: 1 | -1): void;
   seek(t: number): void;
+  /** Back to the start state (the run's history and baseline start over too). */
+  reset(): void;
 }
 
 export function usePlaybackCommands(): PlaybackCommands {
@@ -66,5 +68,9 @@ export function usePlaybackCommands(): PlaybackCommands {
     [store],
   );
 
-  return { playing, speed, status, t, duration, togglePlay, cycleSpeed, seek };
+  const reset = useCallback(() => {
+    getBridge(store)?.reset();
+  }, [store]);
+
+  return { playing, speed, status, t, duration, togglePlay, cycleSpeed, seek, reset };
 }

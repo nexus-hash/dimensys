@@ -288,8 +288,7 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
    * An empty point inside the actual pan/zoom surface (`.player-drill-stage`,
    * `.player-board-wrap` *inset by its own 24px padding* — landing in that
    * padding hits the wrap's own background, not the stage, and nothing
-   * happens), away from the top-left corner (never covered by chrome) and
-   * clear of the zoom cluster parked bottom-right.
+   * happens), away from the top-left corner.
    */
   async function emptyCanvasPoint(page: Page): Promise<{ x: number; y: number }> {
     const wrap = (await page.locator('.player-board-wrap').boundingBox())!;
@@ -430,14 +429,15 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
   test('+/-/0 keyboard shortcuts zoom and fit', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await settle(page);
-    const readout = page.locator('.player-zoom-readout');
-    const initial = await readout.textContent();
+    // The zoom group carries the current level (its accessible name and `data-zoom-percent`).
+    const zoom = page.getByRole('group', { name: /^Zoom/ });
+    const initial = await zoom.getAttribute('data-zoom-percent');
     await page.keyboard.press('+');
     await settle(page);
-    expect(await readout.textContent()).not.toBe(initial);
+    expect(await zoom.getAttribute('data-zoom-percent')).not.toBe(initial);
     await page.keyboard.press('0');
     await settle(page);
-    expect(await readout.textContent()).toBe(initial);
+    expect(await zoom.getAttribute('data-zoom-percent')).toBe(initial);
   });
 
   test('pan is clamped: the board can never be dragged entirely offscreen, and Fit always recovers', async ({ page }) => {

@@ -13,9 +13,9 @@
  *
  * SPEC GAP: `RequirementBadge`'s `observed` line (e.g. "p99 42 ms") has
  * nothing to read from yet — `FrameMsg.watches` is a bare `[id, pass]`
- * pair, no accompanying metric value/label. Left blank (the component's own
- * em-dash fallback) until the worker protocol carries one; reported here
- * rather than guessing which raw metric backs a given watch id.
+ * pair, no accompanying metric value/label. Left out (the badge renders
+ * no second line at all) until the worker protocol carries one; reported
+ * here rather than guessing which raw metric backs a given watch id.
  */
 import { useEffect, useRef, useState } from 'react';
 import { RequirementBadge } from '@/app/(components)/data';

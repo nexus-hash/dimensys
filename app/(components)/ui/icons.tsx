@@ -54,6 +54,16 @@ export function PlayIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Reset (timeline transport): back to the start state. */
+export function ResetIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+    </Base>
+  );
+}
+
 /** Pause (timeline transport). */
 export function PauseIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -73,7 +83,7 @@ export function InfoIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Left-rail toggle (prototype `data-rail-tg`). */
+/** Left-rail toggle. */
 export function PanelLeftIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>
@@ -83,7 +93,7 @@ export function PanelLeftIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Share affordance placeholder (prototype `data-share`). */
+/** Share affordance placeholder. */
 export function ShareIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>
@@ -95,7 +105,7 @@ export function ShareIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Settings / "more" affordance placeholder (prototype `data-more`). */
+/** Settings / "more" affordance placeholder. */
 export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>
@@ -105,29 +115,25 @@ export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Zoom in (prototype `data-ic="plus"`, the player's zoom control cluster). */
+/** Zoom in: a plain plus (the player's zoom cluster). */
 export function ZoomInIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>
-      <circle cx="11" cy="11" r="7" />
-      <path d="M11 8v6M8 11h6" />
-      <path d="m20 20-3.2-3.2" />
+      <path d="M12 5v14M5 12h14" />
     </Base>
   );
 }
 
-/** Zoom out (prototype `data-ic="minus"`). */
+/** Zoom out: a plain minus. */
 export function ZoomOutIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>
-      <circle cx="11" cy="11" r="7" />
-      <path d="M8 11h6" />
-      <path d="m20 20-3.2-3.2" />
+      <path d="M5 12h14" />
     </Base>
   );
 }
 
-/** Fit to view (prototype `data-ic="fit"`). */
+/** Fit to view. */
 export function FitIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>

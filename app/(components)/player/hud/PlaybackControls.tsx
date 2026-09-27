@@ -1,13 +1,15 @@
 'use client';
 
 /**
- * Playback controls (T3.8): play/pause, a speed cycle button
- * (0.5×/1×/2×/4×) and — scenario mode only — a scrubber
- * with the sim clock. Free play has no end and no scrubber; its own clock
- * still shows, just without a track.
+ * Playback controls (T3.8): one 40px transport row — play/pause, a speed
+ * cycle button (0.5×/1×/2×/4×), the clock, and Reset at the far end.
+ * Free play has no end and no scrubber: its clock reads "LIVE running
+ * 00:10" beside a live dot, with a muted note that the numbers are computed
+ * every tick. Scenario mode swaps that readout for a scrubber and
+ * "00:32 / 01:30".
  *
  * `registerShortcuts`: the timeline dock's own instance (in
- * `HudTimelineFrame`) is always mounted, so it owns Space/`[`/`]` — the
+ * `HudTimelineFrame`) is always mounted, so it owns Space/`[`/`]`/R — the
  * phone sheet's Metrics tab reuses this same component (via `TimelineDock`)
  * but must not register the same shortcut ids a second time (both instances
  * are mounted simultaneously; only CSS/tab visibility differs). This is
@@ -22,7 +24,7 @@
  * singular.
  */
 import { useShortcut } from '@/app/(components)/command';
-import { Button, Slider, PlayIcon, PauseIcon } from '@/app/(components)/ui';
+import { IconButton, Slider, PlayIcon, PauseIcon, ResetIcon } from '@/app/(components)/ui';
 import { fmtSimTime } from '../metrics/simTime';
 import { usePlaybackCommands } from '../metrics/usePlaybackCommands';
 
@@ -31,7 +33,7 @@ export interface PlaybackControlsProps {
 }
 
 export function PlaybackControls({ registerShortcuts = true }: PlaybackControlsProps) {
-  const { playing, speed, status, t, duration, togglePlay, cycleSpeed, seek } = usePlaybackCommands();
+  const { playing, speed, status, t, duration, togglePlay, cycleSpeed, seek, reset } = usePlaybackCommands();
   const disabled = status !== 'ready';
 
   useShortcut(
@@ -61,29 +63,36 @@ export function PlaybackControls({ registerShortcuts = true }: PlaybackControlsP
     },
     registerShortcuts,
   );
+  useShortcut(
+    { id: 'player:reset', keys: 'r', label: 'Reset', group: 'Player', when: 'player' },
+    (event) => {
+      if (disabled) return;
+      event.preventDefault();
+      reset();
+    },
+    registerShortcuts,
+  );
 
   return (
     <>
-      <Button
-        variant="glass"
+      <IconButton
         size="sm"
-        iconOnly
+        className="player-tl-btn"
         aria-label={playing ? 'Pause (Space)' : 'Play (Space)'}
         disabled={disabled}
         onClick={togglePlay}
       >
         {playing ? <PauseIcon /> : <PlayIcon />}
-      </Button>
-      <Button
-        variant="glass"
-        size="sm"
+      </IconButton>
+      <button
+        type="button"
+        className="player-tl-speed"
         disabled={disabled}
         onClick={() => cycleSpeed(1)}
         aria-label={`Speed ${speed}×. Press to cycle ([ and ] also work)`}
-        className="font-mono tabular-nums"
       >
         {speed}×
-      </Button>
+      </button>
       {duration !== null ? (
         <div className="player-scrubber" role="group" aria-label="Scenario timeline">
           <Slider
@@ -96,16 +105,24 @@ export function PlaybackControls({ registerShortcuts = true }: PlaybackControlsP
             aria-label="Scrub"
             className="player-scrubber-slider"
           />
-          <span className="player-time font-mono tabular-nums">
+          <span className="player-time">
             {fmtSimTime(t)} <span className="player-time-total">/ {fmtSimTime(duration)}</span>
           </span>
         </div>
       ) : (
-        <span className="player-time font-mono tabular-nums" aria-live="off">
-          {playing ? 'running' : 'paused'} {fmtSimTime(t)}
-          {speed !== 1 ? ` · ${speed}×` : ''}
-        </span>
+        <div className="player-tl-live" data-playing={playing}>
+          <span className="player-live-dot" aria-hidden="true" />
+          <b>LIVE</b>
+          <span className="player-tl-run">
+            {playing ? 'running' : 'paused at'} {fmtSimTime(t)}
+            {speed !== 1 ? ` · ${speed}×` : ''}
+          </span>
+          <span className="player-tl-note">computed every tick · charts show the last 60 s</span>
+        </div>
       )}
+      <IconButton size="sm" className="player-tl-btn player-tl-reset" aria-label="Reset (R)" disabled={disabled} onClick={reset}>
+        <ResetIcon />
+      </IconButton>
     </>
   );
 }

@@ -20,6 +20,7 @@
  */
 import type { HealthState } from '@/app/(components)/canvas';
 import type { SimHealthToken } from '../types';
+import { criticalThresholdOf, formatMetricValue, severityOf, type ThresholdMetricKind } from '@/app/(components)/data';
 
 /** Severity ordering used to detect "was worse, now better". */
 const SEVERITY: Readonly<Record<HealthState, number>> = {
@@ -88,9 +89,44 @@ export function healthGlyphMarkup(state: HealthState): string {
   }
 }
 
-/** Human chip text for a node's health, e.g. "p99 640 ms" — pass whichever live metric best explains the state. */
-export function healthChipText(state: HealthState, metricLabel: string | undefined, value: number | undefined, unit: string): string | undefined {
-  if (state === 'ok' || value === undefined || Number.isNaN(value)) return undefined;
-  const formatted = Number.isInteger(value) ? String(value) : value.toFixed(unit === 'ratio' ? 2 : 1);
-  return metricLabel ? `${metricLabel} ${formatted}${unit && unit !== 'ratio' ? ` ${unit}` : ''}` : formatted;
+/** A node's live readings the health chip can explain a state with; any may be missing (not every node publishes every metric). */
+export interface NodeHealthReadings {
+  /** Utilization, 0..1+. */
+  util?: number;
+  /** Error ratio, 0..1. */
+  err?: number;
+  /** p99 latency, ms. */
+  p99?: number;
+}
+
+const CHIP_KINDS = ['err', 'util', 'p99'] as const satisfies readonly ThresholdMetricKind[];
+
+function chipLabel(kind: (typeof CHIP_KINDS)[number], v: number): string {
+  if (kind === 'util') return `util ${formatMetricValue(v, '%', 0)}%`;
+  if (kind === 'err') return `err ${formatMetricValue(v, '%', v < 0.1 ? 1 : 0)}%`;
+  return `p99 ${formatMetricValue(v, 'ms')} ms`;
+}
+
+/**
+ * The mono chip under a node that isn't healthy, e.g. "p99 640 ms". It names
+ * the metric that actually crossed the display thresholds (the same
+ * warn/critical table the HUD tiles use) — the worst severity first, and
+ * among equals the one closest to its critical limit — rather than
+ * whichever metric the node happens to publish first. A node reported
+ * warn/critical with no reading over a threshold gets no chip (the ring and
+ * glyph still show); a down node reads "DOWN".
+ */
+export function healthChipText(state: HealthState, readings: NodeHealthReadings): string | undefined {
+  if (state === 'ok') return undefined;
+  if (state === 'down') return 'DOWN';
+  let best: { kind: (typeof CHIP_KINDS)[number]; v: number; sev: number; ratio: number } | undefined;
+  for (const kind of CHIP_KINDS) {
+    const v = readings[kind];
+    if (v === undefined || !Number.isFinite(v)) continue;
+    const sev = severityOf(kind, v);
+    if (!sev) continue;
+    const ratio = v / criticalThresholdOf(kind);
+    if (!best || sev > best.sev || (sev === best.sev && ratio > best.ratio)) best = { kind, v, sev, ratio };
+  }
+  return best ? chipLabel(best.kind, best.v) : undefined;
 }

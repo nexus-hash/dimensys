@@ -53,17 +53,27 @@ describe('meterSeverity', () => {
 });
 
 describe('healthChipText', () => {
-  it('is undefined for a healthy state or a missing value', () => {
-    expect(healthChipText('ok', 'p99 latency', 640, 'ms')).toBeUndefined();
-    expect(healthChipText('warn', 'p99 latency', undefined, 'ms')).toBeUndefined();
+  it('is undefined for a healthy state', () => {
+    expect(healthChipText('ok', { p99: 640 })).toBeUndefined();
   });
 
-  it('formats a labeled metric with its unit', () => {
-    expect(healthChipText('warn', 'p99 latency', 640, 'ms')).toBe('p99 latency 640 ms');
+  it('names the metric that crossed a threshold, not the first one published', () => {
+    // Warm-up case: utilization under its warn line, p99 over it.
+    expect(healthChipText('warn', { util: 0.66, p99: 835 })).toBe('p99 835 ms');
   });
 
-  it('omits the unit for a ratio', () => {
-    expect(healthChipText('critical', 'error rate', 0.4321, 'ratio')).toBe('error rate 0.43');
+  it('picks the worst severity, then the one closest to its critical limit', () => {
+    expect(healthChipText('critical', { util: 0.95, err: 0.02, p99: 600 })).toBe('util 95%');
+    expect(healthChipText('warn', { util: 0.75, p99: 1900 })).toBe('p99 1,900 ms');
+    expect(healthChipText('critical', { err: 0.38 })).toBe('err 38%');
+  });
+
+  it('shows no chip when nothing crosses a display threshold', () => {
+    expect(healthChipText('warn', { util: 0.66, p99: 400 })).toBeUndefined();
+  });
+
+  it('reads DOWN for a down node', () => {
+    expect(healthChipText('down', {})).toBe('DOWN');
   });
 });
 

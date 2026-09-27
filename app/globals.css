@@ -717,8 +717,8 @@
 /* `--surface-canvas` + a 24px dot grid — the diagram canvas's own background,
    painted by whatever wrapper owns the *free area* the board sits in, not by
    the board itself (`app/(components)/canvas/Board.tsx` paints no background
-   of its own; see its own comment). Matches the prototype's `.board` token
-   and grid spacing exactly. `.player-board-wrap` below applies it to the
+   of its own; see its own comment). Matches the design's board token and grid
+   spacing exactly. `.player-board-wrap` below applies it to the
    player shell's free area, full bleed; any standalone caller (a dev page,
    the homepage embed/hero) applies this same class to its own board
    wrapper instead of relying on the board to paint it. */
@@ -756,11 +756,8 @@
 
 /* ============================================================================
  * Player shell (T3.16): top bar, left rail, canvas frame, right inspector,
- * and the HUD/timeline slots around the board. Structure and breakpoints
- * mirror the prototype's `.player`/`.ptop`/`.pbody`/`.rail`/`.canvas-area`/
- * `.insp` (translated from its `@container app` queries to plain viewport
- * media queries — this app has no fixed-size preview frame to contain
- * against, the viewport itself is the container). Nothing overlaps the
+ * and the HUD/timeline slots around the board. Breakpoints are plain
+ * viewport media queries. Nothing overlaps the
  * diagram, which is why the HUD strip sits above the board and the
  * narration/timeline dock sits below it, both inside `.player-canvas-area`,
  * instead of floating over it.
@@ -795,7 +792,7 @@
   position: relative;
 }
 /* Collapsing a column reclaims its space for the canvas (matches the
-   prototype's `.pbody.no-rail`/`.no-insp`/`.no-rail.no-insp`) rather than
+   design's collapsed-rail / closed-inspector layouts) rather than
    just hiding its content — desktop only (≥1024px; `min-width` here, not
    `max-width`, so it can't win a specificity fight with the tablet/phone
    `@media (max-width: 1023px)` block below, which resets
@@ -833,9 +830,13 @@
 }
 .player-body[data-inspector-open="false"] .player-inspector { visibility: hidden; }
 
-/* HUD strip: above the board, never over it. Sized for up to 4 stat tiles (T3.8).
-   Two rows, matching the prototype's `.cstrip`: HUD (+ zoom, later) on top,
-   the Break It toolbar (T3.9) in its own row below. */
+/* Chrome strip: above the board, never over it. One compact row — HUD
+   tiles (flex, each capped at 230px) then the zoom cluster — sized to its
+   content, so every pixel it doesn't need goes to the board. The Break It
+   toolbar row below it collapses while empty. A container query (the
+   strip's own width, which the rail/inspector columns change) drops the
+   tiles into a 2×2 grid rather than squeezing four of them until their
+   text overflows. */
 .player-hud-strip {
   flex: none;
   display: flex;
@@ -843,30 +844,56 @@
   gap: 6px;
   padding: 8px 10px;
   border-bottom: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-page);
   min-width: 0;
+  container-type: inline-size;
 }
-.player-hud-strip-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.player-hud-slot { display: flex; gap: 6px; flex: 1; min-width: 0; min-height: 56px; }
-.player-canvas-toolbar-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 32px; }
+.player-hud-strip-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.player-hud-slot { display: flex; gap: 6px; flex: 1; min-width: 0; }
+.player-hud-slot:empty { display: none; }
+.player-canvas-toolbar-slot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.player-canvas-toolbar-slot:empty { display: none; }
+.hud-tile { flex: 1 1 0; min-width: 0; }
+@container (max-width: 760px) {
+  .player-hud-slot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .player-hud-slot .hud-tile { max-width: none; }
+}
 
-/* HUD tiles (T3.8): each tile is the data-display kit's own `StatTile`
-   (`app/(components)/data`, DS6, all Tailwind) — this row just lays out up
-   to 4 of them; the tiles bring their own look. */
-.hud-tile { flex: 1 1 0; min-width: 0; max-width: 230px; }
+/* Phone summary button (hidden above the phone breakpoint, see below). */
+.player-hud-summary { display: none; }
+
+/* The zoom cluster: a bordered row of 30px icon buttons at the end of the
+   strip row. Its host keeps the cluster's width reserved before the board's
+   client code fills it, so the tiles don't shift when it arrives. */
+.player-zoom-slot { flex: none; display: flex; min-width: 100px; justify-content: flex-end; }
+.player-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line-hairline);
+}
+/* The kit's icon-only `sm` size sets a width but no height; the cluster's
+   buttons are 30px squares. */
+.player-zoom-controls button { width: 30px; height: 30px; }
+/* A bare embed/hero board has no strip: the cluster sits in the board's own
+   bottom-right corner there. `.player-drill-root` is `display: contents`,
+   so this positions against the board's wrapper. */
+.player-zoom-controls.is-overlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: var(--z-index-chrome);
+}
+
+/* Phone Metrics tab: the same tiles, 2×2. */
+.player-sheet-hud { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+.player-sheet-hud .hud-tile { max-width: none; }
 
 /* Requirement badges (T3.8): the data-display kit's own `RequirementBadge`
-   (list row: glyph, requirement text, observed value), a flex-wrapping
-   column under the HUD tiles — reused verbatim in the phone Metrics tab
-   (`HudStrip` renders both places). */
-.hud-req-badges { display: flex; flex-direction: column; gap: 8px; }
-
-/* Playback controls (T3.8): play/pause + speed sit in the timeline
-   slot's own flex row (`.player-timeline-slot`, globals.css above); the
-   scrubber/time readout fills the remaining width. */
-.player-scrubber { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-.player-scrubber-slider { flex: 1; min-width: 0; }
-.player-time { font: 500 12px var(--font-mono); color: var(--color-ink-secondary); white-space: nowrap; }
-.player-time-total { color: var(--color-ink-muted); }
+   rows, stacked — in the left rail and the phone Metrics tab. */
+.hud-req-badges { display: flex; flex-direction: column; gap: 10px; }
 
 /* 24px inner padding (T3.16 board-fit follow-up): without it the board sits
    flush against the rail's border and the far viewport edge whenever it's
@@ -891,50 +918,73 @@
   touch-action: none;
 }
 
-/* Narration + timeline: below the board, never over it. The board
-   shrinks and re-fits above this dock; it is never covered or dimmed. */
+/* Narration + transport dock: below the board, never over it. The board
+   shrinks and re-fits above this dock; it is never covered or dimmed. The
+   narration slot takes no space while empty, leaving one 40px transport
+   row. */
 .player-timeline-dock {
-  flex: 0 1 auto;
+  flex: none;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 8px 12px 10px;
   border-top: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-page);
 }
-.player-narration-slot { min-height: 56px; }
-.player-timeline-slot { min-height: 40px; display: flex; align-items: center; gap: 6px; }
-
-/* The zoom cluster (BG part 2b): floats bottom-right of the free area
-   itself — `.player-drill-root` is `display: contents` (see above), so this
-   positions against `.player-board-wrap` (its nearest positioned ancestor),
-   matching the prototype's `.zoomctl` placement, independent of the
-   board/camera underneath it. Plain `12px` inset here, *not*
-   `--player-sheet-peek` — that custom property is set inline on
-   `.player-shell` unconditionally (every breakpoint), not just phone (see
-   `PlayerShell`'s own comment), so reading it here would have quietly
-   offset the cluster upward on desktop/tablet too, by whatever the current
-   snap height happens to compute to, even though the sheet itself doesn't
-   exist there. Cleared on phone instead, below. */
-.player-zoom-controls {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: var(--z-index-chrome);
+.player-narration-slot:empty { display: none; }
+.player-timeline-slot { height: 40px; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.player-tl-btn { width: 32px; height: 32px; flex: none; }
+.player-tl-reset { margin-left: auto; }
+.player-tl-speed {
+  flex: none;
+  height: 28px;
+  min-width: 40px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--color-line-hairline);
+  font: 600 12px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-secondary);
+  transition: color var(--transition-duration-micro), border-color var(--transition-duration-micro);
+}
+.player-tl-speed:hover { color: var(--color-ink-primary); border-color: var(--color-line-strong); }
+.player-tl-speed:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.player-tl-speed:disabled { opacity: .45; }
+.player-tl-live {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--color-line-hairline);
-}
-.player-zoom-readout {
-  min-width: 40px;
-  padding: 0 4px;
-  text-align: center;
+  gap: 8px;
+  padding: 0 6px;
   font: 500 12px var(--font-mono);
   color: var(--color-ink-secondary);
+  white-space: nowrap;
+  overflow: hidden;
 }
+.player-tl-live b { color: var(--color-ink-primary); font-weight: 600; letter-spacing: .04em; }
+.player-tl-run { font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.player-tl-note { color: var(--color-ink-muted); overflow: hidden; text-overflow: ellipsis; }
+.player-live-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  animation: player-livedot 2s ease-out infinite;
+}
+.player-tl-live[data-playing="false"] .player-live-dot { animation: none; background: var(--color-ink-muted); }
+@keyframes player-livedot {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 50%, transparent); }
+  70% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-brand) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 0%, transparent); }
+}
+/* Scenario mode: scrubber + "00:32 / 01:30" fill the same flexible middle. */
+.player-scrubber { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 0 6px; }
+.player-scrubber-slider { flex: 1; min-width: 60px; }
+.player-time { font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); white-space: nowrap; }
+.player-time-total { color: var(--color-ink-muted); }
 
 /* Tablet (640–1023px): the rail becomes an overlay drawer and the inspector
    becomes a right-edge overlay, both sliding over the canvas area (never
@@ -996,22 +1046,43 @@
      `padding-right` to clear. */
   .player-body[data-inspector-open="true"] .player-canvas-area { padding-right: 0; }
   .player-canvas-area { padding-bottom: var(--player-sheet-peek, 12dvh); }
-  /* Only on phone does the bottom sheet actually exist, so only here does
-     the zoom cluster need to clear its peek height (same value the canvas
-     area's own bottom padding above already tracks). */
-  .player-zoom-controls { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
-  /* Tiles stay in one row and scroll horizontally rather than wrapping to a
-     second row: the board-fit effect (`DrillStage`) sizes the free area off
-     `.player-board-wrap`'s measured box, which shrinks whenever this strip
-     grows taller — a wrap would keep shrinking the board every time a 5th+
-     gauge or a longer label pushed a second row in. One row keeps the
-     strip's height fixed regardless of tile count/label length. */
+  /* Phone strip: the tiles collapse behind one summary button (the first
+     two values); expanded, they drop into a 2×2 grid on their own line
+     inside the strip and the board re-fits to what's left. Only Fit shows
+     in the zoom cluster (pinch zooms). */
   .player-hud-strip { padding: 6px 8px; gap: 6px; }
-  .player-hud-slot { overflow-x: auto; scrollbar-width: none; }
-  .player-hud-slot::-webkit-scrollbar { display: none; }
-  .hud-tile { max-width: none; min-width: 132px; flex: 0 0 auto; }
+  .player-hud-strip-row { flex-wrap: wrap; }
+  .player-hud-slot { display: none; order: 3; flex-basis: 100%; }
+  .player-hud-strip[data-hud-expanded="true"] .player-hud-slot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .player-hud-slot .hud-tile { max-width: none; }
+  .player-hud-summary {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--color-line-hairline);
+    background: var(--color-surface-raised);
+    font: 600 13px var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-primary);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .player-hud-summary:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+  .player-hud-summary-chev { width: 16px; height: 16px; flex: none; margin-left: auto; color: var(--color-ink-muted); transition: transform var(--transition-duration-small); }
+  .player-hud-summary[aria-expanded="true"] .player-hud-summary-chev { transform: rotate(180deg); }
+  .player-zoom-slot { min-width: 36px; }
+  .player-zoom-slot .player-zoom-controls { padding: 0; border: 0; }
+  .player-zoom-slot .player-zoom-step { display: none; }
+  .player-zoom-slot .player-zoom-fit { width: 36px; height: 36px; border: 1px solid var(--color-line-hairline); border-radius: 10px; }
+  .player-zoom-controls.is-overlay { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
   .player-timeline-dock { padding: 6px 8px; gap: 6px; }
   .player-timeline-dock .player-narration-slot { display: none; }
+  .player-tl-speed, .player-tl-note, .player-tl-reset { display: none; }
 }
 
 /* DSA cells */

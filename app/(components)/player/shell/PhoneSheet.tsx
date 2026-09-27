@@ -6,7 +6,8 @@ import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider'
 import type { ElementIndex } from './selection';
 import { selectionKindLabel, selectionTitle } from './selection';
 import { InspectorHeader, InspectorBodySlot } from './InspectorHeader';
-import { HudStrip, TimelineDock } from './HudTimelineFrame';
+import { TimelineDock } from './HudTimelineFrame';
+import { HudTiles } from '../hud/HudTiles';
 import { RequirementBadges } from '../hud/RequirementBadges';
 import { EmptyInspectorBody } from '../inspector';
 import type { GaugeView, NeedView } from '../types';
@@ -51,7 +52,7 @@ export interface PhoneSheetProps {
  * mode-specific toolbox chips, and narration. This task only builds the
  * sheet, its tabs, and the title/empty-body slots.
  *
- * `showTitleBar={false}`: the prototype's own phone sheet has no separate
+ * `showTitleBar={false}`: the sheet has no separate
  * title row above its tabs — the tab strip *is* the sheet's header. `title`
  * still names the sheet for assistive tech (a visually-hidden Radix title),
  * and the selected element's name still shows up visibly, just scoped to
@@ -97,7 +98,11 @@ export function PhoneSheet({ elementIndex, panels, gauges = [], needs = [], snap
         ]}
       >
         <TabsContent value="hud">
-          <HudStrip gauges={gauges} />
+          {gauges.length > 0 ? (
+            <div className="player-sheet-hud" role="group" aria-label="Live metrics, last 60 seconds">
+              <HudTiles gauges={gauges} />
+            </div>
+          ) : null}
           {needs.length > 0 ? <RequirementBadges needs={needs} /> : null}
           <TimelineDock registerShortcuts={false} />
         </TabsContent>
