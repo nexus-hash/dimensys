@@ -112,6 +112,7 @@ const METRIC_CODE_INFO: Readonly<Record<string, MetricCodeInfo>> = {
   q: { label: 'throughput', unit: 'rps' },
   r: { label: 'p50 latency', unit: 'ms' },
   s: { label: 'availability', unit: 'ratio' },
+  u: { label: 'lost writes', unit: 'writes' },
 };
 
 /** Human label for a metric code, e.g. `metricCodeLabel('e')` → `"p99 latency"`. Falls back to the bare code for one this app's copy of the table doesn't (yet) know. */

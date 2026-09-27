@@ -63,4 +63,9 @@ describe('metricCodeLabel / metricCodeUnit', () => {
     expect(metricCodeLabel('z')).toBe('z');
     expect(metricCodeUnit('z')).toBe('');
   });
+
+  it('knows the lost-writes code (u)', () => {
+    expect(metricCodeLabel('u')).toBe('lost writes');
+    expect(metricCodeUnit('u')).toBe('writes');
+  });
 });

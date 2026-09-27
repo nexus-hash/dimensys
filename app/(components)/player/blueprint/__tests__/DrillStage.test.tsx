@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { DrillStage } from '../DrillStage';
 import { PlayerStoreProvider, usePlayerStore } from '../../store/PlayerStoreProvider';
 
-const boot = { diagramId: 'url-shortener', revision: 1, hash: 'sha256:abc', diagramUrl: '/solutions/url-shortener/diagram.json', hasSimulation: false, runtimeUrl: null, canvas: { w: 0, h: 0 } };
+const boot = { diagramId: 'url-shortener', revision: 1, hash: 'sha256:abc', diagramUrl: '/solutions/url-shortener/diagram.json', hasSimulation: false, runtimeUrl: null, simUrl: null, canvas: { w: 0, h: 0 } };
 
 /** Reads the store's `drill` path so assertions don't reach into internals.
  * A plain `<div>` — not `<output>`, whose implicit `role="status"` would

@@ -595,6 +595,8 @@ export interface PlayerBootstrap {
   diagramUrl: string;
   /** Hashed URL of the runtime worker bundle under `/engine/runtime/`, or `null` when absent (no runtime, no sim). */
   runtimeUrl: string | null;
+  /** Where the worker fetches the opaque sim payload from (`/solutions/<id>/sim.bin?h=...`), or `null` when there is none. */
+  simUrl: string | null;
   hasSimulation: boolean;
   /** Layout canvas size; the overlay layers share this viewBox with the static SVG. Zero when the diagram has no board yet. */
   canvas: { w: number; h: number };

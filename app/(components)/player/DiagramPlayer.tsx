@@ -16,6 +16,12 @@ export function diagramJsonUrl(diagram: Pick<ViewData, 'id' | 'build'>): string 
   return `/solutions/${encodeURIComponent(diagram.id)}/diagram.json?h=${encodeURIComponent(diagram.build.replace(/^sha256:/, '').slice(0, 16))}`;
 }
 
+/** Static route for the opaque sim payload the worker fetches itself (T3.13). `null` when the diagram doesn't simulate. */
+export function simPayloadUrl(diagram: Pick<ViewData, 'id' | 'build' | 'live'>): string | null {
+  if (!diagram.live) return null;
+  return `/solutions/${encodeURIComponent(diagram.id)}/sim.bin?h=${encodeURIComponent(diagram.build.replace(/^sha256:/, '').slice(0, 16))}`;
+}
+
 export function toBootstrap(diagram: ViewData, runtimeUrl: string | null): PlayerBootstrap {
   return {
     diagramId: diagram.id,
@@ -23,6 +29,7 @@ export function toBootstrap(diagram: ViewData, runtimeUrl: string | null): Playe
     hash: diagram.build,
     diagramUrl: diagramJsonUrl(diagram),
     runtimeUrl,
+    simUrl: simPayloadUrl(diagram),
     hasSimulation: diagram.live,
     canvas: diagram.board ? { w: diagram.board.size[0], h: diagram.board.size[1] } : { w: 0, h: 0 },
   };

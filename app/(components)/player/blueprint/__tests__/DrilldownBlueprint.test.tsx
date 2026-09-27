@@ -4,7 +4,7 @@ import { DrilldownBlueprint } from '../DrilldownBlueprint';
 import { PlayerStoreProvider } from '../../store/PlayerStoreProvider';
 import type { Board } from '../../types';
 
-const boot = { diagramId: 'url-shortener', revision: 1, hash: 'sha256:abc', diagramUrl: '/solutions/url-shortener/diagram.json', hasSimulation: false, runtimeUrl: null, canvas: { w: 0, h: 0 } };
+const boot = { diagramId: 'url-shortener', revision: 1, hash: 'sha256:abc', diagramUrl: '/solutions/url-shortener/diagram.json', hasSimulation: false, runtimeUrl: null, simUrl: null, canvas: { w: 0, h: 0 } };
 
 const board: Board = {
   size: [1248, 492],
