@@ -130,18 +130,20 @@ for (const theme of ['light', 'dark'] as const) {
 /**
  * DS8: the content gallery (server-rendered Markdown, CodeBlock and
  * AnnotatedCode, Shiki-highlighted, both themes) is the a11y test surface
- * for the content layer. Same zero serious/critical bar, both themes, with
- * one tracked exception: `color-contrast` is disabled here because the
- * light-theme Shiki syntax-highlighting token palette has pre-existing
- * contrast failures (e.g. `#e36209` on `#fafafa`, ~3.3:1, needs 4.5:1) that
- * this task did not introduce and isn't the right scope to redesign (that's
- * a Shiki theme choice, not a component bug) — flagged for the DG
- * design-system review instead. The flat `--brand`-as-text bug that used to
- * fail here too (headings/links/checkmarks using `text-brand`, ~2.93:1,
- * instead of the design system's dedicated `--brand-ink` text token) has
- * been fixed at the source (app/(components)/content/Markdown.tsx and this
- * page), so every other axe rule — including every non-Shiki
- * `color-contrast` case — still has to pass clean.
+ * for the content layer. Same zero serious/critical bar, both themes,
+ * including `color-contrast`.
+ *
+ * That rule used to be disabled here: the light-theme Shiki token palette
+ * (`github-light`) had real failures (e.g. `#e36209` on the `#fafafa` code
+ * background, ~3.3:1, needs 4.5:1). The fix was a Shiki theme swap, not a
+ * component change — see app/(components)/content/shiki.ts, which now uses
+ * `github-light-high-contrast` (every token it defines for this app's
+ * highlighted languages clears 4.5:1 against `#fafafa`; dark mode was
+ * already passing and is unchanged). The flat `--brand`-as-text bug that
+ * used to fail here too (headings/links/checkmarks using `text-brand`,
+ * ~2.93:1, instead of the design system's dedicated `--brand-ink` text
+ * token) was fixed earlier at the source (app/(components)/content/Markdown.tsx
+ * and this page).
  */
 for (const theme of ['light', 'dark'] as const) {
   test(`/dev/ui/content has no serious/critical axe violations (${theme})`, async ({ page }) => {
@@ -150,6 +152,6 @@ for (const theme of ['light', 'dark'] as const) {
     await assertThemeIsReal(page, theme);
     await expect(page.getByRole('heading', { name: 'DS8 — Content kit gallery' })).toBeVisible();
 
-    await runAxe(page, ['color-contrast']);
+    await runAxe(page);
   });
 }
