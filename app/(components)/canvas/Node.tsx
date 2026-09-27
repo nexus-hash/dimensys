@@ -144,10 +144,16 @@ export function Node({
       <rect className="cv-focus" x={-8} y={-8} width={w + 16} height={h + 16} rx={18} />
 
       <g className="cv-inner">
+        {/* FID: +4/+8px (was +3/+6px) so the back cards' edges show clearly
+            at default fit, and their own selection/hover outline (`.cv-stack`
+            in globals.css) reads as a distinct card, not just this node's
+            shadow. This offset and the layout engine's own copy
+            (`NODE_STACK_DECORATION_MARGIN`, used for label obstacles) must
+            stay identical — each side pins the other's number in a test. */}
         {replicas > 1 && (
           <>
-            <rect className="cv-stack" x={6} y={6} width={w} height={h} rx={10} />
-            <rect className="cv-stack" x={3} y={3} width={w} height={h} rx={10} />
+            <rect className="cv-stack" x={8} y={8} width={w} height={h} rx={10} />
+            <rect className="cv-stack" x={4} y={4} width={w} height={h} rx={10} />
           </>
         )}
         <rect className="cv-body" width={w} height={h} rx={10} />

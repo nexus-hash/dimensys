@@ -571,7 +571,17 @@
 
 .cv-node { cursor: pointer; outline: none; }
 .cv-node .cv-body { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); stroke-width: 1; transition: stroke var(--transition-duration-micro); }
-.cv-node .cv-stack { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
+.cv-node .cv-stack { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); transition: stroke var(--transition-duration-micro), stroke-opacity var(--transition-duration-micro); }
+/* FID: a replicated node's selection ring/halo stays tight to the front card
+   (`.cv-ring`/`.cv-halo` are unchanged, sized off the front card's own box
+   only) — it never grows to cover the offset stack cards. Instead each back
+   card gets its own thin outline in the selection colour, at half its
+   opacity, so the whole stack still reads as one selected group. Hover and
+   keyboard focus get the same treatment, lighter still, so a stack doesn't
+   look selected before it is. */
+.cv-node.is-selected .cv-stack { stroke: var(--color-ink-primary); stroke-opacity: .5; stroke-width: 1; }
+.cv-node:hover .cv-stack { stroke: var(--color-ink-primary); stroke-opacity: .25; }
+.cv-node:focus-visible .cv-stack { stroke: var(--color-ink-primary); stroke-opacity: .25; }
 .cv-node:hover .cv-body { stroke: var(--color-line-strong); }
 .cv-node .cv-icon { color: var(--color-ink-secondary); }
 .cv-node .cv-label { font: 500 13px var(--font-sans); fill: var(--color-ink-primary); }

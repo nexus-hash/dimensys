@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { Node } from '../Node';
 import type { LeafNodeType } from '../Node';
 import type { HealthState } from '../types';
+import { NODE_WIDTH } from '../types';
 
 const ALL_TYPES: LeafNodeType[] = [
   'client',
@@ -99,13 +100,36 @@ describe('Node', () => {
     expect(label?.textContent).toBe('API Service');
   });
 
-  it('draws stacked shadow cards when replicas > 1', () => {
+  it('draws stacked shadow cards when replicas > 1, offset +4/+8px (FID)', () => {
     const { container } = render(
       <svg>
         <Node boardId="b1" id="n1" type="server" label="API" replicas={4} />
       </svg>,
     );
+    const stacks = container.querySelectorAll('.cv-stack');
+    expect(stacks.length).toBe(2);
+    const offsets = Array.from(stacks)
+      .map((s) => Number(s.getAttribute('x')))
+      .sort((a, b) => a - b);
+    expect(offsets).toEqual([4, 8]);
+  });
+
+  it('a selected replicated node keeps a stack card in the DOM for its own outline (option B: the group reads as selected without the halo covering the back cards)', () => {
+    const { container } = render(
+      <svg>
+        <Node boardId="b1" id="n1" type="server" label="API" replicas={4} selected />
+      </svg>,
+    );
+    const g = container.querySelector('[data-node-id="n1"]');
+    expect(g?.classList.contains('is-selected')).toBe(true);
+    // The back cards render regardless of selection (globals.css supplies the
+    // `.is-selected .cv-stack` outline; this pins the markup that rule needs).
     expect(container.querySelectorAll('.cv-stack').length).toBe(2);
+    // The halo/ring stay sized off the front card only (never the +8px stack
+    // extent), so they can't visually cover the back cards.
+    const halo = g?.querySelector('.cv-halo');
+    expect(halo?.getAttribute('x')).toBe('-5');
+    expect(halo?.getAttribute('width')).toBe(String(NODE_WIDTH + 10));
   });
 
   it('truncates a long label with an ellipsis instead of overflowing, keeping the full text in aria-label and a <title>', () => {
