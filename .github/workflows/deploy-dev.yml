@@ -116,7 +116,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Sync engine output to dimensys
+      - name: Sync static assets to dimensys
         run: node scripts/sync-engine.js
 
       - name: Build dms-engine v3
