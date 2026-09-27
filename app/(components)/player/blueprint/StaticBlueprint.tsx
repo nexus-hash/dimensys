@@ -219,6 +219,20 @@ function renderLevel(
  * needs to constrain width (`className="w-full"` or similar) — no
  * ResizeObserver, no client JS, and it still fills a fixed-height container
  * when the caller sets one (an explicit height wins over `aspect-ratio`).
+ *
+ * The fit scale is capped at 1 and centered (T3.4): `maxWidth` is the
+ * board's own pixel size, so a small graph (a subsystem's own board is its
+ * own coordinate space, not scaled to the parent) never gets stretched up
+ * to fill a wide container — it only ever scales *down*, on a narrow
+ * viewport, and sits centered otherwise (`marginInline: auto`) once capped.
+ * `minWidth: 0` is defensive: it stops this box's own intrinsic width (from
+ * its only child, a replaced `<svg>` whose intrinsic size comes from
+ * `viewBox`) from becoming an unshrinkable floor if it's ever placed
+ * directly inside a flex/grid item with no width of its own (the classic
+ * "automatic minimum size" trap) — as `.player-drill-level` already is; see
+ * that rule in `globals.css`. It does not, by itself, fix an ancestor whose
+ * *own* width is resolved through flex stretch (see `/dev/player`'s `main`
+ * for that distinct, page-level fix).
  */
 export function StaticBlueprint({ board, boardId, label, className, style, mode = 'health', health }: StaticBlueprintProps) {
   return (
@@ -227,7 +241,13 @@ export function StaticBlueprint({ board, boardId, label, className, style, mode 
       label={label}
       viewBox={`0 0 ${board.size[0]} ${board.size[1]}`}
       className={className}
-      style={{ aspectRatio: `${board.size[0]} / ${board.size[1]}`, ...style }}
+      style={{
+        aspectRatio: `${board.size[0]} / ${board.size[1]}`,
+        maxWidth: board.size[0],
+        minWidth: 0,
+        marginInline: 'auto',
+        ...style,
+      }}
     >
       {renderLevel(board, boardId, [0, 0], mode, health)}
     </CanvasBoard>

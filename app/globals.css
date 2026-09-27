@@ -634,9 +634,15 @@
  * crossfade instead of the page jumping height. The blanket reduced-motion
  * rule above already collapses both animations to a near-instant cut under
  * `prefers-reduced-motion`/`data-motion="off"`.
+ *
+ * `min-width: 0` on both: grid items default to `min-width: auto`, which —
+ * same flex/grid "automatic minimum size" trap `StaticBlueprint.tsx` guards
+ * against on its own box — would otherwise let a level's content set an
+ * unshrinkable floor on this grid cell's column, wide enough to overflow a
+ * narrow viewport.
  * ========================================================================= */
-.player-drill-stage { display: grid; }
-.player-drill-level { grid-area: 1 / 1; outline: none; }
+.player-drill-stage { display: grid; min-width: 0; }
+.player-drill-level { grid-area: 1 / 1; outline: none; min-width: 0; }
 .player-drill-level.is-entering { animation: player-drill-in var(--transition-duration-scene) var(--ease-emphasized) both; }
 .player-drill-level.is-leaving { animation: player-drill-out var(--transition-duration-small) var(--ease-exit) both; }
 @keyframes player-drill-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }

@@ -117,7 +117,22 @@ export default async function DevPlayerPage() {
   const [urlShortener, netflix] = await Promise.all([loadRealDiagram('url-shortener'), loadRealDiagram('netflix')]);
 
   return (
-    <main className="mx-auto max-w-6xl space-y-10 p-6">
+    // `w-full` (an explicit, definite `width: 100%`) plus `min-w-0` (T3.4):
+    // `<body>` is `flex flex-col` (root layout), and without an explicit
+    // width, `main`'s cross-size is resolved via flex stretch — which,
+    // combined with a fixed-height + `aspect-ratio` box further down (the
+    // fixture sections below use both), hits a real Chromium sizing
+    // circularity: the stretch target isn't yet definite when the
+    // aspect-ratio box's width needs resolving, so it falls back to that
+    // box's own aspect-ratio-derived preferred width (e.g. 1040px for the
+    // 1040×420 fixture) instead of the viewport. That dragged `main` — and
+    // everything after it, including the real player section below — wider
+    // than a phone viewport, which is what let an earlier fixture's SVG sit
+    // on top of (and intercept clicks meant for) content further down the
+    // now-mis-laid-out page. An explicit `width: 100%` is definite from the
+    // start (100% of `<body>`, itself definite), so it never falls into
+    // that fallback.
+    <main className="mx-auto w-full max-w-6xl min-w-0 space-y-10 p-6">
       <section>
         <h2 className="mb-2 text-title-2 text-ink-primary">Skeleton check (T3.1)</h2>
         <div className="space-y-4">
