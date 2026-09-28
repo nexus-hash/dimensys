@@ -41,6 +41,15 @@ import { MAX_PARTICLES, ParticlePool, particleSpawnHz, particleTravelMs, pickPar
 import type { HealthState, NodeMeterKind } from '@/app/(components)/canvas';
 import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
 
+/** A walkthrough step's path always carries at least this many particles/sec, so its flow reads even with no live traffic. */
+const WT_PATH_MIN_HZ = 2.5;
+/** …and at most this many, so the stream reads as dots on a path, never a solid bead string. */
+const WT_PATH_MAX_HZ = 4;
+/** …and they travel calmly and at an even speed (so a short hop isn't crowded), so the eye can follow them hop to hop. */
+function pathTravelMs(lengthPx: number): number {
+  return Math.min(2400, Math.max(700, lengthPx * 6));
+}
+
 export interface InteractiveLayerProps {
   bootstrap: PlayerBootstrap;
   /** The player root element (`data-player-root`) — an ancestor of the board's SVG. */
@@ -217,7 +226,12 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
       for (const [id, el] of linkEls) {
         const errRatio = readMetric(idx.linkCols, frame.metrics, id, LINK_ERROR_RATE_CODE) ?? 0;
-        applyLinkHealth(el, { bad: errRatio >= 0.3 });
+        // Highlight and dim belong to other layers (a walkthrough step): carry them through.
+        applyLinkHealth(el, {
+          bad: errRatio >= 0.3,
+          highlighted: el.querySelector('path.cv-link')?.classList.contains('is-hl') ?? false,
+          dimmed: el.classList.contains('is-dimmed'),
+        });
       }
 
       if (interactive) {
@@ -342,31 +356,48 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
 
-      if (!frame || !metricIndex || links.length === 0) return;
-      const idx = metricIndex;
+      if (links.length === 0) return;
+      const live = frame && metricIndex ? { frame, idx: metricIndex } : null;
 
       for (let li = 0; li < links.length; li++) {
         const link = links[li];
-        const rps = readMetric(idx.linkCols, frame.metrics, link.id, LINK_RPS_CODE) ?? 0;
+        // Walkthrough flow (`data-wt-flow`, set by the walkthrough stage): the
+        // step's path always carries a calm, visible stream — even with no
+        // live traffic on it — and a link the step stops carries none.
+        const wtFlow = link.group.dataset.wtFlow;
+        if (wtFlow === 'still') continue;
+        if (!live) {
+          if (wtFlow !== 'path') continue;
+          link.spawnAccMs += dt;
+          while (link.spawnAccMs >= 1000 / WT_PATH_MIN_HZ) {
+            link.spawnAccMs -= 1000 / WT_PATH_MIN_HZ;
+            pool.spawn(li, 0, pathTravelMs(link.length), false);
+          }
+          continue;
+        }
+        const { frame: liveFrame, idx } = live;
+        const rps = readMetric(idx.linkCols, liveFrame.metrics, link.id, LINK_RPS_CODE) ?? 0;
         // A link has no latency of its own (see `metricKeys.ts`): particle speed
         // reads the *target node's* own latency instead, falling back to the
         // pool's own default only when that node doesn't publish it.
-        const latency = link.toNodeId !== undefined ? readMetric(idx.nodeCols, frame.metrics, link.toNodeId, NODE_LATENCY_CODE) : undefined;
+        const latency = link.toNodeId !== undefined ? readMetric(idx.nodeCols, liveFrame.metrics, link.toNodeId, NODE_LATENCY_CODE) : undefined;
         // `f` is already a ratio (0..1); `o` is a rps that needs dividing by the link's own rps to become one.
-        const errRatio = readMetric(idx.linkCols, frame.metrics, link.id, LINK_ERROR_RATE_CODE) ?? 0;
-        const retryRps = readMetric(idx.linkCols, frame.metrics, link.id, LINK_RETRY_RPS_CODE);
+        const errRatio = readMetric(idx.linkCols, liveFrame.metrics, link.id, LINK_ERROR_RATE_CODE) ?? 0;
+        const retryRps = readMetric(idx.linkCols, liveFrame.metrics, link.id, LINK_RETRY_RPS_CODE);
         const retryRatio = rps > 0 && retryRps !== undefined ? Math.min(1, retryRps / rps) : 0;
         const cut = errRatio >= 0.85;
 
-        const hz = particleSpawnHz(rps);
+        const onPath = wtFlow === 'path';
+        const hz = onPath ? Math.min(WT_PATH_MAX_HZ, Math.max(WT_PATH_MIN_HZ, particleSpawnHz(rps))) : particleSpawnHz(rps);
         if (hz > 0) {
           link.spawnAccMs += dt;
           const intervalMs = 1000 / hz;
+          const travelMs = onPath ? Math.max(pathTravelMs(link.length), particleTravelMs(latency ?? 0)) : particleTravelMs(latency ?? 0);
           while (link.spawnAccMs >= intervalMs) {
             link.spawnAccMs -= intervalMs;
             const kind = pickParticleKind(Math.random(), errRatio, retryRatio);
             const kindCode = kind === 'ok' ? 0 : kind === 'retry' ? 1 : 2;
-            pool.spawn(li, kindCode, particleTravelMs(latency ?? 0), cut);
+            pool.spawn(li, kindCode, travelMs, cut);
           }
         }
 
@@ -384,31 +415,40 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
           t = progressForPileup(1, queueCounter, queueCounter + 1);
         }
         const pt = pointOnSamples(link.samples, t, scratchPt);
-        drawParticle(ctx!, pt.x, pt.y, kindCode);
+        const wtFlow = link.group.dataset.wtFlow;
+        drawParticle(ctx!, pt.x, pt.y, kindCode, wtFlow === 'path' ? 'path' : wtFlow === 'dim' ? 'dim' : null);
       });
     }
 
-    function drawParticle(context: CanvasRenderingContext2D, x: number, y: number, kindCode: number) {
+    /** `emphasis`: `path` = the walkthrough step's own flow (bright ink, larger); `dim` = a link the step dims. */
+    function drawParticle(context: CanvasRenderingContext2D, x: number, y: number, kindCode: number, emphasis: 'path' | 'dim' | null = null) {
       // Radii are in the SVG's own viewBox units — `ctx`'s transform (set in `sizeCanvas`)
       // already maps those to device pixels, so no extra DPR/zoom scaling belongs here.
       const r = 2.4;
       context.save();
-      if (kindCode === 2) {
+      if (emphasis === 'dim') context.globalAlpha = 0.2;
+      if (emphasis === 'path' && kindCode === 0) {
+        context.fillStyle = resolveColor('--color-ink-primary');
+        context.globalAlpha = 0.85;
+        context.beginPath();
+        context.arc(x, y, 2.8, 0, Math.PI * 2);
+        context.fill();
+      } else if (kindCode === 2) {
         context.fillStyle = resolveColor('--color-signal-critical');
-        context.globalAlpha = 0.9;
+        context.globalAlpha *= 0.9;
         context.beginPath();
         context.arc(x, y, r, 0, Math.PI * 2);
         context.fill();
       } else if (kindCode === 1) {
         context.strokeStyle = resolveColor('--color-signal-retry');
-        context.globalAlpha = 0.85;
+        context.globalAlpha *= 0.85;
         context.lineWidth = 1.3;
         context.beginPath();
         context.arc(x, y, r + 1, 0, Math.PI * 2);
         context.stroke();
       } else {
         context.fillStyle = resolveColor('--color-signal-flow');
-        context.globalAlpha = 0.7;
+        context.globalAlpha *= 0.7;
         context.beginPath();
         context.arc(x, y, r, 0, Math.PI * 2);
         context.fill();

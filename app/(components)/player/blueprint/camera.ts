@@ -138,3 +138,35 @@ export function normalizeWheelDeltaY(deltaY: number, deltaMode: number, pageSize
   if (deltaMode === 2) return deltaY * pageSize;
   return deltaY;
 }
+
+/** Screen-px margin kept round a focused box (walkthrough steps, camera cues). */
+export const FOCUS_PAD_PX = 48;
+
+/**
+ * The camera that frames `box` (`[cx, cy, w, h]`, board units) centered in
+ * the free area, with `FOCUS_PAD_PX` of margin. It never zooms out past the
+ * fit (a box bigger than the free area just gets the fit's scale, centered
+ * on the box) and never zooms in so far that a single node fills the view:
+ * at most ~2.2× the fit, and never past native size (the fit's own rule).
+ */
+export function focusCamera(freeW: number, freeH: number, box: readonly [number, number, number, number], fitScale: number): Camera {
+  const [cx, cy, w, h] = box;
+  const availW = Math.max(1, freeW - 2 * FOCUS_PAD_PX);
+  const availH = Math.max(1, freeH - 2 * FOCUS_PAD_PX);
+  const raw = Math.min(availW / Math.max(1, w), availH / Math.max(1, h));
+  const cap = Math.max(fitScale, Math.min(1, fitScale * 2.2));
+  const scale = Math.max(fitScale, Math.min(cap, raw));
+  return { scale, x: freeW / 2 - cx * scale, y: freeH / 2 - cy * scale };
+}
+
+/** `a`→`b` at `t` in [0, 1]; the scale moves geometrically so a zoom feels even. */
+export function interpolateCamera(a: Camera, b: Camera, t: number): Camera {
+  if (t <= 0) return a;
+  if (t >= 1) return b;
+  return { scale: a.scale * Math.pow(b.scale / a.scale, t), x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+/** Standard ease-in-out (cubic). */
+export function easeInOut(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}

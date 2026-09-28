@@ -15,11 +15,19 @@ import {
   WHEEL_ZOOM_K,
   ZOOM_STEP,
   DRAG_THRESHOLD_PX,
+  focusCamera,
+  interpolateCamera,
+  easeInOut,
 } from './camera';
+import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
+import { CAMERA_FOCUS_EVENT, type CameraFocusDetail } from '../walkthrough/stage';
 import type { Camera } from './camera';
 import { ZoomControls } from './ZoomControls';
 import { useZoomSlot } from './zoomSlot';
-import type { XY } from '../types';
+import type { Box, XY } from '../types';
+
+/** Length of an animated camera move (a walkthrough step's focus). Instant under reduced motion. */
+const CAMERA_MOVE_MS = 420;
 
 export interface BoardStageProps {
   /** The board's own native pixel size (`Board.size`), for the board-fit effect. */
@@ -80,6 +88,41 @@ export function BoardStage({ boardSize, className, interactive = true, children 
   const fitScaleRef = useRef(1);
   const [readout, setReadout] = useState({ percent: 100, fitScale: 1 });
   const readoutFrameRef = useRef(0);
+  // Focus requests (walkthrough steps): the box the camera frames while
+  // tracking, the view from before the first request (restored when the
+  // requests end), and the running animation, if any.
+  const focusBoxRef = useRef<Box | null>(null);
+  const stashRef = useRef<{ camera: Camera; tracking: boolean } | null>(null);
+  const tweenRef = useRef(0);
+
+  function stopTween() {
+    if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
+    tweenRef.current = 0;
+  }
+
+  /** Moves the camera to `target`, animated unless motion is reduced. */
+  function animateTo(target: Camera) {
+    stopTween();
+    const from = cameraRef.current;
+    if (!from || isMotionReduced()) {
+      applyCamera(target);
+      return;
+    }
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / CAMERA_MOVE_MS);
+      applyCamera(interpolateCamera(from, target, easeInOut(t)));
+      tweenRef.current = t < 1 ? requestAnimationFrame(tick) : 0;
+    };
+    tweenRef.current = requestAnimationFrame(tick);
+  }
+
+  /** The camera tracking mode shows: the focus box when one is set, the whole board otherwise. */
+  function trackedCamera(freeW: number, freeH: number, fitScale: number): Camera {
+    const [nativeW, nativeH] = boardSize;
+    const box = focusBoxRef.current;
+    return box ? focusCamera(freeW, freeH, box, fitScale) : fitCamera(freeW, freeH, nativeW, nativeH);
+  }
 
   function findBoardEl(): HTMLElement | null {
     const levelEl = stageRef.current?.querySelector<HTMLElement>('[data-board-level]');
@@ -130,7 +173,14 @@ export function BoardStage({ boardSize, className, interactive = true, children 
 
     if (force || trackingRef.current) {
       trackingRef.current = true;
-      applyCamera(fitCamera(freeW, freeH, nativeW, nativeH));
+      if (force) {
+        focusBoxRef.current = null;
+        stashRef.current = null;
+      }
+      if (!tweenRef.current || force) {
+        stopTween();
+        applyCamera(trackedCamera(freeW, freeH, fitScale));
+      }
       return;
     }
     // Not tracking: keep the user's own camera, just re-clamp its scale in
@@ -158,6 +208,54 @@ export function BoardStage({ boardSize, className, interactive = true, children 
     const ro = new ResizeObserver(() => recompute());
     ro.observe(stage);
     return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardSize[0], boardSize[1]]);
+
+  // Focus requests: a walkthrough step asks the camera to frame its targets
+  // (`box`), or to go back to the view from before the walkthrough (`null`).
+  // A framed box is tracked like the fit is — a resize re-frames it — until
+  // the user pans or zooms.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    function onFocus(e: Event) {
+      const box = (e as CustomEvent<CameraFocusDetail>).detail?.box ?? null;
+      const current = cameraRef.current;
+      const s = stageRef.current;
+      const freeW = s?.clientWidth ?? 0;
+      const freeH = s?.clientHeight ?? 0;
+      if (!current || freeW <= 0 || freeH <= 0) {
+        // Not measured yet: remember the request; the first fit frames it.
+        focusBoxRef.current = box;
+        trackingRef.current = true;
+        return;
+      }
+      const [nativeW, nativeH] = boardSize;
+      const fitScale = computeFitScale(freeW, freeH, nativeW, nativeH);
+      fitScaleRef.current = fitScale;
+      if (box) {
+        stashRef.current ??= { camera: current, tracking: trackingRef.current };
+        focusBoxRef.current = box;
+        trackingRef.current = true;
+        animateTo(trackedCamera(freeW, freeH, fitScale));
+        return;
+      }
+      focusBoxRef.current = null;
+      const stash = stashRef.current;
+      stashRef.current = null;
+      if (stash && !stash.tracking) {
+        trackingRef.current = false;
+        animateTo(stash.camera);
+      } else {
+        trackingRef.current = true;
+        animateTo(fitCamera(freeW, freeH, nativeW, nativeH));
+      }
+    }
+    stage.addEventListener(CAMERA_FOCUS_EVENT, onFocus);
+    return () => {
+      stage.removeEventListener(CAMERA_FOCUS_EVENT, onFocus);
+      stopTween();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardSize[0], boardSize[1]]);
 
@@ -196,6 +294,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
 
     function onPointerDown(e: PointerEvent) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
+      stopTween();
       if (!currentCamera()) return;
       pointers.set(e.pointerId, [e.clientX, e.clientY]);
       if (pointers.size === 1) {
@@ -283,6 +382,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
       const cur = currentCamera();
       if (!cur) return;
       e.preventDefault();
+      stopTween();
       const [cx, cy] = stageXY(e.clientX, e.clientY);
       trackingRef.current = false;
       // GEOM: every wheel gesture zooms about the cursor — plain mouse
@@ -321,6 +421,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
     const camera = cameraRef.current;
     const stage = stageRef.current;
     if (!stage || !camera) return;
+    stopTween();
     trackingRef.current = false;
     applyCamera(zoomAtPoint(camera, stage.clientWidth / 2, stage.clientHeight / 2, camera.scale * factor, fitScaleRef.current));
   }
@@ -351,6 +452,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
     const cur = cameraRef.current;
     if (cur && (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
       event.preventDefault();
+      stopTween();
       trackingRef.current = false;
       const dx = event.key === 'ArrowLeft' ? PAN_STEP_PX : event.key === 'ArrowRight' ? -PAN_STEP_PX : 0;
       const dy = event.key === 'ArrowUp' ? PAN_STEP_PX : event.key === 'ArrowDown' ? -PAN_STEP_PX : 0;
