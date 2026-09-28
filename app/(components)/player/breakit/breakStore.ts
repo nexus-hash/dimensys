@@ -47,6 +47,10 @@ export interface BreakUiState {
   marks: Readonly<Record<string, FixMark>>;
   /** The panel has opened itself once this session (it only does that once). */
   autoOpened: boolean;
+  /** Fix it mode: try fixes yourself (no hints), or be shown the verified plans. */
+  fixMode: 'myself' | 'plans';
+  /** The plan applied from the plans list: which failure, which plan, and when (its steps sit in the log at that time). */
+  plan: { cause: string; index: number; t: number } | null;
 }
 
 export interface BreakUiStore {
@@ -56,7 +60,7 @@ export interface BreakUiStore {
 }
 
 export function initialBreakUi(): BreakUiState {
-  return { armed: null, drawer: false, tab: 'fix', spikeOpen: false, cacheOpen: false, cacheTarget: null, marks: {}, autoOpened: false };
+  return { armed: null, drawer: false, tab: 'fix', spikeOpen: false, cacheOpen: false, cacheTarget: null, marks: {}, autoOpened: false, fixMode: 'myself', plan: null };
 }
 
 export function createBreakUiStore(initial: BreakUiState = initialBreakUi()): BreakUiStore {

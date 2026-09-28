@@ -91,8 +91,9 @@ async function breakCache(page: Page, failure: string) {
 }
 
 async function applyFix(page: Page, fixId: string) {
+  // Fix it myself lists every fix, with no hint about which fits.
   const fx = panel(page).locator(`[data-fix-id="${fixId}"]`);
-  await expect(fx).toContainText('fits this failure');
+  await expect(fx).toBeVisible();
   await fx.getByRole('button', { name: /^Apply: / }).click();
   await expect(fx).toHaveAttribute('data-applied', 'true');
 }
@@ -286,7 +287,7 @@ test.describe('Break it: cache failures', () => {
     await chips.getByRole('button', { name: 'Fix it' }).click();
     const sheet = page.locator('[role="dialog"]');
     await expect(sheet.locator('.break-cf')).toContainText('Hot shard on Redis Cache');
-    await expect(sheet.locator('[data-fix-id="cache-redis--virtual-nodes"]')).toContainText('fits this failure');
+    await expect(sheet.locator('[data-fix-id="cache-redis--virtual-nodes"]')).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
   });

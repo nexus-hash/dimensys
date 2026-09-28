@@ -76,6 +76,12 @@ export interface BreakCommands {
   undo(index: number): boolean;
   /** Back to the healthy start, running. */
   reset(): void;
+  /**
+   * Applies a verified plan for the current failure: rebuilds the run from
+   * the log without the previously applied plan's steps, plus this plan's
+   * steps at the current time (so switching plans compares them fairly).
+   */
+  applyPlan(cause: string, index: number, acts: ReadonlyArray<readonly [string, string, number | null]>): boolean;
 }
 
 function ready(store: PlayerStore) {
@@ -161,17 +167,37 @@ export function useBreakCommands({ catalog, remedies, switches, kit }: BreakComm
     [store, apply, replayWithout],
   );
 
+  const applyPlan = useCallback(
+    (cause: string, index: number, acts: ReadonlyArray<readonly [string, string, number | null]>): boolean => {
+      const bridge = ready(store);
+      if (!bridge) return false;
+      const state = store.getState();
+      const t = state.sim.frame?.t ?? 0;
+      const ui = breakUiFor(store);
+      const prev = ui.get().plan;
+      const prevActs = prev ? (kit?.plans?.find((p) => p.cause === prev.cause)?.ways[prev.index]?.acts ?? []) : [];
+      const isPrevStep = (a: UserAction) => !!prev && Math.abs(a[0] - prev.t) < 1e-6 && prevActs.some((s) => s[0] === a[1] && s[1] === a[2] && s[2] === a[3]);
+      const base = state.actions.filter((a) => !isPrevStep(a));
+      bridge.replay([...base, ...acts.map((s): UserAction => [t, s[0], s[1], s[2]])], t);
+      if (!state.sim.playing) bridge.play();
+      ui.set({ plan: { cause, index, t } });
+      toast(`Applied plan ${index + 1}`);
+      return true;
+    },
+    [store, kit],
+  );
+
   const reset = useCallback(() => {
     const bridge = getBridge(store);
     if (!bridge) return;
     bridge.reset();
     bridge.play();
-    breakUiFor(store).set({ armed: null, spikeOpen: false, cacheOpen: false, marks: {} });
+    breakUiFor(store).set({ armed: null, spikeOpen: false, cacheOpen: false, marks: {}, plan: null });
     toast('Reset: healthy, baseline load');
   }, [store]);
 
   return useMemo(
-    () => ({ apply: apply as BreakCommands['apply'], applyFix, revertFix, undo, reset }),
-    [apply, applyFix, revertFix, undo, reset],
+    () => ({ apply: apply as BreakCommands['apply'], applyFix, revertFix, undo, reset, applyPlan }),
+    [apply, applyFix, revertFix, undo, reset, applyPlan],
   );
 }

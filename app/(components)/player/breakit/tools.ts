@@ -191,6 +191,28 @@ export function deriveFaults(actions: readonly UserAction[]): FaultState {
   return { killed, cut, slowed, spike, flushed, fixes, faults };
 }
 
+/**
+ * The planned failure that's currently in effect, as the key the build's fix
+ * plans use (`kill:<el>`, `partition:<el>`, `slow:<el>:<n>`, `spike:<n>`,
+ * `fault:<id>`), or `null` when nothing is broken or several things are (the
+ * plans cover one failure at a time). A flush is one-shot: the latest one
+ * counts while nothing else is broken.
+ */
+export function currentCause(actions: readonly UserAction[]): string | null {
+  const f = deriveFaults(actions);
+  const causes: string[] = [];
+  for (const el of f.killed) causes.push(`kill:${el}`);
+  for (const el of f.cut) causes.push(`partition:${el}`);
+  for (const [el, n] of f.slowed) causes.push(`slow:${el}:${n}`);
+  if (f.spike !== 1) causes.push(`spike:${f.spike}`);
+  for (const id of f.faults) causes.push(`fault:${id}`);
+  if (causes.length === 0) {
+    for (let i = actions.length - 1; i >= 0; i--) if (actions[i][1] === 'flush' && actions[i][2]) return `flush:${actions[i][2]}`;
+    return null;
+  }
+  return causes.length === 1 ? causes[0] : null;
+}
+
 /** True when anything is currently broken (fixes and one-shot flushes don't count). */
 export function hasActiveFault(f: FaultState): boolean {
   return f.killed.size > 0 || f.cut.size > 0 || f.slowed.size > 0 || f.spike !== 1 || f.faults.size > 0;
@@ -366,25 +388,3 @@ function targetKind(id: string, catalog: TargetCatalog): BoardTarget {
 // Fixes that fit the current failure
 // ---------------------------------------------------------------------------
 
-/**
- * Fix categories aimed squarely at what's broken right now: a lost or cold
- * cache wants a caching fix; a lost service, more capacity or resilience; a
- * spike, capacity; a slow part, resilience; a cut link, resilience (and
- * caching when the link leads to a cache). Empty when nothing is broken.
- */
-export function fittingNatures(f: FaultState, catalog: TargetCatalog): ReadonlySet<string> {
-  const out = new Set<string>();
-  const formOf = (id: string) => catalog.nodes.find((n) => n.id === id)?.form;
-  for (const id of f.killed) {
-    if (isCacheForm(formOf(id))) out.add('caching');
-    else ['scale', 'resilience'].forEach((n) => out.add(n));
-  }
-  if (f.spike > 1) ['scale', 'data'].forEach((n) => out.add(n));
-  if (f.slowed.size > 0) out.add('resilience');
-  for (const id of f.cut) {
-    out.add('resilience');
-    const link = catalog.links.find((l) => l.id === id);
-    if (link && (isCacheForm(formOf(link.a)) || isCacheForm(formOf(link.b)))) out.add('caching');
-  }
-  return out;
-}

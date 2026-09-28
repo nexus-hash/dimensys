@@ -3,7 +3,6 @@ import {
   canTarget,
   deriveFaults,
   describeAction,
-  fittingNatures,
   fixEntryIndex,
   hasActiveFault,
   offeredTools,
@@ -153,14 +152,5 @@ describe('tryCards', () => {
   });
   it('drops cards for tools the diagram doesn’t offer', () => {
     expect(tryCards({ ...kit, verbs: ['spike'] }, catalog).map((x) => x.tool)).toEqual(['spike']);
-  });
-});
-
-describe('fittingNatures', () => {
-  it('points a lost cache at caching fixes and a spike at capacity', () => {
-    expect([...fittingNatures(deriveFaults([[1, 'kill', 'redis', null]]), catalog)]).toEqual(['caching']);
-    expect([...fittingNatures(deriveFaults([[1, 'spike', null, 10]]), catalog)].sort()).toEqual(['data', 'scale']);
-    expect([...fittingNatures(deriveFaults([[1, 'partition', 'l-api-redis', null]]), catalog)].sort()).toEqual(['caching', 'resilience']);
-    expect(fittingNatures(deriveFaults([]), catalog).size).toBe(0);
   });
 });

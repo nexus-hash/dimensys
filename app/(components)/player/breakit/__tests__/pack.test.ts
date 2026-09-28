@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { activeBreaks, breakAction, findBreak, offeredFixIds, packFits, packFor, packTargets, packsOf } from '../pack';
+import { activeBreaks, breakAction, findBreak, packFor, packTargets, packsOf } from '../pack';
 import { deriveFaults, describeAction, hasActiveFault, undoPlan, type TargetCatalog } from '../tools';
 import type { KitView, PackView, UserAction } from '../../types';
 
@@ -72,22 +72,6 @@ describe('the current failure, from the log', () => {
     expect(activeBreaks(log, { ...kit, packs: undefined })).toEqual([]);
   });
 
-  it('fits: the newest failure’s fixes first, then a killed cache’s', () => {
-    const log = [act(1, 'fault', 'redis--penetration'), act(2, 'fault', 'redis--hot-key')];
-    expect(packFits(log, kit, new Set())).toEqual(['redis--swr', 'own-coalesce', 'redis--bloom']);
-    expect(packFits([], kit, new Set(['redis']))).toEqual(['redis--replica']);
-  });
-
-  it('the Fix it list: fitting fixes lead, the diagram’s own follow, then anything else applied', () => {
-    expect(offeredFixIds(undefined, ['x'], new Set())).toEqual([]);
-    expect(offeredFixIds(kit, [], new Set())).toEqual(['own-coalesce', 'scale-api']);
-    expect(offeredFixIds(kit, ['redis--bloom', 'own-coalesce'], new Set(['redis--lfu', 'scale-api']))).toEqual([
-      'redis--bloom',
-      'own-coalesce',
-      'scale-api',
-      'redis--lfu',
-    ]);
-  });
 });
 
 describe('faults in the shared log rules', () => {

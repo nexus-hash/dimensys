@@ -10,7 +10,7 @@ import { HudTimelineFrame } from './HudTimelineFrame';
 import { PhoneSheet, SNAP_PERCENTS } from './PhoneSheet';
 import type { ElementIndex } from './selection';
 import type { ModeAvailability } from './modes';
-import type { GaugeView, KitView, NeedView, PlayView, RemedyView, SwitchView } from '../types';
+import type { GaugeView, KitView, NeedView, PlayView, RemedyView, SwitchView, KnobView } from '../types';
 import { BreakController, BreakDataProvider, RightColumn, useBreakUi } from '../breakit';
 import type { TargetCatalog } from '../breakit/tools';
 import { WalkthroughProvider, type WalkthroughData } from '../walkthrough/WalkthroughContext';
@@ -35,6 +35,8 @@ export interface PlayerShellProps {
   remedies?: readonly RemedyView[];
   catalog?: TargetCatalog;
   switches?: readonly SwitchView[];
+  /** Scalable nodes, for plan steps that resize one. */
+  knobs?: readonly KnobView[];
   /** Walkthroughs resolved against the board (`buildWalkthroughs`); defaults to none. */
   walkthroughs?: readonly WalkthroughView[];
   /** Their server-rendered narration (`buildWalkthroughNarration`). */
@@ -98,6 +100,7 @@ export function PlayerShell({
   remedies = EMPTY_REMEDIES,
   catalog = EMPTY_CATALOG,
   switches,
+  knobs,
   walkthroughs = NO_WALKTHROUGHS,
   narration = NO_NARRATION,
   rail,
@@ -142,7 +145,7 @@ export function PlayerShell({
   return (
     <WalkthroughProvider value={walkthroughData}>
     <StoryProvider value={storyData}>
-    <BreakDataProvider kit={kit} remedies={remedies} needs={needs} catalog={catalog} switches={switches}>
+    <BreakDataProvider kit={kit} remedies={remedies} needs={needs} catalog={catalog} switches={switches} knobs={knobs}>
     <div ref={shellRef} className="player-shell" data-player-mode={mode} style={sheetPeek}>
       <TopBar
         title={title}

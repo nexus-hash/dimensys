@@ -172,6 +172,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
           remedies={diagram.remedies}
           catalog={buildTargetCatalog(board)}
           switches={diagram.switches}
+          knobs={diagram.knobs}
           walkthroughs={buildWalkthroughs(diagram)}
           narration={buildWalkthroughNarration(diagram)}
           rail={buildRailData(diagram)}

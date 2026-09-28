@@ -356,6 +356,8 @@ export interface RemedyView {
   nature?: string;
   md: string;
   price?: string;
+  /** What the fix gives up in return, one sentence. */
+  trade?: string;
   /** Element ids this fix adds (see `ViewData.spares`). */
   adds?: string[];
 }
@@ -378,6 +380,15 @@ export interface KitView {
   locks: Array<[string, string[]]>;
   /** Cache failures, one entry per cache or CDN that serves reads (absent when there is none). */
   packs?: PackView[];
+  /**
+   * Verified fix plans per planned failure (`cause`: `kill:<el>`,
+   * `spike:<n>`, `partition:<el>`, `slow:<el>:<n>`, `flush:<el>`,
+   * `fault:<id>`): combinations of changes the build's simulator confirmed
+   * bring every requirement back, cheapest first. An act is a logged action
+   * `[tool, target, value]`; `cost` the monthly cost added over the healthy
+   * system; `back` seconds until the requirements hold.
+   */
+  plans?: Array<{ cause: string; ways: Array<{ acts: Array<[string, string, number | null]>; cost: number; back: number }> }>;
 }
 
 /**

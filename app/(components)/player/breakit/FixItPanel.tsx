@@ -1,29 +1,31 @@
 'use client';
 
 /**
- * The Fix it panel: the diagram's fixes (parameter changes the simulation
- * applies live), in the inspector column on desktop and tablet, and in the
- * phone sheet's Fix it tab.
+ * The Fix it panel, in the inspector column on desktop and tablet and in
+ * the phone sheet's Fix it tab, with two modes:
  *
- * Each fix shows its category, a one-line why and its cost note; fixes that
- * fit what's broken right now are marked. Applying one takes a reading of
- * p99, error rate, throughput and cost at that moment, then shows it next
- * to the live reading ("before → now"), with the explanation. The
- * requirement badges sit at the top of the panel, so recovery (or not) is
- * visible right where the fix was applied. Every applied fix can be taken
- * back out.
+ * - Fix it myself: every fix the diagram knows, with no hints about which
+ *   fits, and a live verdict (requirements passing, what it costs). Applying
+ *   one takes a reading of p99, error rate, throughput and cost, then shows
+ *   it next to the live reading. Every applied fix can be taken back out.
+ * - Show me the fixes: the verified plans for the failure in effect
+ *   (`FixPlans`), the cheapest applied as soon as the mode opens.
+ *
+ * The requirement badges sit at the top in both, so recovery (or not) is
+ * visible right where the change was made.
  */
 import { formatMs, formatPercent, formatRps, formatUsd } from '@/app/(components)/data';
-import { Button, CheckIcon, Pill } from '@/app/(components)/ui';
+import { Button, CheckIcon, Pill, SegmentedControl } from '@/app/(components)/ui';
 import { usePlayerStore } from '../store/PlayerStoreProvider';
 import { RequirementBadges } from '../hud/RequirementBadges';
-import { useBreakData, useOfferedFixes } from './BreakContext';
-import { useBreakUi, type MetricSnapshot } from './breakStore';
+import { useBreakData } from './BreakContext';
+import { useBreakUi, useBreakUiApi, type MetricSnapshot } from './breakStore';
+import { FixPlans, planCost } from './FixPlans';
 import { useBreakCommands } from './useBreakCommands';
 import { useGlobalMetricsFeed } from '../metrics/useGlobalMetricsFeed';
 import { FixNatureIcon, UndoIcon, WrenchIcon } from './icons';
-import { deriveFaults, fittingNatures, hasActiveFault } from './tools';
-import { activeBreaks, packFits } from './pack';
+import { currentCause, deriveFaults, hasActiveFault } from './tools';
+import { activeBreaks } from './pack';
 import { CacheFailureCard, nodeRowLabel } from './CacheFailures';
 import { useMetricSeriesFeed } from '../metrics/useMetricSeriesFeed';
 import type { RemedyView } from '../types';
@@ -38,23 +40,44 @@ const COMPARE_ROWS: ReadonlyArray<{ code: (typeof COMPARE_CODES)[number]; label:
 ];
 
 export function FixItPanel({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) {
-  const fixes = useOfferedFixes();
-  const { needs, catalog, kit } = useBreakData();
+  const data = useBreakData();
+  const { needs, kit, remedies } = data;
+  const commands = useBreakCommands(data);
+  const ui = useBreakUiApi();
+  const mode = useBreakUi((s) => s.fixMode);
+  const plan = useBreakUi((s) => s.plan);
   const actions = usePlayerStore((s) => s.actions);
-  const faults = deriveFaults(actions);
-  const natures = fittingNatures(faults, catalog);
-  const cacheFits = new Set(packFits(actions, kit, faults.killed));
-  const broken = hasActiveFault(faults) || activeBreaks(actions, kit).length > 0;
   const H = headingLevel === 2 ? 'h2' : 'h3';
   const watched = needs.filter((n) => n.alarm);
+
+  const setMode = (next: string) => {
+    if (next !== 'myself' && next !== 'plans') return;
+    ui.set({ fixMode: next });
+    // Show me: the cheapest verified plan goes in straight away, unless one for this failure already did.
+    if (next === 'plans') {
+      const cause = currentCause(actions);
+      const set = cause ? kit?.plans?.find((p) => p.cause === cause) : undefined;
+      if (cause && set?.ways.length && !(plan && plan.cause === cause)) commands.applyPlan(cause, 0, set.ways[0].acts);
+    }
+  };
 
   return (
     <section className="break-fixit" aria-label="Fix it">
       <div className="break-fixit-h">
         <WrenchIcon className="break-fixit-ic" />
         <H className="break-fixit-title">Fix it</H>
-        <Pill>{fixes.length === 1 ? '1 fix' : `${fixes.length} fixes`}</Pill>
       </div>
+      <SegmentedControl
+        size="sm"
+        aria-label="How to fix it"
+        className="break-fixit-mode"
+        value={mode}
+        onValueChange={setMode}
+        options={[
+          { value: 'myself', label: 'Fix it myself' },
+          { value: 'plans', label: 'Show me the fixes' },
+        ]}
+      />
       {watched.length > 0 ? (
         <div className="break-fixit-reqs">
           <p className="break-fixit-k">Requirements, live</p>
@@ -62,23 +85,50 @@ export function FixItPanel({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) {
         </div>
       ) : null}
       <CacheFailureCard />
-      <p className="break-fixit-lede">
-        {broken ? 'Pick a change that addresses what you broke. Marked fixes fit the current failure.' : 'Break something first, or apply a fix to see what it changes at baseline.'}
-      </p>
-      {fixes.length === 0 ? (
-        <p className="break-fixit-lede">This diagram offers no fixes yet.</p>
-      ) : (
-        <ul className="break-fixit-list">
-          {fixes.map((f) => (
-            <FixCard key={f.id} fix={f} applied={faults.fixes.has(f.id)} fits={cacheFits.has(f.id) || (broken && !!f.nature && natures.has(f.nature))} />
-          ))}
-        </ul>
-      )}
+      {mode === 'plans' ? <FixPlans /> : <FixItMyself remedies={remedies} order={kit?.remedies ?? []} />}
     </section>
   );
 }
 
-function FixCard({ fix, applied, fits }: { fix: RemedyView; applied: boolean; fits: boolean }) {
+/** Every fix, in the diagram's own order, with no hint about which fits: the learner decides. */
+function FixItMyself({ remedies, order }: { remedies: readonly RemedyView[]; order: readonly string[] }) {
+  const { needs, kit } = useBreakData();
+  const actions = usePlayerStore((s) => s.actions);
+  const watches = usePlayerStore((s) => s.sim.watches);
+  const cost = useGlobalMetricsFeed(['m']).metrics.m;
+  const faults = deriveFaults(actions);
+  const broken = hasActiveFault(faults) || activeBreaks(actions, kit).length > 0;
+  const watched = needs.filter((n) => n.alarm);
+  const passing = watched.filter((n) => watches[n.alarm!] === true).length;
+  const extra = cost?.value !== undefined && cost.baseline !== undefined ? cost.value - cost.baseline : undefined;
+  const listed = [...order.map((id) => remedies.find((r) => r.id === id)).filter((r): r is RemedyView => !!r), ...remedies.filter((r) => !order.includes(r.id))];
+
+  return (
+    <>
+      {watched.length > 0 ? (
+        <p className="break-fixit-verdict" data-passing={passing} data-total={watched.length}>
+          {passing} of {watched.length} requirements passing{extra !== undefined ? ` · ${planCost(extra)} vs before` : ''}
+        </p>
+      ) : null}
+      <p className="break-fixit-lede">
+        {broken
+          ? 'Try changes until every requirement passes. Undo any that don’t help. You can also scale any component from its inspector.'
+          : 'Break something first, or apply a fix to see what it changes at baseline.'}
+      </p>
+      {listed.length === 0 ? (
+        <p className="break-fixit-lede">This diagram offers no fixes yet.</p>
+      ) : (
+        <ul className="break-fixit-list">
+          {listed.map((f) => (
+            <FixCard key={f.id} fix={f} applied={faults.fixes.has(f.id)} />
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function FixCard({ fix, applied }: { fix: RemedyView; applied: boolean }) {
   const data = useBreakData();
   const commands = useBreakCommands(data);
   const ready = usePlayerStore((s) => s.sim.status === 'ready');
@@ -113,7 +163,6 @@ function FixCard({ fix, applied, fits }: { fix: RemedyView; applied: boolean; fi
             Apply
           </Button>
         )}
-        {fits && !applied ? <Pill variant="brand">fits this failure</Pill> : null}
         {fix.nature ? <span className="break-fx-nature">{fix.nature}</span> : null}
       </div>
       {applied && mark ? (

@@ -85,31 +85,6 @@ export function activeBreaks(actions: readonly UserAction[], kit: KitView | unde
   return [...out, ...lastFlush.values()].sort((a, b) => a.index - b.index);
 }
 
-/** Fix ids that fit what's broken in the caches right now: the current failures' fixes, and a killed cache's. */
-export function packFits(actions: readonly UserAction[], kit: KitView | undefined, killed: ReadonlySet<string>): string[] {
-  const out: string[] = [];
-  const add = (id: string) => {
-    if (!out.includes(id)) out.push(id);
-  };
-  for (const a of activeBreaks(actions, kit).reverse()) a.brk.fits.forEach(add);
-  for (const pack of packsOf(kit)) if (killed.has(pack.el)) pack.down.forEach(add);
-  return out;
-}
-
-/**
- * The fixes the Fix it panel lists: those that fit a current cache failure
- * first, then the diagram's own, then any other fix already applied (so it
- * can be taken back out). Ids only; unknown ones are dropped by the caller.
- */
-export function offeredFixIds(kit: KitView | undefined, fits: readonly string[], applied: ReadonlySet<string>): string[] {
-  if (!kit) return [];
-  // The fixes for the current cache failure lead, in their own order; then the diagram's list; then anything else applied.
-  const out = [...fits];
-  for (const id of kit.remedies) if (!out.includes(id)) out.push(id);
-  for (const id of applied) if (!out.includes(id)) out.push(id);
-  return out;
-}
-
 /** Labels and formats for the node metric codes a failure is shown by. */
 export const SERIES_LABELS: Readonly<Record<string, { text: string; unit: 'ratio' | 'rps' }>> = {
   j: { text: 'Hit ratio', unit: 'ratio' },

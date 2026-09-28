@@ -207,3 +207,20 @@
   .break-armed-select { min-width: 0; flex: 1; }
   .player-timeline-dock > .break-try, .player-timeline-dock > .break-log { display: none; }
 }
+
+/* Fix it modes: try it yourself, or the verified plans (cheapest first). */
+.break-fixit-mode { margin: 0 12px 10px 14px; }
+.break-fixit-verdict { margin: 0 12px 6px 14px; font: 600 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.break-plans-yours { margin: 0 12px 8px 14px; padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.45; color: var(--color-ink-primary); background: var(--color-surface-sunken); border: 1px solid var(--color-line-hairline); }
+.break-plans-list { display: flex; flex-direction: column; gap: 6px; padding: 0 8px 12px; margin: 0; list-style: none; }
+.break-plan { border-radius: 10px; padding: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
+.break-plan[data-applied='true'] { border-color: var(--color-brand-ink); }
+.break-plan-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.break-plan-t { font-size: 13px; font-weight: 600; color: var(--color-ink-primary); }
+.break-plan-cost { font: 600 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.break-plan-back { margin-left: auto; font: 500 11px var(--font-mono); color: var(--color-ink-muted); }
+.break-plan-steps { margin: 6px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.5; color: var(--color-ink-secondary); overflow-wrap: anywhere; }
+.break-plan-trades { margin-top: 8px; }
+.break-plan-trades .break-fixit-k { margin-bottom: 4px; }
+.break-plan-trades ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.45; color: var(--color-ink-secondary); }
+.break-plan .break-fx-act { margin-top: 8px; }
