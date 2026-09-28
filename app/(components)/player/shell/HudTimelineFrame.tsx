@@ -1,10 +1,9 @@
 'use client';
 
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { HudTable, HudSummary, HudTileRow, useHudReadings } from '../hud/HudTiles';
 import { CostMeter } from '../hud/CostMeter';
 import { PlaybackControls } from '../hud/PlaybackControls';
-import { ZoomSlotContext } from '../blueprint/zoomSlot';
 import { WalkthroughNarration } from '../walkthrough/WalkthroughNarration';
 import { CheckpointSlot, StoryNarration } from '../story';
 import type { GaugeView } from '../types';
@@ -12,8 +11,6 @@ import { BreakDockRow, BreakToolbox } from '../breakit';
 
 export interface HudStripProps {
   gauges: readonly GaugeView[];
-  /** Receives the element the board's zoom cluster renders into (see `ZoomSlotContext`). */
-  zoomHostRef?: (el: HTMLElement | null) => void;
 }
 
 /**
@@ -30,7 +27,7 @@ export interface HudStripProps {
  * values); tapping it expands them into a 2×2 grid inside the strip, and
  * the board re-fits to the space left.
  */
-export function HudStrip({ gauges, zoomHostRef }: HudStripProps) {
+export function HudStrip({ gauges }: HudStripProps) {
   const readings = useHudReadings(gauges);
   const [expanded, setExpanded] = useState(false);
   const tilesId = useId();
@@ -44,7 +41,6 @@ export function HudStrip({ gauges, zoomHostRef }: HudStripProps) {
           <HudTable readings={readings} />
         </div>
         <HudSummary readings={readings} expanded={expanded} onToggle={() => setExpanded((v) => !v)} controls={tilesId} />
-        <div ref={zoomHostRef} className="player-zoom-slot" data-zoom-slot />
       </div>
       <div className="player-canvas-toolbar-slot" data-canvas-toolbar-slot>
         <BreakToolbox />
@@ -85,19 +81,14 @@ export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {
 /**
  * The canvas frame: wraps the board (`children`, i.e. `PlayerBlueprint`
  * + its `InteractiveLayer` overlay) between the chrome strip above and the
- * narration/transport dock below — nothing floats over the diagram. The
- * board's zoom cluster is portalled up into the strip through
- * `ZoomSlotContext`.
+ * narration/transport dock below. Only the board's small zoom island floats
+ * over it, in the bottom-left corner.
  */
 export function HudTimelineFrame({ gauges, children }: { gauges: readonly GaugeView[]; children: ReactNode }) {
-  const [zoomHost, setZoomHost] = useState<HTMLElement | null>(null);
-  const zoomSlot = useMemo(() => ({ host: zoomHost }), [zoomHost]);
   return (
     <div className="player-canvas-area">
-      <HudStrip gauges={gauges} zoomHostRef={setZoomHost} />
-      <ZoomSlotContext.Provider value={zoomSlot}>
-        <div className="player-board-wrap">{children}</div>
-      </ZoomSlotContext.Provider>
+      <HudStrip gauges={gauges} />
+      <div className="player-board-wrap">{children}</div>
       <TimelineDock />
     </div>
   );

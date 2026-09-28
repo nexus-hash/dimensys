@@ -141,8 +141,8 @@ async function sparkPointCount(page: Page, tileIndex: number): Promise<number> {
 }
 
 /**
- * HUDFIX: the chrome strip above the board is one compact row (HUD tiles,
- * then the zoom cluster), nothing floats over the diagram, and the height
+ * HUDFIX: the chrome strip above the board is one compact row of HUD
+ * tiles; only the small zoom island floats over the board, and the height
  * the old two-row strip and the empty narration band used is the board's.
  */
 test.describe('/solutions/url-shortener chrome strip + dock layout (1440x900)', () => {
@@ -151,20 +151,31 @@ test.describe('/solutions/url-shortener chrome strip + dock layout (1440x900)', 
   /** `.player-board-wrap` height at 1440x900 before this layout (app v3 at 8d5d23a): 577.4px. */
   const BOARD_HEIGHT_BEFORE = 577.4;
 
-  test('the zoom cluster sits inside the strip and never overlaps the board', async ({ page }) => {
+  test('the zoom island floats in the board\'s bottom-left corner', async ({ page }) => {
     await waitForReady(page);
-    const strip = (await page.locator('.player-canvas-area .player-hud-strip').boundingBox())!;
-    const zoom = page.locator('.player-hud-strip .player-zoom-controls');
+    const zoom = page.locator('.player-board-wrap .player-zoom-controls');
     await expect(zoom).toBeVisible();
-    await expect(page.locator('.player-board-wrap .player-zoom-controls')).toHaveCount(0);
+    await expect(page.locator('.player-hud-strip .player-zoom-controls')).toHaveCount(0);
     const z = (await zoom.boundingBox())!;
     const board = (await page.locator('.player-board-wrap').boundingBox())!;
-    expect(z.y).toBeGreaterThanOrEqual(strip.y);
-    expect(z.y + z.height).toBeLessThanOrEqual(strip.y + strip.height);
-    expect(z.y + z.height, 'zoom cluster must end above the board').toBeLessThanOrEqual(board.y);
+    expect(Math.abs(z.x - board.x - 12)).toBeLessThanOrEqual(2);
+    expect(Math.abs(board.y + board.height - (z.y + z.height) - 12)).toBeLessThanOrEqual(2);
     for (const name of ['Zoom in', 'Zoom out', 'Fit to view']) {
       await expect(zoom.getByRole('button', { name })).toBeVisible();
     }
+  });
+
+  test('one mouse-wheel notch zooms gently (about 10%)', async ({ page }) => {
+    await waitForReady(page);
+    const board = (await page.locator('.player-board-wrap').boundingBox())!;
+    await page.mouse.move(board.x + board.width / 2, board.y + board.height / 2);
+    const pct = async () => Number((await page.locator('.player-zoom-controls').getAttribute('data-zoom-percent')) ?? 'NaN');
+    const before = await pct();
+    await page.mouse.wheel(0, -100);
+    await expect.poll(pct).not.toBe(before);
+    const after = await pct();
+    expect(after / before).toBeGreaterThan(1.05);
+    expect(after / before).toBeLessThan(1.2);
   });
 
   test('HUD tiles are compact (<= 48px tall) and the strip is one row', async ({ page }) => {

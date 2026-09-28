@@ -12,7 +12,6 @@ export interface ZoomControlsProps {
   canZoomIn: boolean;
   canZoomOut: boolean;
   /** `strip`: docked in the chrome strip above the board. `overlay`: inside a bare board with no chrome (embed/hero). */
-  placement?: 'strip' | 'overlay';
 }
 
 /**
@@ -21,10 +20,10 @@ export interface ZoomControlsProps {
  * zoom level is exposed to assistive tech on the group itself rather than
  * as a visible readout. On phone only Fit shows (pinch covers zooming).
  */
-export function ZoomControls({ percent, onZoomIn, onZoomOut, onFit, canZoomIn, canZoomOut, placement = 'strip' }: ZoomControlsProps) {
+export function ZoomControls({ percent, onZoomIn, onZoomOut, onFit, canZoomIn, canZoomOut }: ZoomControlsProps) {
   return (
     <div
-      className={placement === 'strip' ? 'player-zoom-controls' : 'player-zoom-controls is-overlay glass'}
+      className="player-zoom-controls glass"
       role="group"
       aria-label={`Zoom, ${percent}%`}
       data-zoom-percent={percent}

@@ -911,30 +911,26 @@
 /* Phone summary button (hidden above the phone breakpoint, see below). */
 .player-hud-summary { display: none; }
 
-/* The zoom cluster: a bordered row of 30px icon buttons at the end of the
-   strip row. Its host keeps the cluster's width reserved before the board's
-   client code fills it, so the tiles don't shift when it arrives. */
-.player-zoom-slot { flex: none; display: flex; min-width: 100px; justify-content: flex-end; }
+/* The zoom island: a small raised row of 30px icon buttons floating in the
+   board's bottom-left corner. `.player-board-root` is `display: contents`,
+   so it positions against the board's wrapper. */
 .player-zoom-controls {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: var(--z-index-chrome);
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 2px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-elevation-2, var(--elevation-2));
 }
-/* The kit's icon-only `sm` size sets a width but no height; the cluster's
+/* The kit's icon-only `sm` size sets a width but no height; the island's
    buttons are 30px squares. */
 .player-zoom-controls button { width: 30px; height: 30px; }
-/* A bare embed/hero board has no strip: the cluster sits in the board's own
-   bottom-right corner there. `.player-board-root` is `display: contents`,
-   so this positions against the board's wrapper. */
-.player-zoom-controls.is-overlay {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: var(--z-index-chrome);
-}
 
 /* Phone Metrics tab: the same tiles, 2×2. */
 .player-sheet-hud { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 8px; }
@@ -1138,11 +1134,7 @@
   .player-hud-summary:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
   .player-hud-summary-chev { width: 16px; height: 16px; flex: none; margin-left: auto; color: var(--color-ink-muted); transition: transform var(--transition-duration-small); }
   .player-hud-summary[aria-expanded="true"] .player-hud-summary-chev { transform: rotate(180deg); }
-  .player-zoom-slot { min-width: 36px; }
-  .player-zoom-slot .player-zoom-controls { padding: 0; border: 0; }
-  .player-zoom-slot .player-zoom-step { display: none; }
-  .player-zoom-slot .player-zoom-fit { width: 36px; height: 36px; border: 1px solid var(--color-line-hairline); border-radius: 10px; }
-  .player-zoom-controls.is-overlay { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
+  .player-zoom-controls { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
   .player-timeline-dock { padding: 6px 8px; gap: 6px; }
   .player-timeline-dock .player-narration-slot { display: none; }
   .player-tl-speed, .player-tl-note, .player-tl-reset { display: none; }
@@ -1150,8 +1142,7 @@
   /* Touch targets: every control in the player and its sheet is at least
      44px on each side (inline prose links excepted). */
   .player-hud-summary { height: 44px; }
-  .player-zoom-slot { min-width: 44px; }
-  .player-zoom-slot .player-zoom-fit { width: 44px; height: 44px; }
+  .player-zoom-controls button { width: 44px; height: 44px; }
   .player-timeline-slot { height: 44px; }
   .player-shell :is(button, [role="tab"], [role="checkbox"], [role="switch"]),
   .player-sheet :is(button, [role="tab"], [role="checkbox"], [role="switch"]) { min-height: 44px; min-width: 44px; }
@@ -1424,10 +1415,12 @@
  * Same box as a compact stat tile.
  * ========================================================================== */
 .cost-meter { flex: 1.35 1 0; min-width: 0; max-width: 320px; display: grid; grid-template-rows: auto auto; row-gap: 1px; padding: 5px 10px; border-radius: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
-.cost-meter-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.cost-meter-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; height: 16px; }
 .cost-meter-label { font-size: 11px; font-weight: 500; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cost-meter-auto { display: inline-flex; align-items: center; gap: 6px; font: 500 11px var(--font-mono); color: var(--color-ink-secondary); white-space: nowrap; }
 .cost-meter-auto label { cursor: pointer; }
+/* The kit switch, scaled to the tile's 16px label line so the row keeps the tiles' height. */
+.cost-meter-auto button[role='switch'] { transform: scale(.75); transform-origin: right center; }
 .cost-meter-value { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .cost-meter-amount { font: 600 16px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); white-space: nowrap; }
 .cost-meter-period { font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -143,7 +143,15 @@ export const DRAG_THRESHOLD_PX = 4;
  * so it feels smooth and speed-proportional rather than stepped. Panning is
  * drag (pointer) or arrow keys only; the wheel no longer pans.
  */
-export const WHEEL_ZOOM_K = 0.01;
+export const WHEEL_ZOOM_K = 0.001;
+/**
+ * A trackpad pinch arrives as wheel + ctrlKey with small deltas (a few px per
+ * event), so it keeps a faster rate than a mouse wheel, whose notch reports
+ * about 100px: ~10% per notch with `WHEEL_ZOOM_K`.
+ */
+export const PINCH_ZOOM_K = 0.01;
+/** Largest zoom change one wheel event may make (either way). */
+export const WHEEL_MAX_STEP = 1.25;
 
 /**
  * Normalizes a `WheelEvent`'s `deltaY` to pixel units regardless of

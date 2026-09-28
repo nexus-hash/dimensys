@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { useShortcut, useShortcutScope } from '@/app/(components)/command';
 import {
   cameraTransform,
@@ -13,6 +12,8 @@ import {
   zoomRange,
   normalizeWheelDeltaY,
   WHEEL_ZOOM_K,
+  PINCH_ZOOM_K,
+  WHEEL_MAX_STEP,
   ZOOM_STEP,
   DRAG_THRESHOLD_PX,
   focusCamera,
@@ -29,7 +30,6 @@ import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
 import { CAMERA_FOCUS_EVENT, type CameraFocusDetail } from '../walkthrough/stage';
 import type { BoardView, Camera, CameraChangeDetail } from './camera';
 import { ZoomControls } from './ZoomControls';
-import { useZoomSlot } from './zoomSlot';
 import type { Box, XY } from '../types';
 
 /** Length of an animated camera move (a walkthrough step's focus). Instant under reduced motion. */
@@ -94,10 +94,8 @@ function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
  * until the user hits Fit (`0`, or the zoom cluster's Fit button), which
  * re-fits and flips `tracking` back to true.
  *
- * The zoom cluster itself renders into the chrome strip above the board
- * when the player shell provides one (`ZoomSlotContext`), never over the
- * board; a bare embed board keeps it inside its own box, and a
- * non-interactive (hero preview) board renders none.
+ * The zoom cluster floats as a small island in the board's bottom-left
+ * corner; a non-interactive (hero preview) board renders none.
  */
 export function BoardStage({ boardSize, tall = null, className, interactive = true, children }: BoardStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -529,7 +527,8 @@ export function BoardStage({ boardSize, tall = null, className, interactive = tr
       // wheel+ctrlKey; there's nothing left for `ctrlKey` to distinguish
       // once both zoom the same way). Panning is drag/arrow-keys only now.
       const deltaY = normalizeWheelDeltaY(e.deltaY, e.deltaMode, stage!.clientHeight || undefined);
-      const factor = Math.exp(-deltaY * WHEEL_ZOOM_K);
+      const k = e.ctrlKey ? PINCH_ZOOM_K : WHEEL_ZOOM_K;
+      const factor = Math.min(WHEEL_MAX_STEP, Math.max(1 / WHEEL_MAX_STEP, Math.exp(-deltaY * k)));
       applyCamera(zoomAtPoint(cur.camera, cx, cy, cur.camera.scale * factor, cur.fitScale));
     }
 
@@ -601,10 +600,8 @@ export function BoardStage({ boardSize, tall = null, className, interactive = tr
   const canZoomIn = readout.percent < Math.round(4 * 100) - 1;
   const canZoomOut = readout.percent > Math.round(Math.min(readout.fitScale, 0.25) * 100) + 1;
 
-  const zoomSlot = useZoomSlot();
-  const zoomControls = (placement: 'strip' | 'overlay') => (
+  const zoomControls = () => (
     <ZoomControls
-      placement={placement}
       percent={readout.percent}
       canZoomIn={canZoomIn}
       canZoomOut={canZoomOut}
@@ -624,7 +621,7 @@ export function BoardStage({ boardSize, tall = null, className, interactive = tr
       >
         {children}
       </div>
-      {interactive && (zoomSlot === null ? zoomControls('overlay') : zoomSlot.host ? createPortal(zoomControls('strip'), zoomSlot.host) : null)}
+      {interactive && zoomControls()}
     </div>
   );
 }
