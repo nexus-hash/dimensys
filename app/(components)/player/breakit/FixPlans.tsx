@@ -72,15 +72,27 @@ export function FixPlans() {
     );
   }
   if (!set) {
+    // Every planned failure that breaks something has an entry; none means it recovers by itself (or wasn't planned).
     const flush = cause.startsWith('flush:');
-    const known = kit?.chips.some((c) => cause === `${c.verb}:${c.el ?? c.amt}`) || cause.startsWith('fault:');
+    const planned = cause.startsWith('kill:') || cause.startsWith('fault:') || kit?.chips.some((c) => cause === `${c.verb}:${c.el ?? c.amt}`);
     return (
-      <p className="break-fixit-lede" data-plans-state={flush ? 'heals' : known ? 'unfixable' : 'unknown'}>
+      <p className="break-fixit-lede" data-plans-state={planned ? 'heals' : 'unplanned'}>
         {flush
           ? 'A flushed cache refills on its own: watch the requirements come back as it warms up. Fix it myself shows what makes that faster.'
-          : known
-            ? 'No combination of up to three changes brings this back while it lasts. Undo the failure, or try your own changes in Fix it myself.'
-            : 'Plans are worked out for one failure at a time: the “Try this” ideas and the cache failures. For this mix, use Fix it myself.'}
+          : planned
+            ? 'This recovers on its own (a replica takes over, or it warms back up): watch the requirements come back.'
+            : 'This one isn’t worked out ahead of time. Try your own changes in Fix it myself.'}
+      </p>
+    );
+  }
+  if (set.ways.length === 0) {
+    const [verb, el] = cause.split(':');
+    const name = el ? targetName({ id: el }, catalog) : '';
+    return (
+      <p className="break-fixit-lede" data-plans-state="unfixable">
+        {verb === 'kill'
+          ? `Checked in the simulator: no change in the list brings this back while ${name} is down. It needs ${name} restored (Undo), or redundancy in place before it fails.`
+          : 'Checked in the simulator: no combination of up to three changes brings this back while it lasts. Undo it, or try your own changes in Fix it myself.'}
       </p>
     );
   }

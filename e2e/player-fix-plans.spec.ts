@@ -98,6 +98,16 @@ test.describe('Fix it modes', () => {
     await expect(panel(page).locator('[data-plans-state]')).toHaveAttribute('data-plans-state', 'unknown');
   });
 
+  test('killing a node nothing replaces says so, verified, rather than calling it a mix', async ({ page }) => {
+    await openBreak(page);
+    await openFixIt(page);
+    await panel(page).getByRole('radio', { name: 'Show me the fixes' }).click();
+    await killNode(page, 'api-service');
+    const state = panel(page).locator('[data-plans-state]');
+    await expect(state).toHaveAttribute('data-plans-state', 'unfixable');
+    await expect(state).toContainText('API Service restored');
+  });
+
   for (const theme of ['light', 'dark'] as const) {
     test(`no axe violations in either mode, ${theme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: theme });
