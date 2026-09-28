@@ -29,6 +29,12 @@ async function openFixIt(page: Page) {
   }).toPass({ timeout: 10000 });
 }
 
+/** Kills a node without a card (the "Try this" cards give way to the action log after the first move). */
+async function killNode(page: Page, id: string) {
+  await page.locator(`[data-node-id="${id}"]`).first().click();
+  await page.keyboard.press('k');
+}
+
 async function tryCard(page: Page, text: string | RegExp) {
   await page.locator('.player-canvas-area .break-try-card', { hasText: text }).click();
 }
@@ -84,8 +90,9 @@ test.describe('Fix it modes', () => {
     await expect(panel(page).locator('[data-plans-state]')).toHaveAttribute('data-plans-state', 'none');
     await tryCard(page, 'Flush the Redis Cache');
     await expect(panel(page).locator('[data-plans-state]')).toHaveAttribute('data-plans-state', 'heals');
-    await tryCard(page, 'Kill the Redis cache');
-    await tryCard(page, /10x traffic/);
+    await killNode(page, 'cache-redis');
+    await expect(panel(page).locator('[data-plans-state]')).toHaveAttribute('data-plans-state', 'plans');
+    await killNode(page, 'lb-main');
     await expect(panel(page).locator('[data-plans-state]')).toHaveAttribute('data-plans-state', 'unknown');
   });
 
