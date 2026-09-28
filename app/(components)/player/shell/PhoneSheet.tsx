@@ -12,6 +12,9 @@ import { RequirementBadges } from '../hud/RequirementBadges';
 import { EmptyInspectorBody } from '../inspector';
 import type { GaugeView, NeedView } from '../types';
 import { BreakPhoneFix, useBreakUi, breakUiFor, useIsPhone } from '../breakit';
+import { CheckpointSlot, ScenarioList, useOpenAsk, useStoryData } from '../story';
+
+type SheetTab = 'inspect' | 'hud' | 'fix' | 'story';
 
 /** The spec's phone snap points, exported so `PlayerShell` can size the canvas area's reserved bottom space to match the *current* one, not just the lowest. */
 export const SNAP_PERCENTS = [12, 50, 92];
@@ -62,10 +65,21 @@ export interface PhoneSheetProps {
 export function PhoneSheet({ elementIndex, panels, gauges = [], needs = [], snapIndex, onSnapIndexChange }: PhoneSheetProps) {
   const selection = usePlayerStore((s) => s.selection);
   const store = usePlayerStoreApi();
-  const [tab, setTab] = React.useState<'inspect' | 'hud' | 'fix'>('hud');
+  const [tab, setTab] = React.useState<SheetTab>('hud');
   const mode = usePlayerStore((s) => s.mode);
   const phone = useIsPhone();
   const fixOpen = useBreakUi((s) => s.drawer) && mode === 'break' && phone;
+  const hasScenarios = useStoryData().plays.length > 0;
+  const askId = useOpenAsk()?.id ?? null;
+
+  // A scenario's checkpoint question opens in this sheet, on its Scenarios tab.
+  React.useEffect(() => {
+    if (askId && phone) {
+      setTab('story');
+      onSnapIndexChange(Math.max(snapIndex, 1));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askId, phone]);
 
   // Break it's Fix it chip opens this sheet on its Fix it tab.
   React.useEffect(() => {
@@ -107,11 +121,12 @@ export function PhoneSheet({ elementIndex, panels, gauges = [], needs = [], snap
         aria-label="Player details"
         value={tab}
         onValueChange={(v) => {
-          setTab(v as 'inspect' | 'hud' | 'fix');
+          setTab(v as SheetTab);
           breakUiFor(store).set({ drawer: v === 'fix' });
         }}
         items={[
           { value: 'hud', label: 'Metrics' },
+          ...(hasScenarios ? [{ value: 'story', label: 'Scenarios' }] : []),
           { value: 'inspect', label: 'Inspect', disabled: !selection },
           ...(mode === 'break' ? [{ value: 'fix', label: 'Fix it' }] : []),
         ]}
@@ -125,6 +140,14 @@ export function PhoneSheet({ elementIndex, panels, gauges = [], needs = [], snap
           {needs.length > 0 ? <RequirementBadges needs={needs} /> : null}
           <TimelineDock registerShortcuts={false} />
         </TabsContent>
+        {hasScenarios ? (
+          <TabsContent value="story">
+            <div className="story-sheet">
+              <CheckpointSlot where="sheet" />
+              <ScenarioList compact />
+            </div>
+          </TabsContent>
+        ) : null}
         {mode === 'break' ? (
           <TabsContent value="fix">
             <BreakPhoneFix />

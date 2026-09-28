@@ -10,13 +10,14 @@ import { HudTimelineFrame } from './HudTimelineFrame';
 import { PhoneSheet, SNAP_PERCENTS } from './PhoneSheet';
 import type { ElementIndex } from './selection';
 import type { ModeAvailability } from './modes';
-import type { GaugeView, KitView, NeedView, RemedyView, SwitchView } from '../types';
+import type { GaugeView, KitView, NeedView, PlayView, RemedyView, SwitchView } from '../types';
 import { BreakController, BreakDataProvider, RightColumn, useBreakUi } from '../breakit';
 import type { TargetCatalog } from '../breakit/tools';
 import { WalkthroughProvider, type WalkthroughData } from '../walkthrough/WalkthroughContext';
 import { WalkthroughController } from '../walkthrough/WalkthroughController';
 import type { WalkthroughView } from '../walkthrough/model';
 import type { RailData } from '../rail/data';
+import { StoryController, StoryProvider, type StoryData } from '../story';
 
 export interface PlayerShellProps {
   title: string;
@@ -39,6 +40,8 @@ export interface PlayerShellProps {
   narration?: Readonly<Record<string, React.ReactNode>>;
   /** The left rail's problem header, request paths and estimate (`buildRailData`). */
   rail?: RailData;
+  /** Scenarios: free play and the authored, timed runs. Defaults to none. */
+  plays?: readonly PlayView[];
   children: React.ReactNode;
 }
 
@@ -97,6 +100,7 @@ export function PlayerShell({
   walkthroughs = NO_WALKTHROUGHS,
   narration = NO_NARRATION,
   rail,
+  plays = NO_PLAYS,
   children,
 }: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
@@ -111,6 +115,12 @@ export function PlayerShell({
     () => ({ walkthroughs, narration, breakAvailable }),
     [walkthroughs, narration, breakAvailable],
   );
+  const storyData = React.useMemo<StoryData>(() => {
+    const names: Record<string, string> = {};
+    for (const [id, n] of elementIndex.nodes) names[id] = n.text;
+    for (const [id, f] of elementIndex.groups) names[id] = f.text;
+    return { plays, gauges, names };
+  }, [plays, gauges, elementIndex]);
 
   function toggleRail() {
     setRailOpen((open) => !open);
@@ -130,6 +140,7 @@ export function PlayerShell({
 
   return (
     <WalkthroughProvider value={walkthroughData}>
+    <StoryProvider value={storyData}>
     <BreakDataProvider kit={kit} remedies={remedies} needs={needs} catalog={catalog} switches={switches}>
     <div ref={shellRef} className="player-shell" data-player-mode={mode} style={sheetPeek}>
       <TopBar
@@ -159,8 +170,10 @@ export function PlayerShell({
       />
       <BreakController />
       <WalkthroughController boardRootRef={shellRef} />
+      <StoryController boardRootRef={shellRef} />
     </div>
     </BreakDataProvider>
+    </StoryProvider>
     </WalkthroughProvider>
   );
 }
@@ -169,3 +182,4 @@ const EMPTY_REMEDIES: readonly RemedyView[] = [];
 const EMPTY_CATALOG: TargetCatalog = { nodes: [], links: [] };
 const NO_WALKTHROUGHS: readonly WalkthroughView[] = [];
 const NO_NARRATION: Readonly<Record<string, React.ReactNode>> = {};
+const NO_PLAYS: readonly PlayView[] = [];

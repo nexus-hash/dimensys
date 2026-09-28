@@ -175,6 +175,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
           walkthroughs={buildWalkthroughs(diagram)}
           narration={buildWalkthroughNarration(diagram)}
           rail={buildRailData(diagram)}
+          plays={diagram.plays}
         >
           {blueprint}
         </PlayerShell>

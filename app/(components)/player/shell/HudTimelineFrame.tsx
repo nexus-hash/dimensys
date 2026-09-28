@@ -5,6 +5,7 @@ import { HudTable, HudSummary, HudTileRow, useHudReadings } from '../hud/HudTile
 import { PlaybackControls } from '../hud/PlaybackControls';
 import { ZoomSlotContext } from '../blueprint/zoomSlot';
 import { WalkthroughNarration } from '../walkthrough/WalkthroughNarration';
+import { CheckpointSlot, StoryNarration } from '../story';
 import type { GaugeView } from '../types';
 import { BreakDockRow, BreakToolbox } from '../breakit';
 
@@ -65,8 +66,11 @@ export interface TimelineDockProps {
 export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {}) {
   return (
     <div className="player-timeline-dock" data-dock={registerShortcuts ? 'board' : 'sheet'}>
+      {/* A checkpoint question takes focus itself, so it sits outside the live region. */}
+      {registerShortcuts ? <CheckpointSlot where="dock" /> : null}
       <div className="player-narration-slot" aria-live="polite" data-narration-slot>
         <WalkthroughNarration />
+        {registerShortcuts ? <StoryNarration /> : null}
       </div>
       {registerShortcuts ? <BreakDockRow /> : null}
       <div className="player-timeline-slot" role="group" aria-label="Playback" data-timeline-slot>

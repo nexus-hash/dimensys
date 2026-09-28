@@ -25,6 +25,7 @@ import {
 } from './protocol';
 import { registerBridge, unregisterBridge } from './bridgeRegistry';
 import { publishCalcReply } from './calcResults';
+import { publishRunnerEvents } from './runnerEvents';
 import type { UserAction } from '../types';
 
 /** The subset of the real `Worker` API the bridge needs — small enough for tests to fake without a real Worker thread. */
@@ -68,7 +69,7 @@ const defaultVisibility = {
 };
 
 export class WorkerBridge {
-  private readonly opts: WorkerBridgeOptions;
+  private opts: WorkerBridgeOptions;
   private readonly createWorker: (url: string) => WorkerLike;
   private readonly visibility: NonNullable<WorkerBridgeOptions['visibility']>;
   private worker: WorkerLike | null = null;
@@ -158,6 +159,28 @@ export class WorkerBridge {
     this.opts.store.setState({ actions: [...actions] });
     this.reapplyCalcsOnReady = this.appliedCalcs.size > 0;
     this.startWorker({ actions: [...actions], t }, !wasPlaying);
+  }
+
+  /**
+   * Starts a different run in a fresh worker: free play, or one scenario
+   * from its start. The action log, applied calculators and the scenario
+   * slice start over; the new run plays as soon as it's ready. Doesn't use
+   * up the one crash restart.
+   */
+  restart(mode: 'free' | 'scenario', scenarioId?: string): void {
+    if (this.disposed) return;
+    const old = this.worker;
+    this.worker = null;
+    old?.terminate();
+    this.opts = { ...this.opts, mode, scenarioId: mode === 'scenario' ? scenarioId : undefined };
+    this.appliedCalcs.clear();
+    this.reapplyCalcsOnReady = false;
+    this.opts.store.setState((s) => ({
+      actions: [],
+      sim: { ...s.sim, playing: false, errorCode: undefined },
+      story: { scenarioId: mode === 'scenario' ? (scenarioId ?? null) : null, runner: null, duration: null },
+    }));
+    this.startWorker(undefined, false);
   }
 
   /**
@@ -268,6 +291,7 @@ export class WorkerBridge {
             watches: msg.watches.length ? { ...s.sim.watches, ...Object.fromEntries(msg.watches) } : s.sim.watches,
           },
         }));
+        if (msg.events.length) publishRunnerEvents(this.opts.store, msg.events);
         return;
       case 'status':
         this.opts.store.setState((s) => ({

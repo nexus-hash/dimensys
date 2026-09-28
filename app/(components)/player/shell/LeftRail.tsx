@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { RequirementBadges } from '../hud/RequirementBadges';
 import { WalkthroughRail } from '../walkthrough/WalkthroughRail';
+import { ScenarioList } from '../story/ScenarioRail';
 import type { NeedView } from '../types';
 import type { RailData } from '../rail/data';
 import { ProblemHeader } from '../rail/ProblemHeader';
@@ -51,7 +52,9 @@ export function LeftRail({ open, onClose, needs = [], rail }: LeftRailProps) {
               <RequestPaths lanes={rail.lanes} />
             </RailSection>
           ) : null}
-          <RailSection title="Scenarios" />
+          <RailSection title="Scenarios">
+            <ScenarioList />
+          </RailSection>
           <RailSection title="Walkthroughs">
             <WalkthroughRail />
           </RailSection>

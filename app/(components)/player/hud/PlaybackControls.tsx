@@ -23,10 +23,12 @@
  * buttons themselves work either way — only the global key bindings are
  * singular.
  */
+import { useId } from 'react';
 import { useShortcut } from '@/app/(components)/command';
 import { IconButton, Slider, PlayIcon, PauseIcon, ResetIcon } from '@/app/(components)/ui';
 import { fmtSimTime } from '../metrics/simTime';
 import { usePlaybackCommands } from '../metrics/usePlaybackCommands';
+import { TimelineMarks } from '../story/TimelineMarks';
 
 export interface PlaybackControlsProps {
   registerShortcuts?: boolean;
@@ -35,6 +37,7 @@ export interface PlaybackControlsProps {
 export function PlaybackControls({ registerShortcuts = true }: PlaybackControlsProps) {
   const { playing, speed, status, t, duration, togglePlay, cycleSpeed, seek, reset } = usePlaybackCommands();
   const disabled = status !== 'ready';
+  const marksId = useId();
 
   useShortcut(
     { id: 'player:play-pause', keys: 'space', label: 'Play / pause', group: 'Player', when: 'player' },
@@ -94,17 +97,20 @@ export function PlaybackControls({ registerShortcuts = true }: PlaybackControlsP
         {speed}×
       </button>
       {duration !== null ? (
-        <div className="player-scrubber" role="group" aria-label="Scenario timeline">
-          <Slider
-            value={t}
-            min={0}
-            max={duration}
-            step={0.1}
-            disabled={disabled}
-            onValueChange={seek}
-            aria-label="Scrub"
-            className="player-scrubber-slider"
-          />
+        <div className="player-scrubber" role="group" aria-label="Scenario timeline" aria-describedby={marksId}>
+          <div className="player-scrubber-track">
+            <TimelineMarks duration={duration} descId={marksId} />
+            <Slider
+              value={t}
+              min={0}
+              max={duration}
+              step={0.1}
+              disabled={disabled}
+              onValueChange={seek}
+              aria-label="Scrub"
+              className="player-scrubber-slider"
+            />
+          </div>
           <span className="player-time">
             {fmtSimTime(t)} <span className="player-time-total">/ {fmtSimTime(duration)}</span>
           </span>
