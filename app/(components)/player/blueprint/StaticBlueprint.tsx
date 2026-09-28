@@ -125,8 +125,8 @@ function renderNode(
   );
 }
 
-/** A group's frame: a dashed border round its nodes with its name as a tab. Decoration only (not focusable, no hover). */
-function renderFrame(frame: FrameView, boardId: string) {
+/** A group's frame: a dashed border round its nodes with its name as a tab — the tab is the group's one control (it selects the group). */
+function renderFrame(frame: FrameView, boardId: string, interactive: boolean) {
   const [cx, cy, width, height] = frame.box;
   return (
     <SubsystemFrame
@@ -138,6 +138,7 @@ function renderFrame(frame: FrameView, boardId: string) {
       y={cy - height / 2}
       width={width}
       height={height}
+      interactive={interactive}
     />
   );
 }
@@ -174,7 +175,7 @@ function renderLinkLabel(wire: LinkView) {
 function renderBoard(board: BoardView, boardId: string, mode: ColorByMode, health: HealthLookup | undefined, interactive: boolean) {
   return (
     <>
-      {(board.frames ?? []).map((frame) => renderFrame(frame, boardId))}
+      {(board.frames ?? []).map((frame) => renderFrame(frame, boardId, interactive))}
       {board.wires.map((wire) => renderLink(wire, boardId))}
       {board.wires.map((wire) => renderLinkLabel(wire))}
       {board.blocks.map((block) => renderNode(block, boardId, mode, health, interactive))}

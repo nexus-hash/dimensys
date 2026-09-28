@@ -17,7 +17,8 @@ import type { PlayerBootstrap, UserAction } from '../types';
 /** Player modes. Unsupported modes are hidden, not disabled. */
 export type PlayerMode = 'explore' | 'break' | 'walkthrough' | 'build' | 'interview';
 
-export type Selection = { kind: 'node' | 'link' | 'flow'; id: string } | null;
+/** `group`: a framed group, selected from its frame's tab. */
+export type Selection = { kind: 'node' | 'link' | 'group' | 'flow'; id: string } | null;
 
 /** Latest columnar frame from the worker; arrays are owned by the store once received. */
 export interface SimFrame {

@@ -147,8 +147,8 @@ export interface LinkView {
 
 /** One graph level. */
 /**
- * A labelled frame drawn round a group of nodes. Decoration only: no state,
- * metrics, detail panel or focus stop of its own.
+ * A labelled frame drawn round a group of nodes. No state or metrics of its
+ * own; its tab label is a button that opens the group's detail panel.
  */
 export interface FrameView {
   id: string;
@@ -160,6 +160,8 @@ export interface FrameView {
   box: Box;
   /** Ids of every node inside the frame (at any depth). */
   holds: string[];
+  /** The group's own detail panel, same shape as a node's. */
+  sheet?: Sheet;
 }
 
 /** The drawn diagram: one flat graph, every node at the same scale. */

@@ -10,7 +10,7 @@ const board: Board = {
     { id: 'inner-a', form: 'db', text: 'Inner DB' },
   ],
   wires: [{ id: 'l1', a: 'api', b: 'inner-a', line: 'async' }],
-  frames: [{ id: 'sub', text: 'KGS', look: 'cluster', box: [200, 100, 200, 100], holds: ['inner-a'] }],
+  frames: [{ id: 'sub', text: 'KGS', look: 'cluster', box: [200, 100, 200, 100], holds: ['inner-a'], sheet: { parts: [] } }],
 };
 
 describe('buildElementIndex / selectionTitle / selectionKindLabel', () => {
@@ -19,6 +19,11 @@ describe('buildElementIndex / selectionTitle / selectionKindLabel', () => {
   it('indexes a framed group\'s nodes like any other, and never the frame itself', () => {
     expect(index.nodes.get('inner-a')?.text).toBe('Inner DB');
     expect(index.nodes.has('sub')).toBe(false);
+  });
+
+  it('titles a group selection with the group\'s name', () => {
+    expect(selectionTitle(index, { kind: 'group', id: 'sub' })).toBe('KGS');
+    expect(selectionKindLabel(index, { kind: 'group', id: 'sub' })).toBe('group · cluster');
   });
 
   it('returns null for no selection', () => {

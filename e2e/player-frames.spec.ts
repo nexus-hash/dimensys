@@ -3,8 +3,9 @@ import AxeBuilder from '@axe-core/playwright';
 
 /**
  * Group frames: a group's nodes are drawn inline on the one board, inside a
- * labelled dashed frame. There is no collapsed card, no way into or out of a
- * group, and the breadcrumb is just Explore › the diagram title.
+ * labelled dashed frame whose tab opens the group's own detail panel. There
+ * is no collapsed card, no way into or out of a group, and the breadcrumb is
+ * just Explore › the diagram title.
  */
 
 interface Rect {
@@ -114,12 +115,76 @@ test.describe('player group frames (url-shortener)', () => {
     await expect(items.nth(1)).toHaveText('URL Shortener System Design');
   });
 
-  test('no drill or expand control exists, and the frame is not interactive', async ({ page }) => {
+  test('no drill or expand control exists; the tab is the frame’s only control', async ({ page }) => {
     await expect(page.locator('[data-subsystem-tab-id], [data-child-ids], .cv-expand, .cv-subsystem-card, [data-drill-key]')).toHaveCount(0);
     await expect(page.getByRole('button', { name: /enter .* subsystem|expand|drill/i })).toHaveCount(0);
     const frame = page.locator('[data-frame-id]').first();
-    await expect(frame.locator('[tabindex], [role="button"]')).toHaveCount(0);
+    await expect(frame.locator('[tabindex]')).toHaveCount(1);
+    await expect(frame.getByRole('button', { name: 'Key Generation Service details' })).toHaveAttribute('tabindex', '0');
     expect(await frame.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
+    expect(await frame.locator('.cv-body').evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
+  });
+
+  test('keyboard focus reaches the frame’s tab before the nodes inside it', async ({ page }) => {
+    const order = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-board-level] svg [tabindex="0"]')].map((el) => el.getAttribute('data-frame-tab') ?? el.getAttribute('data-node-id')),
+    );
+    const tabAt = order.indexOf('kgs-service');
+    expect(tabAt).toBeGreaterThanOrEqual(0);
+    expect(tabAt).toBeLessThan(order.indexOf('kgs-worker'));
+    expect(tabAt).toBeLessThan(order.indexOf('kgs-db'));
+  });
+
+  test('clicking inside the frame’s empty area does not select the group', async ({ page }) => {
+    const body = (await page.locator('[data-frame-id="kgs-service"] .cv-body').boundingBox())!;
+    // The bottom-left padding strip: inside the border, clear of every node and link.
+    await page.mouse.click(body.x + 6, body.y + body.height - 6);
+    await page.waitForTimeout(300);
+    await expect(page.locator('[data-frame-id="kgs-service"]')).not.toHaveClass(/is-selected/);
+    await expect(page.getByRole('complementary', { name: 'Inspector' })).toHaveCount(0);
+  });
+
+  test.describe('selecting the group (desktop inspector)', () => {
+    test.skip(({ isMobile }) => isMobile, 'the phone sheet hosts the inspector on mobile; covered by the inspector spec');
+
+    async function expectGroupInspector(page: Page) {
+      const inspector = page.getByRole('complementary', { name: 'Inspector' });
+      await expect(inspector).toBeVisible();
+      await expect(inspector.getByRole('heading', { name: 'Key Generation Service' })).toBeVisible();
+      const tabs = inspector.getByRole('tablist', { name: 'Key Generation Service detail tabs' }).getByRole('tab');
+      await expect(tabs).toHaveCount(3);
+      expect((await tabs.allTextContents()).map((t) => t.trim()).sort()).toEqual(['Architecture', 'Operations', 'Overview']);
+      await expect(inspector.getByText('Batch Allocation Spec')).toBeVisible();
+      await expect(page.locator('[data-frame-id="kgs-service"]')).toHaveClass(/is-selected/);
+    }
+
+    test('clicking the tab opens the inspector with the group’s title and its tabs', async ({ page }) => {
+      await page.getByRole('button', { name: 'Key Generation Service details' }).click();
+      await expectGroupInspector(page);
+    });
+
+    test('the tab works from the keyboard (Enter and Space)', async ({ page }) => {
+      const tab = page.getByRole('button', { name: 'Key Generation Service details' });
+      await tab.focus();
+      await page.keyboard.press('Enter');
+      await expectGroupInspector(page);
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('complementary', { name: 'Inspector' })).toHaveCount(0);
+      await tab.focus();
+      await page.keyboard.press(' ');
+      await expectGroupInspector(page);
+    });
+
+    test('selecting a node clears the group, and selecting the group clears the node', async ({ page }) => {
+      await page.getByRole('button', { name: 'Key Generation Service details' }).click();
+      await expect(page.locator('[data-frame-id="kgs-service"]')).toHaveClass(/is-selected/);
+      await page.locator('[data-node-id="kgs-worker"]').click();
+      await expect(page.locator('[data-node-id="kgs-worker"]')).toHaveClass(/is-selected/);
+      await expect(page.locator('[data-frame-id="kgs-service"]')).not.toHaveClass(/is-selected/);
+      await page.getByRole('button', { name: 'Key Generation Service details' }).click();
+      await expect(page.locator('[data-frame-id="kgs-service"]')).toHaveClass(/is-selected/);
+      await expect(page.locator('[data-node-id="kgs-worker"]')).not.toHaveClass(/is-selected/);
+    });
   });
 
   test('a framed child is an ordinary node: clicking it selects it on the same board', async ({ page, isMobile }) => {
@@ -148,6 +213,15 @@ test.describe('player group frames — axe', () => {
         const results = await new AxeBuilder({ page }).analyze();
         if (results.violations.length > 0) console.log(JSON.stringify(results.violations, null, 2));
         expect(results.violations).toEqual([]);
+        // And with the group selected (its tab focused, its panel open).
+        const tab = page.getByRole('button', { name: 'Key Generation Service details' });
+        await tab.focus();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('[data-frame-id="kgs-service"]')).toHaveClass(/is-selected/);
+        await settle(page);
+        const selected = await new AxeBuilder({ page }).analyze();
+        if (selected.violations.length > 0) console.log(JSON.stringify(selected.violations, null, 2));
+        expect(selected.violations).toEqual([]);
       });
     }
   }

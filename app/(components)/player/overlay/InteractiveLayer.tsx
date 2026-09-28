@@ -164,6 +164,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
     const nodeEls = new Map<string, SVGGElement>();
     const linkEls = new Map<string, SVGGElement>();
+    const frameEls = new Map<string, SVGGElement>();
+    for (const el of container.querySelectorAll<SVGGElement>('[data-frame-id]')) {
+      const id = el.dataset.frameId;
+      if (id) frameEls.set(id, el);
+    }
     for (const el of container.querySelectorAll<SVGGElement>('[data-node-id]')) {
       const id = el.dataset.nodeId;
       if (id) nodeEls.set(id, el);
@@ -219,6 +224,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         const sel = s.selection;
         for (const [id, el] of nodeEls) setSelected(el, sel?.kind === 'node' && sel.id === id);
         for (const [id, el] of linkEls) setSelected(el, sel?.kind === 'link' && sel.id === id);
+        for (const [id, el] of frameEls) setSelected(el, sel?.kind === 'group' && sel.id === id);
       }
     });
 
@@ -569,6 +575,12 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
       hideTooltip();
     }
     function selectFromTarget(target: Element): void {
+      // A frame's tab selects its group; the rest of the frame takes no pointer events.
+      const tab = target.closest<HTMLElement>('[data-frame-tab]');
+      if (tab?.dataset.frameTab) {
+        store.setState({ selection: { kind: 'group', id: tab.dataset.frameTab } });
+        return;
+      }
       const nodeGroup = target.closest<HTMLElement>('[data-node-id]');
       if (nodeGroup?.dataset.nodeId) {
         store.setState({ selection: { kind: 'node', id: nodeGroup.dataset.nodeId } });
@@ -585,8 +597,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       if (!(e.target instanceof Element)) return;
-      const nodeGroup = e.target.closest('[data-node-id]');
-      if (nodeGroup && !e.defaultPrevented) selectFromTarget(nodeGroup);
+      const control = e.target.closest('[data-node-id], [data-frame-tab]');
+      if (!control || e.defaultPrevented) return;
+      // Space would otherwise scroll the page; Enter does nothing else here.
+      e.preventDefault();
+      selectFromTarget(control);
     }
 
     // A static preview (`interactive: false`) keeps the live health/meters and

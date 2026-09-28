@@ -6,7 +6,8 @@ import { LinkInspectorBody } from './LinkInspectorBody';
 
 /**
  * Every node's and link's inspector body, pre-rendered server-side (T3.6),
- * indexed by element id, same set as `buildElementIndex`. A diagram's sheet content is static, so it's built
+ * indexed by element id, same set as `buildElementIndex` (a framed group's
+ * panel is keyed by its frame id). A diagram's sheet content is static, so it's built
  * once per page render; the client `Inspector`/`PhoneSheet` just look up
  * `panels[selection.id]` and show it — no markdown/shiki client bundle, no
  * per-selection fetch. See `DiagramPlayer.tsx` for where this gets called
@@ -16,5 +17,6 @@ export function buildInspectorPanels(board: Board, index: ElementIndex): Record<
   const panels: Record<string, ReactNode> = {};
   for (const node of board.blocks) panels[node.id] = <NodeInspectorBody node={node} />;
   for (const link of board.wires) panels[link.id] = <LinkInspectorBody link={link} index={index} />;
+  for (const frame of board.frames ?? []) panels[frame.id] = <NodeInspectorBody node={frame} />;
   return panels;
 }

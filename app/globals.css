@@ -607,11 +607,19 @@
 .cv-node .cv-chip text { font: 600 12px var(--font-mono); fill: var(--color-ink-primary); }
 
 /* A group's frame: a dashed hairline border, a subtle fill and a mono tab
-   label above its top-left edge. Pure decoration — no hover, no focus, no
-   pointer events (a click on it falls through to the canvas). */
+   label above its top-left edge. Only the tab takes pointer events (it's a
+   button that selects the group); a click on the frame's empty area falls
+   through to the canvas. Selected, the border takes the selection color,
+   like a selected node's ring. */
 .cv-subsystem { pointer-events: none; }
-.cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-width: 1; stroke-dasharray: 4 3; }
+.cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-width: 1; stroke-dasharray: 4 3; transition: stroke var(--transition-duration-small); }
 .cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
+.cv-subsystem .cv-tab-btn { pointer-events: auto; cursor: pointer; outline: none; }
+.cv-subsystem .cv-tab-hit { fill: transparent; }
+.cv-subsystem .cv-tab-btn:hover .cv-tab { fill: var(--color-ink-primary); }
+.cv-subsystem .cv-tab-btn:focus-visible .cv-tab-hit { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-subsystem.is-selected .cv-body { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-subsystem.is-selected .cv-tab { fill: var(--color-ink-primary); }
 
 /* ============================================================================
  * Player — the board stage (pan/zoom camera).

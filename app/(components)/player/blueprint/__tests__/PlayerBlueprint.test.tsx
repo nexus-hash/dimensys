@@ -35,18 +35,23 @@ describe('PlayerBlueprint', () => {
     expect(container.querySelector('svg[aria-label]')).toHaveAttribute('viewBox', '0 0 800 240');
   });
 
-  it('draws the group as a non-interactive frame with its name as the tab', () => {
+  it('draws the group as a frame whose only control is its tab, ahead of its children in focus order', () => {
     const { container } = renderIt(<PlayerBlueprint board={board} boardId="b1" title="URL shortener" />);
     const frame = container.querySelector('[data-frame-id="kgs-service"]')!;
     expect(frame.querySelector('.cv-tab')).toHaveTextContent('KEY GENERATION SERVICE');
-    expect(frame.querySelector('[tabindex], [role="button"]')).toBeNull();
+    expect(frame.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
     expect(container.querySelector('[data-node-id="kgs-service"]')).toBeNull();
+    const focusable = [...container.querySelectorAll('svg [tabindex="0"]')];
+    const tabAt = focusable.findIndex((el) => el.getAttribute('data-frame-tab') === 'kgs-service');
+    const childAt = focusable.findIndex((el) => el.getAttribute('data-node-id') === 'kgs-worker');
+    expect(tabAt).toBeGreaterThanOrEqual(0);
+    expect(tabAt).toBeLessThan(childAt);
   });
 
   it('has no drill or expand control anywhere, and clicking a framed child keeps the one board', async () => {
     const user = userEvent.setup();
     const { container } = renderIt(<PlayerBlueprint board={board} boardId="b1" title="URL shortener" />);
-    expect(container.querySelector('[data-subsystem-tab-id], [data-child-ids], .cv-expand, .cv-subsystem-card')).toBeNull();
+    expect(container.querySelector('[data-subsystem-tab-id], [data-child-ids], .cv-expand, .cv-subsystem-card, [data-drill-key]')).toBeNull();
     await user.click(container.querySelector('[data-node-id="kgs-worker"]')!);
     expect(container.querySelectorAll('[data-board-level]')).toHaveLength(1);
     expect(container.querySelector('[data-board-level]')).not.toHaveAttribute('hidden');

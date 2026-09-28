@@ -1,5 +1,5 @@
 import { TabsContent } from '@/app/(components)/ui';
-import type { NodeView, Part } from '../types';
+import type { Part, Sheet } from '../types';
 import { EmptyInspectorBody } from './EmptyInspectorBody';
 import { InspectorTabs } from './InspectorTabs';
 import { SectionRenderer, isSimpleShape } from './sections';
@@ -48,14 +48,14 @@ function PaneSections({ parts }: { parts: Part[] }) {
 }
 
 /**
- * A node's inspector body (T3.6): every part of its `sheet`, grouped into
+ * A node's (or a framed group's) inspector body (T3.6): every part of its `sheet`, grouped into
  * one tab per pane. A sheet with a single pane skips the tab strip
  * entirely (rendered flat) — the brief calls this out explicitly, and it
  * also means most nodes in the current fixtures (which only use
  * `operations`/`overview`/`architecture` when they have more to say) don't
  * pay for a tab control they don't need.
  */
-export function NodeInspectorBody({ node }: { node: NodeView }) {
+export function NodeInspectorBody({ node }: { node: { text: string; sheet?: Sheet } }) {
   const parts = node.sheet?.parts ?? [];
   if (parts.length === 0) return <EmptyInspectorBody />;
 

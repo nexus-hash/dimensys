@@ -73,8 +73,8 @@ describe('Link', () => {
 });
 
 describe('SubsystemFrame', () => {
-  it('renders the frame with a tab label, and nothing focusable or clickable', () => {
-    const { getByText, container } = render(
+  it('renders the frame with its tab as the one button: focusable, labelled "<name> details"', () => {
+    const { getByText, getByRole, container } = render(
       <svg>
         <SubsystemFrame boardId="b1" id="frame1" label="cluster" width={400} height={300} />
       </svg>,
@@ -82,7 +82,22 @@ describe('SubsystemFrame', () => {
     expect(getByText('CLUSTER')).toBeTruthy();
     const frame = container.querySelector('[data-frame-id="frame1"]')!;
     expect(frame).toHaveClass('cv-subsystem');
-    expect(frame.querySelector('[tabindex], [role="button"], [data-node-id]')).toBeNull();
+    const tab = getByRole('button', { name: 'cluster details' });
+    expect(tab).toHaveAttribute('tabindex', '0');
+    expect(tab).toHaveAttribute('data-frame-tab', 'frame1');
+    expect(frame.querySelectorAll('[tabindex], [role="button"]')).toHaveLength(1);
+    expect(frame.querySelector('[data-node-id]')).toBeNull();
+  });
+
+  it('marks the frame selected, and renders the tab as plain text when not interactive', () => {
+    const { container } = render(
+      <svg>
+        <SubsystemFrame boardId="b1" id="f" label="cluster" width={400} height={300} selected interactive={false} />
+      </svg>,
+    );
+    const frame = container.querySelector('[data-frame-id="f"]')!;
+    expect(frame).toHaveClass('is-selected');
+    expect(frame.querySelector('[tabindex], [role="button"], [data-frame-tab]')).toBeNull();
   });
 
   it('truncates a long frame tab label with an ellipsis instead of overflowing', () => {

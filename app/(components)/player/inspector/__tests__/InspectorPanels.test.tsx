@@ -17,7 +17,16 @@ const board: Board = {
     { id: 'inner-a', form: 'db', text: 'Inner DB', sheet: { parts: [{ shape: 'prose', pane: 'overview', title: 'Note', md: 'hi' }] } },
   ],
   wires: [{ id: 'l1', a: 'api', b: 'plain', line: 'sync' }],
-  frames: [{ id: 'sub', text: 'Subsystem', look: 'cluster', box: [200, 100, 200, 100], holds: ['inner-a'] }],
+  frames: [
+    {
+      id: 'sub',
+      text: 'Subsystem',
+      look: 'cluster',
+      box: [200, 100, 200, 100],
+      holds: ['inner-a'],
+      sheet: { title: 'Group notes', parts: [{ shape: 'pairs', pane: 'overview', title: 'Batch', pairs: [['Size', '100k']] }] },
+    },
+  ],
 };
 
 describe('buildInspectorPanels', () => {
@@ -37,9 +46,11 @@ describe('buildInspectorPanels', () => {
     expect(screen.getByText('No sheet here')).toBeTruthy();
   });
 
-  it('builds a framed group\'s nodes a panel like any other, and none for the frame', () => {
+  it('builds a framed group\'s nodes a panel like any other, and the group its own panel under the frame id', () => {
     expect(panels['inner-a']).toBeTruthy();
-    expect(panels.sub).toBeUndefined();
+    render(<>{panels.sub}</>);
+    expect(screen.getByText('Batch')).toBeTruthy();
+    expect(screen.getByText('100k')).toBeTruthy();
   });
 
   it('gives a node with no sheet a panel too (the "no details" fallback)', () => {
