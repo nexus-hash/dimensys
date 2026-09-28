@@ -12,9 +12,12 @@
   display: flex; align-items: center; gap: 6px; margin: 2px 0 4px 32px;
   font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-secondary);
 }
+.story-status-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .story-status-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--color-ink-muted); }
-.story-status[data-state="playing"] .story-status-dot { background: var(--color-brand); }
-.story-status[data-state="checkpoint"] .story-status-dot { background: var(--color-ink-primary); border-radius: 1px; transform: rotate(45deg); }
+.story-status[data-state="playing"] .story-status-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-status-dot { background: var(--color-brand); }
+.story-status[data-state="checkpoint"] .story-status-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-status-dot { background: var(--color-ink-primary); border-radius: 1px; transform: rotate(45deg); }
 .story-rail-empty { margin: 4px 0 0 8px; font-size: 12px; color: var(--color-ink-muted); }
 .story-rail[data-compact] { padding: 8px 12px 16px; }
 .story-sheet { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }

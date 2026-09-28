@@ -107,7 +107,7 @@ function ScenarioStatus() {
     text = duration ? `ended · ${fmtSimTime(duration)}` : 'ended';
     state = 'done';
   } else if (runner === 'paused-checkpoint') {
-    text = `waiting on your call at ${fmtSimTime(t)}`;
+    text = `your call · ${fmtSimTime(t)}`;
     state = 'checkpoint';
   } else {
     const clock = duration ? `${fmtSimTime(t)} / ${fmtSimTime(duration)}` : fmtSimTime(t);
@@ -117,7 +117,7 @@ function ScenarioStatus() {
   return (
     <p className="story-status" data-state={state}>
       <span className="story-status-dot" aria-hidden="true" />
-      {text}
+      <span className="story-status-text">{text}</span>
     </p>
   );
 }
