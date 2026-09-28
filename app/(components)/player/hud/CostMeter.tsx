@@ -2,19 +2,30 @@
 
 /**
  * The HUD's money card: what the run has cost so far, with one simulated
- * minute billed as one month of the current run rate, next to the switch
- * that turns auto-scaling on for every server and worker (one more pod above
- * 70% busy, one fewer after 30 s below 60%). Watching it next to the cost tile shows
- * what autoscaling saves compared with running at peak size all the time.
+ * minute billed as one month of the current run rate, next to the
+ * auto-scale menu for every server and worker. Modes:
+ * - Both (the default): more pods when they're busy (above 70%) or when a
+ *   request path is close to its p99 goal and more pods would help; fewer
+ *   only when both allow it.
+ * - CPU only: 70% up / 60% down. Cheapest, but blind to latency.
+ * - Latency only: keeps the p99 goals.
+ * Watching it next to the cost tile shows what each choice costs.
  */
-import { useId } from 'react';
-import { Switch, toast } from '@/app/(components)/ui';
+import { ChevronDownIcon, CheckIcon, DropdownMenu, toast } from '@/app/(components)/ui';
 import { globalMetricKey } from '../metricKeys';
 import { useMetricSeriesFeed } from '../metrics/useMetricSeriesFeed';
 import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { getBridge } from '../worker/bridgeRegistry';
 
 const SPENT_KEY = globalMetricKey('z');
+
+/** `elastic` action values: 0 off, 1 both, 2 utilization only, 3 latency only. */
+export const AUTO_MODES = [
+  { value: 0, short: 'Off', label: 'Off', toast: 'Auto-scaling off: back to the set sizes' },
+  { value: 1, short: 'Both', label: 'Both (recommended)', toast: 'Auto-scaling on CPU and latency: more pods when busy or near the p99 goal' },
+  { value: 2, short: 'CPU', label: 'CPU only', toast: 'Auto-scaling on CPU: +1 pod above 70% busy, −1 after 30 s below 60%' },
+  { value: 3, short: 'Latency', label: 'Latency only', toast: 'Auto-scaling on latency: pods follow the p99 goals' },
+] as const;
 
 /** Simulated seconds as billed time: 60 s = 1 month, a month read as 30 days. */
 export function billedPeriod(t: number): string {
@@ -34,32 +45,48 @@ export function CostMeter() {
   const store = usePlayerStoreApi();
   const feed = useMetricSeriesFeed([SPENT_KEY], 5);
   const spent = feed.series[SPENT_KEY]?.value;
-  // On when the latest diagram-wide `elastic` action turned it on.
-  const auto = usePlayerStore((s) => {
+  // The mode of the latest diagram-wide `elastic` action (0 = off).
+  const mode = usePlayerStore((s) => {
     for (let i = s.actions.length - 1; i >= 0; i--) {
       const a = s.actions[i];
-      if (a[1] === 'elastic' && a[2] === null) return a[3] === 1;
+      if (a[1] === 'elastic' && a[2] === null) return typeof a[3] === 'number' ? a[3] : 0;
     }
-    return false;
+    return 0;
   });
-  const switchId = useId();
+  const current = AUTO_MODES.find((m) => m.value === mode) ?? AUTO_MODES[0];
 
-  const toggle = (on: boolean) => {
+  const choose = (value: string) => {
+    const next = AUTO_MODES.find((m) => String(m.value) === value);
     const bridge = getBridge(store);
-    if (!bridge || store.getState().sim.status !== 'ready') return;
-    bridge.applyAction('elastic', null, on ? 1 : 0);
+    if (!next || next.value === mode || !bridge || store.getState().sim.status !== 'ready') return;
+    bridge.applyAction('elastic', null, next.value);
     if (!store.getState().sim.playing) bridge.play();
-    toast(on ? 'Auto-scaling on: +1 pod above 70% busy, −1 after 30 s below 60%' : 'Auto-scaling off: back to the set sizes');
+    toast(next.toast);
   };
 
   return (
     <div className="cost-meter" role="group" aria-label="Money spent, one simulated minute billed as one month" title="Money spent so far: every simulated minute bills one month at the current cost">
       <div className="cost-meter-top">
         <span className="cost-meter-label">spent so far</span>
-        <span className="cost-meter-auto">
-          <label htmlFor={switchId}>Auto-scale</label>
-          <Switch id={switchId} checked={auto} onCheckedChange={toggle} />
-        </span>
+        <DropdownMenu
+          align="end"
+          onSelect={choose}
+          items={AUTO_MODES.map((m) => ({
+            value: String(m.value),
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <CheckIcon aria-hidden="true" className={m.value === mode ? 'size-3.5' : 'size-3.5 invisible'} />
+                {m.label}
+              </span>
+            ),
+          }))}
+          trigger={
+            <button type="button" className="cost-meter-auto" aria-label={`Auto-scale: ${current.label}`} data-auto-mode={mode}>
+              Auto-scale: <b className={mode ? 'is-on' : undefined}>{current.short}</b>
+              <ChevronDownIcon aria-hidden="true" className="size-3" />
+            </button>
+          }
+        />
       </div>
       <div className="cost-meter-value">
         <span className="cost-meter-amount">{spent === undefined ? '—' : formatDollars(spent)}</span>

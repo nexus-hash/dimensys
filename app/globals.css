@@ -1417,10 +1417,10 @@
 .cost-meter { flex: 1.35 1 0; min-width: 0; max-width: 320px; display: grid; grid-template-rows: auto auto; row-gap: 0; padding: 5px 10px; border-radius: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
 .cost-meter-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; height: 16px; }
 .cost-meter-label { font-size: 11px; font-weight: 500; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cost-meter-auto { display: inline-flex; align-items: center; gap: 6px; font: 500 11px var(--font-mono); color: var(--color-ink-secondary); white-space: nowrap; }
-.cost-meter-auto label { cursor: pointer; }
-/* The kit switch, scaled to the tile's 16px label line so the row keeps the tiles' height. */
-.cost-meter-auto button[role='switch'] { transform: scale(.75); transform-origin: right center; }
+.cost-meter-auto { display: inline-flex; align-items: center; gap: 4px; height: 16px; padding: 0 4px; margin-right: -4px; border-radius: 5px; font: 500 11px var(--font-mono); color: var(--color-ink-secondary); white-space: nowrap; cursor: pointer; }
+.cost-meter-auto:hover { background: var(--color-surface-glass); color: var(--color-ink-primary); }
+.cost-meter-auto b { font-weight: 600; color: var(--color-ink-primary); }
+.cost-meter-auto b.is-on { color: var(--color-brand-ink); }
 .cost-meter-value { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .cost-meter-amount { font: 600 16px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); white-space: nowrap; }
 .cost-meter-period { font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

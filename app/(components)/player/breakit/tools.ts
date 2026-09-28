@@ -245,8 +245,10 @@ export function describeAction(
       return 'Applied a sizing estimate';
     case 'resize':
       return `Scaled ${name} to ×${String(value)}`;
-    case 'elastic':
-      return `Auto-scaling ${value === 1 ? 'on' : 'off'}${target ? ` for ${name}` : ''}`;
+    case 'elastic': {
+      const mode = ['off', 'on CPU and latency', 'on CPU only', 'on latency only'][Number(value)] ?? 'changed';
+      return `Auto-scaling ${mode}${target ? ` for ${name}` : ''}`;
+    }
     default:
       return tool;
   }
@@ -286,8 +288,19 @@ export function undoPlan(actions: readonly UserAction[], index: number): UndoPla
     case 'calc':
     case 'resize':
       return { kind: 'replay', index };
-    case 'elastic':
-      return later.some((a) => a[1] === 'elastic' && a[2] === target) ? null : { kind: 'inverse', tool: 'elastic', target, value: value === 1 ? 0 : 1 };
+    case 'elastic': {
+      if (later.some((a) => a[1] === 'elastic' && a[2] === target)) return null;
+      // Back to the mode before this one (off when there was none).
+      let prev = 0;
+      for (let i = index - 1; i >= 0; i--) {
+        const a = actions[i];
+        if (a[1] === 'elastic' && a[2] === target) {
+          prev = typeof a[3] === 'number' ? a[3] : 0;
+          break;
+        }
+      }
+      return { kind: 'inverse', tool: 'elastic', target, value: prev };
+    }
     default:
       return null;
   }

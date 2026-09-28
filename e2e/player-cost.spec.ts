@@ -28,18 +28,34 @@ test.describe('money spent and auto-scale', () => {
     await expect(page.locator('.cost-meter-period')).toContainText('1 min = 1 mo');
   });
 
-  test('auto-scale shrinks the idle API and lowers the monthly cost', async ({ page }) => {
+  async function autoScale(page: import('@playwright/test').Page, label: string) {
+    await page.locator('.cost-meter-auto').click();
+    await page.getByRole('menuitem', { name: label }).click();
+  }
+
+  test('auto-scale on CPU only shrinks the idle API and lowers the monthly cost', async ({ page }) => {
     await open(page);
     await page.locator('body').press(']');
     await page.locator('body').press(']');
-    await page.locator('.cost-meter').getByRole('switch', { name: 'Auto-scale' }).click();
-    await expect(page.locator('.cost-meter').getByRole('switch')).toBeChecked();
-    // 6 pods at a third busy: one at a time down to the fewest that stay under 80%.
-    await expect(page.locator('[data-node-id="api-service"] .cv-sub').first()).toHaveText('api · ×3', { timeout: 30000 });
-    // The cost tile reads "cost … $2,329 /mo …": the first dollar amount is the run rate.
+    await autoScale(page, 'CPU only');
+    await expect(page.locator('.cost-meter-auto')).toHaveAttribute('data-auto-mode', '2');
+    // 6 pods at a third busy: one at a time, after 30 s below 60%, down to the fewest that stay under 70%.
+    await expect(page.locator('[data-node-id="api-service"] .cv-sub').first()).toHaveText('api · ×3', { timeout: 45000 });
+    // The run rate reads "$2,774 /mo" at baseline; three fewer pods cost less.
     const costOf = async () => dollars(((await page.locator('.hud-tile').nth(3).innerText()).match(/\$[\d,]+/) ?? ['NaN'])[0]);
     await expect.poll(costOf, { timeout: 10000 }).toBeLessThan(2774);
     await expect.poll(() => new URL(page.url()).searchParams.get('a') ?? '', { timeout: 5000 }).not.toBe('');
+  });
+
+  test('auto-scale on both keeps the API at the size its p99 goal needs', async ({ page }) => {
+    await open(page);
+    await page.locator('body').press(']');
+    await page.locator('body').press(']');
+    await autoScale(page, 'Both (recommended)');
+    await expect(page.locator('.cost-meter-auto')).toHaveAttribute('data-auto-mode', '1');
+    // Long enough for CPU-only to have scaled it down to 3.
+    await page.waitForTimeout(15000);
+    await expect(page.locator('[data-node-id="api-service"] .cv-sub').first()).toHaveText('api · ×6');
   });
 
   for (const theme of ['light', 'dark'] as const) {
