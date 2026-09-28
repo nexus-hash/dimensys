@@ -15,9 +15,8 @@ import { ShareVisual } from './(components)/home/ShareVisual';
  * below the fold — never a catalog grid, task list or row of cards. Two
  * showcase sections (Outage replays, Share) describe capabilities that
  * aren't built yet; they render honest static layouts with a "Coming soon"
- * marker instead of faking the feature. The third ("Drill down" in the
- * design intent) is repurposed to the walkthrough capability, which is
- * real and shipped today — see `WalkthroughVisual`'s own comment.
+ * marker instead of faking the feature. The third is the walkthrough
+ * capability, which is real and shipped today.
  */
 export default function Home() {
   return (

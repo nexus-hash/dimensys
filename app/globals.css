@@ -178,7 +178,7 @@
     --brand-subtle: rgba(255, 102, 0, 0.1);
     --brand-glow: 0 0 30px rgba(255, 102, 0, 0.4);
     --on-brand: #1a0800;
-    --brand-ink: #c24100;
+    --brand-ink: #b23b00; /* ≥4.5:1 on white and on --brand-subtle over the light page (a checked segment) */
 
     /* Signal — validated against #121212 and #ffffff. The design spec lists a single
        flat value per signal, but --signal-warn (#fab219) only clears ~1.8:1
