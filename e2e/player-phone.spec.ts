@@ -215,7 +215,7 @@ test.describe('phone (390×844, touch)', () => {
   test('a walkthrough picked from the sheet plays and steps by touch, framed on the tall board', async ({ page }) => {
     await open(page);
     await openGuide(page);
-    const option = sheet(page).locator('.wt-opt').first();
+    const option = sheet(page).locator('[data-walkthrough] .wt-opt').first();
     await option.scrollIntoViewIfNeeded();
     await option.tap();
     await expect(root(page)).toHaveAttribute('data-player-mode', 'walkthrough');
@@ -228,10 +228,12 @@ test.describe('phone (390×844, touch)', () => {
     // The step's badge sits on its focused element in the tall arrangement.
     const badge = page.locator('[data-wt-badge]');
     await expect(badge).toHaveCount(1);
-    const focused = page.locator('[data-board-level] .is-wt-focus').first();
+    const focused = page.locator('[data-board-level] .is-wt-focus').first().locator('.cv-body').first();
     const [b, f] = [(await badge.boundingBox())!, (await focused.boundingBox())!];
-    expect(Math.abs(b.x + b.width / 2 - f.x)).toBeLessThan(40);
-    expect(Math.abs(b.y + b.height / 2 - f.y)).toBeLessThan(40);
+    // On a corner of it (top-left of a card, top-right of a frame).
+    const [cx, cy] = [b.x + b.width / 2, b.y + b.height / 2];
+    expect(Math.min(Math.abs(cx - f.x), Math.abs(cx - (f.x + f.width)))).toBeLessThan(4);
+    expect(Math.abs(cy - f.y)).toBeLessThan(4);
   });
 
   test('a scenario started from the sheet asks its checkpoint question on the Live tab', async ({ page }) => {
@@ -321,8 +323,10 @@ test.describe('tablet (834×1112)', () => {
     await page.waitForTimeout(600);
     const board = (await boardEl(page).boundingBox())!;
     expect(board.x + board.width).toBeLessThanOrEqual(insp.x + 2);
-    await inspector.getByRole('button', { name: /close/i }).first().click();
-    await expect.poll(async () => (await inspector.boundingBox())!.x).toBeGreaterThanOrEqual(834);
+    await inspector.getByRole('button', { name: 'Close inspector' }).click();
+    await expect(page.locator('.player-body')).toHaveAttribute('data-inspector-open', 'false');
+    // Closed: the canvas gets its full width back.
+    await expect.poll(async () => (await page.locator('.player-board-wrap').boundingBox())!.width).toBeGreaterThan(800);
   });
 });
 

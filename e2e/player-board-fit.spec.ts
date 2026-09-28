@@ -109,11 +109,10 @@ function expectFit({ nativeW, nativeH, wrapBox, boardBox, canvasBox }: Awaited<R
  * layout box, not layout error.
  */
 async function expectNodesInsideFreeArea(page: Page, wrapBox: FreeBox) {
-  // A node's group box includes its (invisible until focused) 8px focus
-  // ring, which may reach past the free area's edge when the board is
-  // height-bound; the node's card itself never does.
-  const nodeTolerance = 9;
-  const nodes = page.locator('[data-board-level] [data-node-id]');
+  const nodeTolerance = 4;
+  // The card itself (`.cv-body`): a health chip under a card, or its focus
+  // ring, may sit in the canvas's padding.
+  const nodes = page.locator('[data-board-level] [data-node-id] > .cv-inner > .cv-body');
   const count = await nodes.count();
   expect(count).toBeGreaterThan(0);
   for (let i = 0; i < count; i++) {

@@ -78,6 +78,13 @@ describe('share codec: every field round-trips', () => {
     expect(decodeActions(encodeActions(odd))!.actions).toEqual([...odd].sort((a, b) => a[0] - b[0]));
   });
 
+  it('marks a view of the tall (phone) board, and reads it back', () => {
+    const q = encodeShare({ rev: 2, camera: { x: 190, y: 400, z: 0.95, tall: true } });
+    expect(q).toBe('?s=1&r=2&cam=190,400,0.95,t');
+    expect(decodeShare(q).state.camera).toEqual({ x: 190, y: 400, z: 0.95, tall: true });
+    expect(decodeShare('?s=1&cam=1,2,1,x').dropped).toContain('cam');
+  });
+
   it('is readable: selection and camera are not percent-escaped', () => {
     const q = encodeShare({ rev: 2, selection: { kind: 'node', id: 'db' }, camera: { x: 1.44, y: 2.6, z: 1.23456 } });
     expect(q).toBe('?s=1&r=2&sel=n:db&cam=1.4,2.6,1.235');

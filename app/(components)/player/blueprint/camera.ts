@@ -204,6 +204,8 @@ export interface BoardView {
   x: number;
   y: number;
   z: number;
+  /** The view is of the board's tall (phone) arrangement, not the wide one. */
+  tall?: true;
 }
 
 /** Ask a board to show this view (`detail`: a `BoardView`), dispatched on its `.player-board-stage`. */

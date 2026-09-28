@@ -2,7 +2,7 @@
  * Share links: the player's state as a query string, and back.
  *
  *   /solutions/<id>?s=1&r=<revision>&m=<mode>&v=<walkthrough|scenario>&st=<step>
- *                  &sel=<n|l|g>:<id>&t=<sec>&p=0&x=<speed>&cam=<x>,<y>,<zoom>
+ *                  &sel=<n|l|g>:<id>&t=<sec>&p=0&x=<speed>&cam=<x>,<y>,<zoom>[,t]
  *                  &ch=<checkpoint>:<choice>,…&a=<actions>
  *
  * - `s`: this format's version. A link without one is a plain hand-made
@@ -38,6 +38,8 @@ export interface ShareCamera {
   x: number;
   y: number;
   z: number;
+  /** A view of the board's tall (phone) arrangement: `cam=x,y,zoom,t`. */
+  tall?: true;
 }
 
 export interface ShareState {
@@ -199,7 +201,7 @@ export function encodeShare(state: ShareState): string {
   if (state.t !== undefined && state.t > 0 && (actions.length > 0 || state.playing === false)) out.push(['t', fmt(state.t, 3)]);
   if (state.playing === false) out.push(['p', '0']);
   if (state.speed !== undefined && state.speed !== 1 && SPEEDS.includes(state.speed)) out.push(['x', String(state.speed)]);
-  if (state.camera) out.push(['cam', `${fmt(state.camera.x, 1)},${fmt(state.camera.y, 1)},${fmt(state.camera.z, 3)}`]);
+  if (state.camera) out.push(['cam', `${fmt(state.camera.x, 1)},${fmt(state.camera.y, 1)},${fmt(state.camera.z, 3)}${state.camera.tall ? ',t' : ''}`]);
   if (state.choices) {
     const pairs = Object.entries(state.choices).filter(([k, c]) => ID.test(k) && (c === null || ID.test(c)));
     if (pairs.length) out.push(['ch', pairs.map(([k, c]) => `${k}:${c ?? ''}`).join(',')]);
@@ -307,8 +309,9 @@ export function decodeShare(search: string | URLSearchParams): DecodedShare {
   }
   if (has('cam')) {
     const parts = params.get('cam')!.split(',');
-    const [x, y, z] = parts.map((p) => num(p));
-    if (parts.length === 3 && x !== undefined && y !== undefined && z !== undefined && z > 0 && z <= 16) state.camera = { x, y, z };
+    const [x, y, z] = parts.slice(0, 3).map((p) => num(p));
+    const tall = parts.length === 4 && parts[3] === 't';
+    if ((parts.length === 3 || tall) && x !== undefined && y !== undefined && z !== undefined && z > 0 && z <= 16) state.camera = { x, y, z, ...(tall ? { tall: true as const } : {}) };
     else dropped.push('cam');
   }
   if (has('ch')) {

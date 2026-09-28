@@ -145,13 +145,15 @@ export function applyShape(svg: SVGSVGElement, boardEl: HTMLElement | null, shap
 
 /**
  * A drawn node's or frame's box (`[cx, cy, w, h]`, board units) as the board
- * shows it now — whichever arrangement that is. `null` when absent.
+ * shows it now — whichever arrangement that is. `null` when absent (or not
+ * drawn as a card or frame).
  */
 export function drawnBox(svg: ParentNode, id: string): Box | null {
   const g = svg.querySelector(`[data-node-id="${esc(id)}"], [data-frame-id="${esc(id)}"]`);
   if (!g) return null;
   const [x, y] = translateOf(g);
   const body = g.querySelector(':scope > .cv-inner > rect.cv-body, :scope > rect.cv-body');
+  if (!body) return null;
   const w = num(body, 'width');
   const h = num(body, 'height');
   return [x + w / 2, y + h / 2, w, h];

@@ -239,7 +239,11 @@ export function BoardStage({ boardSize, tall = null, className, interactive = tr
     boardEl.style.transformOrigin = '0 0';
     boardEl.style.transform = cameraTransform(camera);
     // The user's own view (share links carry it); `null` while it's fitted or framed for them.
-    const view = !trackingRef.current && stage && stage.clientWidth > 0 ? viewOfCamera(camera, stage.clientWidth, stage.clientHeight) : null;
+    // A view names the arrangement it's in: the same board point sits elsewhere on the other one.
+    const view =
+      !trackingRef.current && stage && stage.clientWidth > 0
+        ? { ...viewOfCamera(camera, stage.clientWidth, stage.clientHeight), ...(shapeRef.current === 'tall' ? { tall: true as const } : {}) }
+        : null;
     stageRef.current?.dispatchEvent(new CustomEvent<CameraChangeDetail>('playercamerachange', { bubbles: true, detail: { view } }));
     if (readoutFrameRef.current) cancelAnimationFrame(readoutFrameRef.current);
     readoutFrameRef.current = requestAnimationFrame(() => {
@@ -301,7 +305,10 @@ export function BoardStage({ boardSize, tall = null, className, interactive = tr
       pendingViewRef.current = view;
       return;
     }
-    const fitScale = computeFitScale(freeW, freeH, boardSize[0], boardSize[1]);
+    // A view of the other arrangement (a link made on a wider or narrower
+    // screen) would aim at the wrong place: keep the fit instead.
+    if (!!view.tall !== (shapeRef.current === 'tall')) return;
+    const fitScale = computeFitScale(freeW, freeH, sizeRef.current[0], sizeRef.current[1]);
     fitScaleRef.current = fitScale;
     stopTween();
     trackingRef.current = false;
