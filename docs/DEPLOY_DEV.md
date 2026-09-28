@@ -8,13 +8,21 @@ build.
 
 ## When it deploys
 
-Only when started by hand: Actions → **Deploy Dev (Vercel)** → Run workflow, on the branch
-to deploy, choosing a target:
+Only when started by hand, and only by the owner or a maintainer (admin or maintain role;
+anyone else can be allowed by listing their GitHub login in the `PR_COMMAND_USERS`
+repository variable, comma-separated):
 
-- `preview` → a preview deploy of that branch, built against the engine branch with the
-  same name when one exists in the engine repo, otherwise engine `main`. If the branch has
-  an open PR, the preview URL is posted (and kept updated in place) as a single PR comment.
-- `production` → a production deploy (the stable dev URL), built against engine `main`.
+- **From a PR:** comment `/deploy` → a preview of the PR's current head, built against the
+  engine branch with the same name when one exists, otherwise engine `main`. The preview
+  URL is posted (and kept updated in place) as a single PR comment, and the result shows as
+  the `pr-command/deploy` status on the PR. `/test` runs only the tests. A command from
+  anyone else gets a 👎 and runs nothing. Previews are only built for branches in this
+  repository, not forks.
+- **From the Actions tab:** **Deploy Dev (Vercel)** → Run workflow, on the branch to deploy,
+  with target `preview` or `production` (production builds against engine `main`).
+
+The comment commands run from `main`'s copy of `pr-commands.yml`, so they start working once
+that file is on `main`, and a PR can't change the rules for its own commands.
 
 Before anything is built, the workflow runs the **Test** workflow (unit tests and the
 `/dev/ui` a11y and screenshot checks). The deploy job `needs` it, so a failing test means
@@ -60,8 +68,8 @@ engine `main`; a preview builds the same-named engine branch when one exists (el
 
 ## 3. Triggering a deploy
 
-Actions → **Deploy Dev (Vercel)** → Run workflow → pick the branch and the target. The run
-shows the Test jobs first, then the deploy.
+Comment `/deploy` on the PR, or Actions → **Deploy Dev (Vercel)** → Run workflow → pick the
+branch and the target. The run shows the Test jobs first, then the deploy.
 
 ## 4. Finding the URL
 

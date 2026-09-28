@@ -1,21 +1,51 @@
 name: Test
 
-# Started by hand (Actions → Test → Run workflow), and called by Deploy Dev,
-# which only deploys once every job here has passed. Linting runs on its own
-# on every commit (lint.yml).
+# Manual: a `/test` comment on a PR (pr-commands.yml), or Actions → Test →
+# Run workflow; owner and maintainers only. Also called by Deploy Dev, which
+# only deploys once every job here has passed. Linting runs on its own on
+# every commit (lint.yml).
 
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      ref:
+        description: 'Commit to test (default: the triggering ref)'
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
+  # Started from the Actions tab: owner and maintainers only (plus anyone named
+  # in the PR_COMMAND_USERS repository variable). From a PR comment, the PR
+  # commands workflow checks this before calling in, so it's skipped here.
+  authorize:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Owner and maintainers only
+        uses: actions/github-script@v9
+        env:
+          EXTRA: ${{ vars.PR_COMMAND_USERS }}
+        with:
+          script: |
+            const extra = (process.env.EXTRA || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({ ...context.repo, username: context.actor });
+            if (!['admin', 'maintain'].includes(data.role_name) && !extra.includes(context.actor.toLowerCase())) {
+              core.setFailed(`${context.actor} (${data.role_name}) can't run this: owner and maintainers only.`);
+            }
+
   test:
+    needs: authorize
+    if: ${{ !cancelled() && needs.authorize.result != 'failure' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -54,9 +84,13 @@ jobs:
   #      and commit the refreshed PNGs. This keeps the baselines
   #      environment-accurate without requiring Docker anywhere.
   e2e-dev-ui:
+    needs: authorize
+    if: ${{ !cancelled() && needs.authorize.result != 'failure' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
