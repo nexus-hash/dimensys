@@ -87,7 +87,7 @@ describe('CalcPanel', () => {
     expect(bridge.calc.mock.calls[1][1].req_rate).toBe(4100);
   });
 
-  it('Apply sends the values for real; once answered it reads as applied, until the run restarts', () => {
+  it('Apply sends the values for real; it reads as applied while the action log holds that apply', () => {
     const bridge = fakeBridge();
     const { store } = renderLive(<CalcPanel part={PART} calc={CALC} />, { status: 'ready', bridge });
     pushFrame(store, 5, {});
@@ -96,12 +96,21 @@ describe('CalcPanel', () => {
     expect(call).toEqual(['c1', { req_rate: 4000, execution_time: 20 }]);
     expect(screen.getByRole('button', { name: 'Applying…' })).toBeDisabled();
     const seq = bridge.calc.mock.results[bridge.calc.mock.calls.indexOf(call)].value as number;
+    // The worker logs the apply, then answers.
+    act(() => store.setState({ actions: [[5, 'calc', 'c1', 'req_rate=4000,execution_time=20']] }));
     act(() => publishCalcReply(store, { seq, id: 'c1', outputs: { cores: 80, pods: 10 } }));
     expect(screen.getByRole('button', { name: 'Applied' })).toBeDisabled();
     expect(screen.getByText('✓ Applied to the simulation')).toBeTruthy();
-    // Reset: time goes backwards, the applied sizing is gone.
-    pushFrame(store, 0.1, {});
+    // Reset (or an undo): the log no longer has it.
+    act(() => store.setState({ actions: [] }));
     expect(screen.getByRole('button', { name: 'Apply to simulation' })).toBeEnabled();
+  });
+
+  it('shows the values a restored run applied (a share link), as applied', () => {
+    const { store } = renderLive(<CalcPanel part={PART} calc={CALC} />, { status: 'ready', bridge: fakeBridge() });
+    act(() => store.setState({ actions: [[3, 'calc', 'c1', 'req_rate=8000,execution_time=20']] }));
+    expect(screen.getByText('8,000')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Applied' })).toBeDisabled();
   });
 
   it('a rejected command says so', () => {

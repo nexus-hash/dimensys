@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { useGlobalMetricsFeed } from '../useGlobalMetricsFeed';
 import { PlayerStoreProvider, usePlayerStoreApi } from '../../store/PlayerStoreProvider';
 import type { PlayerBootstrap } from '../../types';
+import { setLeadUp } from '../leadUp';
 
 const boot: PlayerBootstrap = {
   diagramId: 'url-shortener',
@@ -88,6 +89,35 @@ describe('useGlobalMetricsFeed', () => {
     expect(feed.metrics.e.value).toBe(1000);
     expect(feed.metrics.e.baseline).toBe(40); // unchanged
     expect(feed.metrics.e.history).toHaveLength(2);
+  });
+
+  it('a run rebuilt from a share link takes its start reading and last 60 s from the lead-up', () => {
+    function SeedButton() {
+      const store = usePlayerStoreApi();
+      return (
+        <button type="button" onClick={() => setLeadUp(store, { keys: ['g.e', 'g.f'], first: [40, 0], t: [30, 60, 99.9], series: [[50, 300, 900], [0, 0.1, 0.2]] })}>
+          seed
+        </button>
+      );
+    }
+    render(
+      <PlayerStoreProvider bootstrap={boot}>
+        <SeedButton />
+        <PushButton t={100} value={1000} label="restored frame" />
+        <PushButton t={100.1} value={1001} label="next frame" />
+        <FeedProbe codes={['e']} />
+      </PlayerStoreProvider>,
+    );
+    fireEvent.click(screen.getByText('seed'));
+    fireEvent.click(screen.getByText('restored frame'));
+    let feed = readFeed();
+    expect(feed.metrics.e.baseline).toBe(40);
+    expect(feed.metrics.e.history.map((s: { t: number }) => s.t)).toEqual([60, 99.9, 100]);
+    fireEvent.click(screen.getByText('next frame'));
+    feed = readFeed();
+    // Handed over once: later frames just extend it.
+    expect(feed.metrics.e.baseline).toBe(40);
+    expect(feed.metrics.e.history).toHaveLength(4);
   });
 
   it('trims history older than the 60s window', () => {
