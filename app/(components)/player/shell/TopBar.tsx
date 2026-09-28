@@ -8,6 +8,8 @@ import type { PlayerMode } from '../store/playerStore';
 import { ModeSwitcher } from './ModeSwitcher';
 import { PlayerBreadcrumbs } from './PlayerBreadcrumbs';
 import type { ModeAvailability } from './modes';
+import ThemeButton from '../../theme/ThemeButton';
+import { BrandMark } from '../../brand/BrandMark';
 
 export interface TopBarProps {
   title: string;
@@ -28,28 +30,38 @@ export function TopBar({ title, labelsById, modeAvailability, railOpen, onToggle
 
   return (
     <header className="player-topbar">
-      <IconButton
-        className="player-rail-toggle"
-        aria-label="Toggle left rail"
-        aria-expanded={railOpen}
-        pressed={railOpen}
-        onClick={onToggleRail}
-      >
-        <PanelLeftIcon />
-      </IconButton>
-
-      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-body text-ink-secondary">
+      <div className="flex min-w-0 items-center gap-2">
         <Link
-          href="/problems"
-          className="player-desktop-only flex items-center gap-1 rounded px-1 -mx-1 hover:text-ink-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          href="/"
+          className="flex flex-none items-center gap-2 text-[17px] font-bold tracking-[-0.01em] text-ink-primary"
+          aria-label="dimensys home"
+          data-nav-brand
         >
-          Explore
+          <BrandMark size={22} />
         </Link>
-        <span aria-hidden="true" className="player-desktop-only text-ink-muted">
-          &rsaquo;
-        </span>
-        <PlayerBreadcrumbs rootLabel={title} labelsById={labelsById} />
-      </nav>
+        <IconButton
+          className="player-rail-toggle"
+          aria-label="Toggle left rail"
+          aria-expanded={railOpen}
+          pressed={railOpen}
+          onClick={onToggleRail}
+        >
+          <PanelLeftIcon />
+        </IconButton>
+
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-body text-ink-secondary">
+          <Link
+            href="/problems"
+            className="player-desktop-only flex items-center gap-1 rounded px-1 -mx-1 hover:text-ink-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            Explore
+          </Link>
+          <span aria-hidden="true" className="player-desktop-only text-ink-muted">
+            &rsaquo;
+          </span>
+          <PlayerBreadcrumbs rootLabel={title} labelsById={labelsById} />
+        </nav>
+      </div>
 
       <div className="flex min-w-0 items-center gap-2">
         <ModeSwitcher availability={modeAvailability} />
@@ -68,6 +80,7 @@ export function TopBar({ title, labelsById, modeAvailability, railOpen, onToggle
           <Kbd>{modKey}</Kbd>
           <Kbd>K</Kbd>
         </Button>
+        <ThemeButton />
         <IconButton aria-label="Settings" disabled title="Settings (coming soon)">
           <SettingsIcon />
         </IconButton>
