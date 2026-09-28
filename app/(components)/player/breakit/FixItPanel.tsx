@@ -9,7 +9,7 @@
  *   one takes a reading of p99, error rate, throughput and cost, then shows
  *   it next to the live reading. Every applied fix can be taken back out.
  * - Show me the fixes: the verified plans for the failure in effect
- *   (`FixPlans`), the cheapest applied as soon as the mode opens.
+ *   (`FixPlans`), cheapest first; nothing changes until one is applied.
  *
  * The requirement badges sit at the top in both, so recovery (or not) is
  * visible right where the change was made.
@@ -24,7 +24,7 @@ import { FixPlans, planCost } from './FixPlans';
 import { useBreakCommands } from './useBreakCommands';
 import { useGlobalMetricsFeed } from '../metrics/useGlobalMetricsFeed';
 import { FixNatureIcon, UndoIcon, WrenchIcon } from './icons';
-import { currentCause, deriveFaults, hasActiveFault } from './tools';
+import { deriveFaults, hasActiveFault } from './tools';
 import { activeBreaks } from './pack';
 import { CacheFailureCard, nodeRowLabel } from './CacheFailures';
 import { BrokenNow } from './InEffect';
@@ -43,23 +43,15 @@ const COMPARE_ROWS: ReadonlyArray<{ code: (typeof COMPARE_CODES)[number]; label:
 export function FixItPanel({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) {
   const data = useBreakData();
   const { needs, kit, remedies } = data;
-  const commands = useBreakCommands(data);
   const ui = useBreakUiApi();
   const mode = useBreakUi((s) => s.fixMode);
-  const plan = useBreakUi((s) => s.plan);
-  const actions = usePlayerStore((s) => s.actions);
   const H = headingLevel === 2 ? 'h2' : 'h3';
   const watched = needs.filter((n) => n.alarm);
 
   const setMode = (next: string) => {
     if (next !== 'myself' && next !== 'plans') return;
+    // Showing the plans changes nothing: a plan goes in only when the viewer applies it.
     ui.set({ fixMode: next });
-    // Show me: the cheapest verified plan goes in straight away, unless one for this failure already did.
-    if (next === 'plans') {
-      const cause = currentCause(actions);
-      const set = cause ? kit?.plans?.find((p) => p.cause === cause) : undefined;
-      if (cause && set?.ways.length && !(plan && plan.cause === cause)) commands.applyPlan(cause, 0, set.ways[0].acts);
-    }
   };
 
   return (

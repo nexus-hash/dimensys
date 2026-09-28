@@ -63,7 +63,8 @@ export function NodeInspectorBody({ node, data = NO_INSPECTOR_DATA }: { node: { 
   const knob = data.knobs?.find((k) => k.el === node.id);
   const scale = (
     <>
-      <RestoreNode id={node.id} />
+      {/* A live run (the only kind with knobs) is where a node can be killed. */}
+      {data.knobs ? <RestoreNode id={node.id} /> : null}
       {knob ? <ScaleControl knob={knob} label={node.text} /> : null}
     </>
   );

@@ -4,7 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 /**
  * Fix it's two modes: "Fix it myself" (every fix, no hints, a live verdict)
  * and "Show me the fixes" (the verified plans for the failure in effect,
- * cheapest first, the cheapest applied as soon as the mode opens).
+ * cheapest first; none goes in until it's applied).
  */
 const READY_TIMEOUT = 30000;
 const EFFECT_TIMEOUT = 25000;
@@ -54,7 +54,7 @@ test.describe('Fix it modes', () => {
     expect(await panel(page).locator('[data-fix-id]').count()).toBeGreaterThan(7);
   });
 
-  test('Show me the fixes applies the cheapest plan, and another plan can replace it', async ({ page }) => {
+  test('Show me the fixes lists the plans without applying any, and one plan can replace another', async ({ page }) => {
     test.setTimeout(120000);
     await openBreak(page);
     await openFixIt(page);
@@ -63,6 +63,11 @@ test.describe('Fix it modes', () => {
     await panel(page).getByRole('radio', { name: 'Show me the fixes' }).click();
     const plans = panel(page).locator('.break-plans');
     await expect(plans).toHaveAttribute('data-cause', 'kill:cache-redis');
+    // Opening the list changes nothing: still broken, no plan applied.
+    await expect(plans.locator('.break-plan').first()).toHaveAttribute('data-applied', 'false');
+    await expect(page.locator('.player-canvas-area .break-log-item')).toHaveCount(1);
+    await expect(panel(page).locator('.break-fixit-reqs [aria-label="failing"]')).not.toHaveCount(0);
+    await plans.getByRole('button', { name: 'Apply plan 1' }).click();
     await expect(plans.locator('.break-plan').first()).toHaveAttribute('data-applied', 'true', { timeout: 10000 });
     await expect(plans.locator('.break-plan').first()).toContainText('no extra cost');
     await expect(plans.locator('.break-plan').first()).toContainText('Trade-offs');
