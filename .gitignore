@@ -47,3 +47,6 @@ next-env.d.ts
 # `server-data/engine/` never leaves the server.
 /data/engine/
 /server-data/engine/
+
+# production e2e logs
+.e2e-prod/

@@ -14,19 +14,42 @@
 # `e2e/player-static-blueprint.spec.ts` aren't run here; they need the dev
 # server (`npm run dev:next` + the default Playwright config).
 #
-# Usage: npm run test:e2e:prod
+# Usage: npm run test:e2e:prod                      (full suite)
+#        npm run test:e2e:prod -- e2e/foo.spec.ts   (only these specs; any
+#                                                     extra Playwright args pass through)
+# The build is skipped when neither the source nor the synced engine data
+# changed since the last build (E2E_FORCE_BUILD=1 forces it).
 # For a heavy shared host, wrap it in a lock so it never overlaps another
 # build: flock /path/to/some.lock ./scripts/e2e-prod.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-LOGDIR="${E2E_PROD_LOGDIR:-/tmp/e2e-prod}"
+LOGDIR="${E2E_PROD_LOGDIR:-$PWD/.e2e-prod}"
+WORKERS="${E2E_WORKERS:-8}"
 # Its own port, so a running `npm run dev` on 3000 is never hit or killed.
 PORT="${E2E_PROD_PORT:-3100}"
 mkdir -p "$LOGDIR"
 
-echo "== build (webpack) =="
-SKIP_PREBUILD=true npx next build --webpack 2>&1 | tee "$LOGDIR/build.log"
+# Build key: tracked + untracked source (excluding build/log output) and the
+# synced engine manifest. Unchanged key + an existing build = skip the build.
+build_key() {
+  {
+    git rev-parse HEAD
+    git status --porcelain --untracked-files=all -- . ':!.next' ':!.e2e-prod' ':!test-results' ':!playwright-report'
+    git diff HEAD -- . ':!.next'
+    git ls-files --others --exclude-standard -z -- . ':!.next' ':!.e2e-prod' | xargs -0 -r cat 2>/dev/null
+    cat data/engine/manifest.json 2>/dev/null
+  } | sha256sum | cut -d' ' -f1
+}
+KEY="$(build_key)"
+KEY_FILE=.next/.e2e-build-key
+if [ -z "${E2E_FORCE_BUILD:-}" ] && [ -f .next/BUILD_ID ] && [ "$(cat "$KEY_FILE" 2>/dev/null)" = "$KEY" ]; then
+  echo "== build: unchanged since the last build, skipped =="
+else
+  echo "== build (webpack) =="
+  SKIP_PREBUILD=true npx next build --webpack 2>&1 | tee "$LOGDIR/build.log"
+  echo "$KEY" > "$KEY_FILE"
+fi
 
 echo "== start =="
 # A plain `&` background here would only track `npx`'s own pid: `npx next start`
@@ -64,23 +87,27 @@ for i in $(seq 1 60); do
   sleep 1
 done
 
-echo "== playwright (production-servable specs, both projects, <=4 workers) =="
-npx playwright test \
-  e2e/smoke.spec.ts \
-  e2e/home-page.spec.ts \
-  e2e/solutions-page.spec.ts \
-  e2e/server-only-paths-unreachable.spec.ts \
-  e2e/production-runtime-assets.spec.ts \
-  e2e/player-interactive-layer.spec.ts \
-  e2e/player-board-fit.spec.ts \
-  e2e/player-inspector.spec.ts \
-  e2e/player-inspector-advanced.spec.ts \
-  e2e/player-label-geometry.spec.ts \
-  e2e/player-hud-timeline.spec.ts \
-  e2e/player-frames.spec.ts \
-  e2e/player-break-it.spec.ts \
-  e2e/player-walkthrough.spec.ts \
-  --project=chromium --project="Mobile Chrome" --workers=4 \
+echo "== playwright (both projects, $WORKERS workers) =="
+DEFAULT_SPECS=(
+  e2e/smoke.spec.ts
+  e2e/home-page.spec.ts
+  e2e/solutions-page.spec.ts
+  e2e/server-only-paths-unreachable.spec.ts
+  e2e/production-runtime-assets.spec.ts
+  e2e/player-interactive-layer.spec.ts
+  e2e/player-board-fit.spec.ts
+  e2e/player-inspector.spec.ts
+  e2e/player-inspector-advanced.spec.ts
+  e2e/player-label-geometry.spec.ts
+  e2e/player-hud-timeline.spec.ts
+  e2e/player-frames.spec.ts
+  e2e/player-break-it.spec.ts
+  e2e/player-walkthrough.spec.ts
+)
+if [ "$#" -gt 0 ]; then ARGS=("$@"); else ARGS=("${DEFAULT_SPECS[@]}"); fi
+
+npx playwright test "${ARGS[@]}" \
+  --project=chromium --project="Mobile Chrome" --workers="$WORKERS" \
   2>&1 | tee "$LOGDIR/playwright.log"
 
 echo "== done =="
