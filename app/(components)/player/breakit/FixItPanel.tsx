@@ -23,6 +23,9 @@ import { useBreakCommands } from './useBreakCommands';
 import { useGlobalMetricsFeed } from '../metrics/useGlobalMetricsFeed';
 import { FixNatureIcon, UndoIcon, WrenchIcon } from './icons';
 import { deriveFaults, fittingNatures, hasActiveFault } from './tools';
+import { activeBreaks, packFits } from './pack';
+import { CacheFailureCard, nodeRowLabel } from './CacheFailures';
+import { useMetricSeriesFeed } from '../metrics/useMetricSeriesFeed';
 import type { RemedyView } from '../types';
 
 const COMPARE_CODES = ['e', 'f', 'q', 'm'] as const;
@@ -36,11 +39,12 @@ const COMPARE_ROWS: ReadonlyArray<{ code: (typeof COMPARE_CODES)[number]; label:
 
 export function FixItPanel({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) {
   const fixes = useOfferedFixes();
-  const { needs, catalog } = useBreakData();
+  const { needs, catalog, kit } = useBreakData();
   const actions = usePlayerStore((s) => s.actions);
   const faults = deriveFaults(actions);
   const natures = fittingNatures(faults, catalog);
-  const broken = hasActiveFault(faults);
+  const cacheFits = new Set(packFits(actions, kit, faults.killed));
+  const broken = hasActiveFault(faults) || activeBreaks(actions, kit).length > 0;
   const H = headingLevel === 2 ? 'h2' : 'h3';
   const watched = needs.filter((n) => n.alarm);
 
@@ -57,6 +61,7 @@ export function FixItPanel({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) {
           <RequirementBadges needs={watched} />
         </div>
       ) : null}
+      <CacheFailureCard />
       <p className="break-fixit-lede">
         {broken ? 'Pick a change that addresses what you broke. Marked fixes fit the current failure.' : 'Break something first, or apply a fix to see what it changes at baseline.'}
       </p>
@@ -65,7 +70,7 @@ export function FixItPanel({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) {
       ) : (
         <ul className="break-fixit-list">
           {fixes.map((f) => (
-            <FixCard key={f.id} fix={f} applied={faults.fixes.has(f.id)} fits={broken && !!f.nature && natures.has(f.nature)} />
+            <FixCard key={f.id} fix={f} applied={faults.fixes.has(f.id)} fits={cacheFits.has(f.id) || (broken && !!f.nature && natures.has(f.nature))} />
           ))}
         </ul>
       )}
@@ -122,6 +127,8 @@ function FixCard({ fix, applied, fits }: { fix: RemedyView; applied: boolean; fi
 
 function BeforeAfter({ before }: { before: MetricSnapshot }) {
   const feed = useGlobalMetricsFeed(COMPARE_CODES);
+  const nodeKeys = Object.keys(before.nodes ?? {});
+  const nodeFeed = useMetricSeriesFeed(nodeKeys, 5);
   return (
     <table className="break-cmp">
       <caption className="sr-only">Before the fix and now</caption>
@@ -148,6 +155,18 @@ function BeforeAfter({ before }: { before: MetricSnapshot }) {
                 {row.fmt(now)}
                 {better ? <span className="sr-only"> (better)</span> : worse ? <span className="sr-only"> (worse)</span> : null}
               </td>
+            </tr>
+          );
+        })}
+        {nodeKeys.map((key) => {
+          const { label, fmt } = nodeRowLabel(key);
+          const b = before.nodes?.[key];
+          const now = nodeFeed.series[key]?.value;
+          return (
+            <tr key={key} data-key={key} data-trend="same">
+              <th scope="row">{label}</th>
+              <td>{fmt(b)}</td>
+              <td>{fmt(now)}</td>
             </tr>
           );
         })}

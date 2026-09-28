@@ -21,6 +21,7 @@ import { useBreakCommands } from './useBreakCommands';
 import { ToolIcon, WrenchIcon } from './icons';
 import { DEFAULT_SPIKE, deriveFaults, formatMultiplier, offeredTools, targetName, targetsFor, toolDef, type BreakTool, type ToolDef } from './tools';
 import { toolValue } from './BreakController';
+import { CacheControl } from './CacheFailures';
 import './breakit.css';
 
 const PHONE_QUERY = '(max-width: 639px)';
@@ -60,7 +61,7 @@ function BreakToolboxInner() {
   const phone = useIsPhone();
 
   function pick(tool: BreakTool) {
-    breakUiFor(store).set((s) => ({ armed: s.armed === tool ? null : tool, spikeOpen: false }));
+    breakUiFor(store).set((s) => ({ armed: s.armed === tool ? null : tool, spikeOpen: false, cacheOpen: false }));
   }
   function toggleFix() {
     breakUiFor(store).set((s) => ({ drawer: !s.drawer, tab: 'fix', armed: null }));
@@ -92,6 +93,7 @@ function BreakToolboxInner() {
             </button>
           ),
         )}
+        <CacheControl variant="bar" open={!phone} disabled={disabled} />
         <button type="button" className="break-tool break-tool-reset" disabled={disabled} onClick={commands.reset} aria-keyshortcuts="R">
           <ResetIcon aria-hidden="true" />
           Reset
@@ -113,6 +115,7 @@ function BreakToolboxInner() {
             </button>
           ),
         )}
+        <CacheControl variant="chip" open={phone} disabled={disabled} />
         <button type="button" className="break-chip" aria-pressed={drawer} onClick={toggleFix}>
           <WrenchIcon />
           Fix it
@@ -208,10 +211,11 @@ function SpikeControl({
     <Popover
       trigger={trigger}
       open={spikeOpen && open}
-      onOpenChange={(next) => breakUiFor(store).set({ spikeOpen: next, armed: null })}
+      onOpenChange={(next) => breakUiFor(store).set({ spikeOpen: next, cacheOpen: false, armed: null })}
       side="bottom"
       align="start"
       className="break-spike"
+      aria-label="Traffic spike"
     >
       <div role="group" aria-label="Traffic spike">
         <div className="break-spike-read">

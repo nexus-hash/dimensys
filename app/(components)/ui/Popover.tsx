@@ -15,6 +15,8 @@ export interface PopoverProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   className?: string;
+  /** Accessible name of the popover (it is a dialog). */
+  'aria-label'?: string;
 }
 
 /**
@@ -32,6 +34,7 @@ export function Popover({
   open,
   onOpenChange,
   className,
+  'aria-label': ariaLabel,
 }: PopoverProps) {
   const contentRef = React.useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -52,6 +55,7 @@ export function Popover({
           ref={contentRef}
           side={side}
           align={align}
+          aria-label={ariaLabel}
           sideOffset={8}
           collisionPadding={8}
           className="z-chrome data-[state=open]:animate-[rise_var(--transition-duration-panel)_var(--ease-emphasized)] data-[state=closed]:animate-[riseOut_var(--transition-duration-micro)_var(--ease-exit)]"

@@ -352,6 +352,30 @@ export interface KitView {
   remedies: string[];
   /** Per element: the tools it accepts (absent = every fitting tool; `[]` = unbreakable). */
   locks: Array<[string, string[]]>;
+  /** Cache failures, one entry per cache or CDN that serves reads (absent when there is none). */
+  packs?: PackView[];
+}
+
+/**
+ * The cache failures offered for one cache or CDN (`el`). Each break is sent
+ * with its `verb` as the tool: `flush` targets `el`, `fault` targets the
+ * break's own `id`. `fits`: remedy ids that address it (offered in Fix it
+ * while it's the current failure). `series`: node metric codes that show it.
+ * `down`: remedy ids that fit `el` being killed.
+ */
+export interface PackView {
+  el: string;
+  breaks: PackBreakView[];
+  down: string[];
+}
+
+export interface PackBreakView {
+  id: string;
+  text: string;
+  md: string;
+  verb: 'flush' | 'fault';
+  fits: string[];
+  series: string[];
 }
 
 export interface GaugeView {

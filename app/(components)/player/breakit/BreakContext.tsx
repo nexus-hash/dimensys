@@ -2,7 +2,9 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { KitView, NeedView, RemedyView, SwitchView } from '../types';
-import type { TargetCatalog } from './tools';
+import { usePlayerStore } from '../store/PlayerStoreProvider';
+import { offeredFixIds, packFits } from './pack';
+import { deriveFaults, type TargetCatalog } from './tools';
 
 /**
  * The diagram data Break It reads, handed down once by the shell: the
@@ -32,11 +34,18 @@ export function useBreakData(): BreakData {
   return useContext(BreakDataContext);
 }
 
-/** The fixes this diagram offers in the Fix it panel, in the toolkit's order. */
+/**
+ * The fixes the Fix it panel offers: those that fit a current cache failure
+ * first, then the diagram's own in the toolkit's order, then any other
+ * applied fix (so it can be taken back out).
+ */
 export function useOfferedFixes(): RemedyView[] {
   const { kit, remedies } = useBreakData();
+  const actions = usePlayerStore((s) => s.actions);
   return useMemo(() => {
     if (!kit) return [];
-    return kit.remedies.map((id) => remedies.find((r) => r.id === id)).filter((r): r is RemedyView => r !== undefined);
-  }, [kit, remedies]);
+    const faults = deriveFaults(actions);
+    const ids = offeredFixIds(kit, packFits(actions, kit, faults.killed), faults.fixes);
+    return ids.map((id) => remedies.find((r) => r.id === id)).filter((r): r is RemedyView => r !== undefined);
+  }, [kit, remedies, actions]);
 }

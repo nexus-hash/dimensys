@@ -88,6 +88,17 @@ export function DatabaseIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** A cache (a stack of memory) with a crack through it: the cache failures. */
+export function CacheIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <rect x="3.5" y="4" width="17" height="6" rx="1.5" />
+      <rect x="3.5" y="14" width="17" height="6" rx="1.5" />
+      <path d="M7 7h.01M7 17h.01M13.5 4l-1.5 3 2 2-1.5 3.5M12.5 14l1.5 3-1.5 3" />
+    </Base>
+  );
+}
+
 export function UndoIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Base {...props}>

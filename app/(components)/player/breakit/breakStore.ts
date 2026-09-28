@@ -22,6 +22,8 @@ export interface MetricSnapshot {
   f?: number;
   q?: number;
   m?: number;
+  /** Node readings by full metric key (a cache failure's own, when the fix fits one). */
+  nodes?: Readonly<Record<string, number>>;
 }
 
 export interface FixMark {
@@ -37,6 +39,10 @@ export interface BreakUiState {
   /** Right-panel tab while the Fix it panel is open. */
   tab: 'inspect' | 'fix';
   spikeOpen: boolean;
+  /** The cache failures popover is open. */
+  cacheOpen: boolean;
+  /** Cache the popover applies failures to (a cache or CDN node id), when there is more than one. */
+  cacheTarget: string | null;
   /** Fix id → reading taken the moment it was applied. */
   marks: Readonly<Record<string, FixMark>>;
   /** The panel has opened itself once this session (it only does that once). */
@@ -50,7 +56,7 @@ export interface BreakUiStore {
 }
 
 export function initialBreakUi(): BreakUiState {
-  return { armed: null, drawer: false, tab: 'fix', spikeOpen: false, marks: {}, autoOpened: false };
+  return { armed: null, drawer: false, tab: 'fix', spikeOpen: false, cacheOpen: false, cacheTarget: null, marks: {}, autoOpened: false };
 }
 
 export function createBreakUiStore(initial: BreakUiState = initialBreakUi()): BreakUiStore {

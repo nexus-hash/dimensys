@@ -26,6 +26,7 @@ import { XML_NS } from '../overlay/xmlNs';
 import { useBreakData } from './BreakContext';
 import { breakUiFor, useBreakUi } from './breakStore';
 import { useBreakCommands } from './useBreakCommands';
+import { CACHE_TOOL, packFor, packTargets } from './pack';
 import {
   DEFAULT_SPIKE,
   SLOW_FACTOR,
@@ -71,7 +72,7 @@ export function BreakController() {
 
   // ---- leaving Break it: disarm, close the panel and the spike slider ----
   useEffect(() => {
-    if (!breaking) breakUiFor(store).set({ armed: null, spikeOpen: false, drawer: false });
+    if (!breaking) breakUiFor(store).set({ armed: null, spikeOpen: false, cacheOpen: false, drawer: false });
   }, [breaking, store]);
 
   // ---- targeting: mark targets, intercept clicks/Enter/Esc while armed ----
@@ -209,7 +210,7 @@ export function BreakController() {
     event.preventDefault();
     const ui = breakUiFor(store);
     if (tool === 'spike') {
-      ui.set((s) => ({ armed: null, spikeOpen: s.spikeOpen ? false : true }));
+      ui.set((s) => ({ armed: null, cacheOpen: false, spikeOpen: s.spikeOpen ? false : true }));
       return;
     }
     const sel = store.getState().selection;
@@ -243,6 +244,20 @@ export function BreakController() {
   );
   useShortcut({ id: 'player:break-flush', keys: toolDef('flush').combo, label: 'Break it: flush a cache', group: 'Player', when: 'player-break', hidden: !offered.has('flush') }, (e) =>
     onToolKey('flush', e),
+  );
+
+  // C: the cache failures, for the selected cache when one is selected.
+  const hasPacks = packTargets(kit, catalog).length > 0;
+  useShortcut(
+    { id: 'player:break-cache', keys: CACHE_TOOL.combo, label: 'Break it: cache failures', group: 'Player', when: 'player-break', hidden: !hasPacks },
+    (e) => {
+      if (!hasPacks) return;
+      if (e.target instanceof Element && e.target.closest('[data-radix-popper-content-wrapper], [role="dialog"]')) return;
+      e.preventDefault();
+      const sel = store.getState().selection;
+      const onCache = sel?.kind === 'node' && packFor(kit, sel.id) ? sel.id : null;
+      breakUiFor(store).set((s) => ({ armed: null, spikeOpen: false, cacheOpen: !s.cacheOpen, ...(onCache ? { cacheTarget: onCache } : {}) }));
+    },
   );
 
   return <span ref={anchorRef} hidden />;

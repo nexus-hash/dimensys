@@ -10,7 +10,7 @@ import { usePlayerStore } from '../store/PlayerStoreProvider';
 import { fmtSimTime } from '../metrics/simTime';
 import { useBreakData } from './BreakContext';
 import { useBreakCommands } from './useBreakCommands';
-import { ToolIcon, UndoIcon, WrenchIcon } from './icons';
+import { CacheIcon, ToolIcon, UndoIcon, WrenchIcon } from './icons';
 import { describeAction, tryCards, undoPlan } from './tools';
 import type { UserAction } from '../types';
 
@@ -57,11 +57,17 @@ export function ActionLog({ actions, full = false }: { actions: readonly UserAct
         {shown.map((a, i) => {
           const index = start + i;
           const plan = undoPlan(actions, index);
-          const text = describeAction(a, data.catalog, data.remedies, data.switches);
+          const text = describeAction(a, data.catalog, data.remedies, data.switches, data.kit);
           return (
             <li key={index} className="break-log-item" data-tool={a[1]}>
               <span className="break-log-t">{fmtSimTime(a[0])}</span>
-              {a[1] === 'intervention' ? <WrenchIcon className="break-log-ic" /> : isTool(a[1]) ? <ToolIcon tool={a[1]} className="break-log-ic" /> : null}
+              {a[1] === 'intervention' ? (
+                <WrenchIcon className="break-log-ic" />
+              ) : a[1] === 'fault' ? (
+                <CacheIcon className="break-log-ic" />
+              ) : isTool(a[1]) ? (
+                <ToolIcon tool={a[1]} className="break-log-ic" />
+              ) : null}
               <span className="break-log-text">{text}</span>
               {plan ? (
                 <button type="button" className="break-log-undo" disabled={!ready} onClick={() => commands.undo(index)} aria-label={`Undo: ${text}`}>

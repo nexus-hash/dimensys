@@ -11,6 +11,7 @@
  * it's described, never translated.
  */
 import type { KitView, RemedyView, SwitchView, UserAction } from '../types';
+import { findBreak } from './pack';
 
 /** The five faults the toolbox offers, in the design's order. */
 export type BreakTool = 'kill' | 'spike' | 'partition' | 'slow' | 'flush';
@@ -140,6 +141,8 @@ export interface FaultState {
   flushed: ReadonlySet<string>;
   /** Applied fix ids. */
   fixes: ReadonlySet<string>;
+  /** Cache failures applied (ids; they last until reset or undone). */
+  faults: ReadonlySet<string>;
 }
 
 /** Folds the canonical action log into what's broken (and fixed) right now. */
@@ -149,6 +152,7 @@ export function deriveFaults(actions: readonly UserAction[]): FaultState {
   const slowed = new Map<string, number>();
   const flushed = new Set<string>();
   const fixes = new Set<string>();
+  const faults = new Set<string>();
   let spike = 1;
   for (const [, tool, target, value] of actions) {
     switch (tool) {
@@ -179,14 +183,17 @@ export function deriveFaults(actions: readonly UserAction[]): FaultState {
       case 'intervention':
         if (target) fixes.add(target);
         break;
+      case 'fault':
+        if (target) faults.add(target);
+        break;
     }
   }
-  return { killed, cut, slowed, spike, flushed, fixes };
+  return { killed, cut, slowed, spike, flushed, fixes, faults };
 }
 
 /** True when anything is currently broken (fixes and one-shot flushes don't count). */
 export function hasActiveFault(f: FaultState): boolean {
-  return f.killed.size > 0 || f.cut.size > 0 || f.slowed.size > 0 || f.spike !== 1;
+  return f.killed.size > 0 || f.cut.size > 0 || f.slowed.size > 0 || f.spike !== 1 || f.faults.size > 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -197,7 +204,13 @@ export function formatMultiplier(v: number): string {
   return `${Number.isInteger(v) ? v : v.toFixed(1)}×`;
 }
 
-export function describeAction(action: UserAction, catalog: TargetCatalog, remedies: readonly RemedyView[], switches: readonly SwitchView[] = []): string {
+export function describeAction(
+  action: UserAction,
+  catalog: TargetCatalog,
+  remedies: readonly RemedyView[],
+  switches: readonly SwitchView[] = [],
+  kit?: KitView,
+): string {
   const [, tool, target, value] = action;
   const name = target ? targetName({ id: target }, catalog) : '';
   switch (tool) {
@@ -217,6 +230,10 @@ export function describeAction(action: UserAction, catalog: TargetCatalog, remed
       return value === 1 ? 'Traffic back to 1×' : `Traffic ${formatMultiplier(Number(value))}`;
     case 'intervention':
       return `Applied: ${remedies.find((r) => r.id === target)?.text ?? target}`;
+    case 'fault': {
+      const hit = findBreak(kit, target);
+      return hit ? `${hit.brk.text} on ${targetName({ id: hit.pack.el }, catalog)}` : 'Cache failure';
+    }
     case 'degrade':
       return `Degraded ${name}`;
     case 'toggle': {
@@ -259,6 +276,7 @@ export function undoPlan(actions: readonly UserAction[], index: number): UndoPla
     case 'spike':
       return value !== 1 && !later.some((a) => a[1] === 'spike') ? { kind: 'inverse', tool: 'spike', target: null, value: 1 } : null;
     case 'intervention':
+    case 'fault':
       return { kind: 'replay', index };
     default:
       return null;

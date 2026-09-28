@@ -15,13 +15,15 @@ import type { PlayerStore } from '../store/playerStore';
 import { getBridge } from '../worker/bridgeRegistry';
 import { buildGlobalMetricIndex, readGlobalMetric } from '../metrics/globalMetrics';
 import { breakUiFor, type MetricSnapshot } from './breakStore';
-import { describeAction, fixEntryIndex, undoPlan, withoutEntry, type BreakTool, type TargetCatalog } from './tools';
-import type { RemedyView, SwitchView, UserAction } from '../types';
+import { describeAction, deriveFaults, fixEntryIndex, undoPlan, withoutEntry, type BreakTool, type TargetCatalog } from './tools';
+import { activeBreaks } from './pack';
+import { nodeMetricKey } from '../metricKeys';
+import type { KitView, RemedyView, SwitchView, UserAction } from '../types';
 
 const SNAPSHOT_CODES = ['e', 'f', 'q', 'm'] as const;
 
-/** The current global readings (p99, error rate, throughput, cost). */
-export function readSnapshot(store: PlayerStore): MetricSnapshot {
+/** The current global readings (p99, error rate, throughput, cost), plus each node key in `nodeKeys` (a cache failure's own readings). */
+export function readSnapshot(store: PlayerStore, nodeKeys: readonly string[] = []): MetricSnapshot {
   const s = store.getState().sim;
   const index = buildGlobalMetricIndex(s.metricKeys);
   const out: MetricSnapshot = {};
@@ -29,18 +31,45 @@ export function readSnapshot(store: PlayerStore): MetricSnapshot {
     const v = readGlobalMetric(s.frame, index, code);
     if (v !== undefined) out[code] = v;
   }
+  if (nodeKeys.length && s.frame) {
+    const nodes: Record<string, number> = {};
+    for (const key of nodeKeys) {
+      const i = s.metricKeys.indexOf(key);
+      const v = i >= 0 ? s.frame.metrics[i] : undefined;
+      if (v !== undefined && !Number.isNaN(v)) nodes[key] = v;
+    }
+    out.nodes = nodes;
+  }
   return out;
+}
+
+/** The node readings that show the current cache failures a fix fits (none when it fits none). */
+export function fixSeriesKeys(actions: readonly UserAction[], kit: KitView | undefined, fixId: string): string[] {
+  const keys: string[] = [];
+  for (const a of activeBreaks(actions, kit)) {
+    if (!a.brk.fits.includes(fixId)) continue;
+    for (const code of a.brk.series) {
+      const key = nodeMetricKey(a.pack.el, code);
+      if (!keys.includes(key)) keys.push(key);
+    }
+  }
+  if (keys.length === 0) {
+    const killed = deriveFaults(actions).killed;
+    for (const p of kit?.packs ?? []) if (killed.has(p.el) && p.down.includes(fixId)) keys.push(nodeMetricKey(p.el, 'j'), nodeMetricKey(p.el, 'v'));
+  }
+  return keys;
 }
 
 export interface BreakCommandsContext {
   catalog: TargetCatalog;
   remedies: readonly RemedyView[];
   switches?: readonly SwitchView[];
+  kit?: KitView;
 }
 
 export interface BreakCommands {
   /** Sends one fault (or its inverse). Returns false when there's no running simulation to take it. */
-  apply(tool: BreakTool | 'restore' | 'heal', target: string | null, value?: number | null): boolean;
+  apply(tool: BreakTool | 'restore' | 'heal' | 'fault', target: string | null, value?: number | null): boolean;
   applyFix(id: string): boolean;
   revertFix(id: string): boolean;
   /** Takes one logged action back (see `undoPlan`). */
@@ -54,14 +83,14 @@ function ready(store: PlayerStore) {
   return bridge && store.getState().sim.status === 'ready' ? bridge : null;
 }
 
-export function useBreakCommands({ catalog, remedies, switches }: BreakCommandsContext): BreakCommands {
+export function useBreakCommands({ catalog, remedies, switches, kit }: BreakCommandsContext): BreakCommands {
   const store = usePlayerStoreApi();
 
   const say = useCallback(
     (action: UserAction) => {
-      toast(describeAction(action, catalog, remedies, switches));
+      toast(describeAction(action, catalog, remedies, switches, kit));
     },
-    [catalog, remedies, switches],
+    [catalog, remedies, switches, kit],
   );
 
   const apply = useCallback(
@@ -71,7 +100,7 @@ export function useBreakCommands({ catalog, remedies, switches }: BreakCommandsC
       bridge.applyAction(tool, target, value);
       // A fault on a paused run would show nothing; the design resumes play on every move.
       if (!store.getState().sim.playing) bridge.play();
-      breakUiFor(store).set({ armed: null, spikeOpen: false });
+      breakUiFor(store).set({ armed: null, spikeOpen: false, cacheOpen: false });
       say([0, tool, target, value]);
       return true;
     },
@@ -80,13 +109,13 @@ export function useBreakCommands({ catalog, remedies, switches }: BreakCommandsC
 
   const applyFix = useCallback(
     (id: string): boolean => {
-      const before = readSnapshot(store);
+      const before = readSnapshot(store, fixSeriesKeys(store.getState().actions, kit, id));
       const t = store.getState().sim.frame?.t ?? 0;
       if (!apply('intervention', id, null)) return false;
       breakUiFor(store).set((s) => ({ marks: { ...s.marks, [id]: { t, before } } }));
       return true;
     },
-    [store, apply],
+    [store, apply, kit],
   );
 
   const replayWithout = useCallback(
@@ -106,10 +135,12 @@ export function useBreakCommands({ catalog, remedies, switches }: BreakCommandsC
         });
         const text = remedies.find((r) => r.id === fixId)?.text ?? fixId;
         toast(`Removed: ${text}`);
+      } else if (action[1] === 'fault') {
+        toast(`Undone: ${describeAction(action, catalog, remedies, switches, kit)}`);
       }
       return true;
     },
-    [store, remedies],
+    [store, remedies, catalog, switches, kit],
   );
 
   const revertFix = useCallback(
@@ -135,7 +166,7 @@ export function useBreakCommands({ catalog, remedies, switches }: BreakCommandsC
     if (!bridge) return;
     bridge.reset();
     bridge.play();
-    breakUiFor(store).set({ armed: null, spikeOpen: false, marks: {} });
+    breakUiFor(store).set({ armed: null, spikeOpen: false, cacheOpen: false, marks: {} });
     toast('Reset: healthy, baseline load');
   }, [store]);
 
