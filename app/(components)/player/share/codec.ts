@@ -333,7 +333,8 @@ export function hasShareParams(search: string): boolean {
   return SHARE_PARAMS.some((k) => params.has(k));
 }
 
-/** A link that opens `diagramId`'s player straight on a walkthrough (and optionally a step). */
+/** A link that opens `diagramId`'s player straight on a walkthrough (and optionally a step): the plain `?v=&st=` form. */
 export function walkthroughHref(diagramId: string, walkthroughId: string, stepId?: string): string {
-  return `/solutions/${encodeURIComponent(diagramId)}${encodeShare({ mode: 'walkthrough', view: walkthroughId, step: stepId })}`;
+  const q = [`v=${esc(walkthroughId)}`, ...(stepId ? [`st=${esc(stepId)}`] : [])].join('&');
+  return `/solutions/${encodeURIComponent(diagramId)}?${q}`;
 }

@@ -354,6 +354,14 @@ test.describe('share links', () => {
     await expect(field).toBeHidden();
   });
 
+  test('the keyboard shortcut copies too', async ({ page }) => {
+    await page.goto(`/solutions/${DIAGRAM}`);
+    await ready(page);
+    await page.locator('body').press('ControlOrMeta+Shift+S');
+    await expect(page.getByText('Link copied').first()).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`/solutions/${DIAGRAM}`);
+  });
+
   test('phone: the Share icon copies too', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/solutions/${DIAGRAM}`);

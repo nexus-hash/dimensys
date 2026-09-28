@@ -99,7 +99,8 @@ describe('share codec: old and hand-made links', () => {
 
   it('walkthroughHref makes a link the codec reads back', () => {
     const href = walkthroughHref('url-shortener', 'write-path', 's2');
-    expect(href).toBe('/solutions/url-shortener?s=1&v=write-path&st=s2');
+    expect(href).toBe('/solutions/url-shortener?v=write-path&st=s2');
+    expect(walkthroughHref('url-shortener', 'write-path')).toBe('/solutions/url-shortener?v=write-path');
     expect(decodeShare(href.split('?')[1]).state).toEqual({ view: 'write-path', step: 's2' });
   });
 
