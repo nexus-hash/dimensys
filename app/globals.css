@@ -1402,3 +1402,19 @@
   .wt-kbd { display: none; }
   .wt-narr-acts { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
 }
+
+/* ============================================================================
+ * Inspector: scale a node by hand (replica stepper, cost of the change).
+ * ========================================================================== */
+.scale-control { display: flex; flex-direction: column; gap: 8px; margin: 16px 16px 0; padding: 12px; border-radius: 12px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
+.scale-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.scale-title { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--color-ink-muted); }
+.scale-now { font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scale-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.scale-stepper { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 8px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-sunken); }
+.scale-stepper button { width: 30px; height: 30px; }
+.scale-count { min-width: 44px; text-align: center; font: 600 15px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.scale-cost { flex: 1 1 auto; min-width: 0; font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-secondary); }
+@media (max-width: 639px) {
+  .scale-stepper button { width: 44px; height: 44px; }
+}

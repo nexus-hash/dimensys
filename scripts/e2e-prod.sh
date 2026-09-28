@@ -103,6 +103,7 @@ DEFAULT_SPECS=(
   e2e/player-frames.spec.ts
   e2e/player-break-it.spec.ts
   e2e/player-walkthrough.spec.ts
+  e2e/player-scale.spec.ts
   e2e/player-cache-pack.spec.ts
   e2e/player-rail.spec.ts
   e2e/player-scenarios.spec.ts

@@ -22,6 +22,7 @@ import {
   metricCodeLabel,
   metricCodeUnit,
   UTILIZATION_CODE,
+  REPLICA_CODE,
   HIT_RATIO_CODE,
   QUEUE_DEPTH_CODE,
   NODE_UP_CODE,
@@ -236,6 +237,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
           pulsing: state === 'critical',
           chipText,
           meter,
+          replicas: readMetric(idx.nodeCols, frame.metrics, id, REPLICA_CODE),
         });
       }
 

@@ -513,6 +513,18 @@ export interface AlgoView {
 }
 
 /** The per-diagram view data, as synced under `data/engine/diagrams/<id>.view.json`. */
+/** A node the viewer can scale by hand, with the `resize` action. `each` is the monthly cost of one replica. */
+export interface KnobView {
+  el: string;
+  /** Replicas as authored. */
+  n: number;
+  lo: number;
+  hi: number;
+  /** What one replica is called: `pods`, `instances`, `nodes`, `shards`, `brokers`. */
+  noun: string;
+  each: number;
+}
+
 export interface ViewData {
   fmt: number;
   /** Build hash (`sha256:…` of the source). Pairs this view with its sim payload. */
@@ -540,6 +552,8 @@ export interface ViewData {
   calcs: CalcView[];
   /** Request paths, for tracing on the board. Absent when there are none. */
   lanes?: LaneView[];
+  /** Nodes the viewer may scale by hand. Absent when there are none. */
+  knobs?: KnobView[];
   drills: DrillView[];
   outage?: OutageView;
   algo?: AlgoView;

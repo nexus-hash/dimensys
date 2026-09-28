@@ -1,4 +1,4 @@
-import type { CalcView, SwitchView } from '../types';
+import type { CalcView, KnobView, SwitchView } from '../types';
 
 /**
  * What a detail sheet's live sections need beyond their own part: the
@@ -12,6 +12,8 @@ export interface SectionContext {
   elementId: string;
   switches: readonly SwitchView[];
   calcs: readonly CalcView[];
+  /** Nodes the viewer may scale by hand; the inspector shows a Scale control for these. */
+  knobs?: readonly KnobView[];
 }
 
 /** The diagram-wide half of `SectionContext`, handed to `buildInspectorPanels`. */

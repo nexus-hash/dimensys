@@ -78,6 +78,20 @@ export interface NodeHealthUpdate {
   pulsing?: boolean;
   chipText?: string;
   meter?: { kind: NodeMeterKind; value: number; text: string; severity?: 'ok' | 'warn' | 'critical' };
+  /** Live replica count: keeps the sub-label's `×N` in step with scaling (by hand or automatic). */
+  replicas?: number;
+}
+
+/**
+ * The sub-label with its trailing `×N` set to `n` (`api · ×6` → `api · ×8`,
+ * `lb · nginx` → `lb · nginx ×2`). One replica shows no count, as authored
+ * labels do. The label as first drawn is kept on the element, so repeated
+ * updates always start from it.
+ */
+export function withReplicas(label: string, n: number): string {
+  const base = label.replace(/\s*×\d+$/, '');
+  if (n > 1) return `${base} ×${n}`;
+  return base.replace(/\s*·$/, '');
 }
 
 /** `nodeGroup` is the `.cv-node` element (`[data-node-id]`). */
@@ -96,6 +110,15 @@ export function applyNodeHealth(nodeGroup: SVGGElement, update: NodeHealthUpdate
     const w = Math.max(80, update.chipText.length * 7.3 + 14);
     rect.setAttribute('width', String(w));
     rect.setAttribute('x', String(-w / 2));
+  }
+
+  if (update.replicas !== undefined && Number.isFinite(update.replicas)) {
+    const sub = nodeGroup.querySelector<SVGTextElement>('.cv-sub');
+    if (sub) {
+      const authored = (sub.dataset.authored ??= sub.textContent ?? '');
+      const next = withReplicas(authored, Math.round(update.replicas));
+      if (sub.textContent !== next) sub.textContent = next;
+    }
   }
 
   const mfill = nodeGroup.querySelector<SVGRectElement>('.cv-mfill');

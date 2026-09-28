@@ -150,7 +150,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
   // Every node's/link's inspector body, rendered once here (server-side —
   // see `buildInspectorPanels`'s own doc comment) rather than fetched or
   // built client-side per selection.
-  const panels = buildInspectorPanels(board, elementIndex, { switches: diagram.switches, calcs: diagram.calcs });
+  const panels = buildInspectorPanels(board, elementIndex, { switches: diagram.switches, calcs: diagram.calcs, knobs: diagram.knobs });
 
   // A plain `<div>`, not a labelled `<section>`: an accessibly-named
   // `<section>` is itself a landmark ("region"), and `PlayerShell` already

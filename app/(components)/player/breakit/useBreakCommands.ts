@@ -135,7 +135,7 @@ export function useBreakCommands({ catalog, remedies, switches, kit }: BreakComm
         });
         const text = remedies.find((r) => r.id === fixId)?.text ?? fixId;
         toast(`Removed: ${text}`);
-      } else if (action[1] === 'fault' || action[1] === 'calc') {
+      } else if (action[1] === 'fault' || action[1] === 'calc' || action[1] === 'resize') {
         toast(`Undone: ${describeAction(action, catalog, remedies, switches, kit)}`);
       }
       return true;

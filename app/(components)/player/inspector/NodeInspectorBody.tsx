@@ -5,6 +5,7 @@ import { EmptyInspectorBody } from './EmptyInspectorBody';
 import { InspectorTabs } from './InspectorTabs';
 import { SectionRenderer, isSimpleShape } from './sections';
 import { paneLabel } from './paneLabel';
+import { ScaleControl } from './ScaleControl';
 
 /** Groups a sheet's parts by `pane`, preserving first-appearance order — the order tabs are shown in, per the brief ("one tab per pane, in first-appearance order"), before the "Coming soon"-only reordering below. */
 function groupByPane(parts: Part[]): Map<string, Part[]> {
@@ -58,17 +59,26 @@ function PaneSections({ parts, ctx }: { parts: Part[]; ctx: SectionContext }) {
 export function NodeInspectorBody({ node, data = NO_INSPECTOR_DATA }: { node: { id: string; text: string; sheet?: Sheet }; data?: InspectorData }) {
   const parts = node.sheet?.parts ?? [];
   const ctx: SectionContext = { ...data, elementId: node.id };
-  if (parts.length === 0) return <EmptyInspectorBody />;
+  const knob = data.knobs?.find((k) => k.el === node.id);
+  const scale = knob ? <ScaleControl knob={knob} label={node.text} /> : null;
+  if (parts.length === 0) return scale ? <>{scale}<EmptyInspectorBody /></> : <EmptyInspectorBody />;
 
   const panes = groupByPane(parts);
   const orderedIds = orderPaneIds(panes);
 
   if (orderedIds.length <= 1) {
-    return <PaneSections parts={panes.get(orderedIds[0]) ?? []} ctx={ctx} />;
+    return (
+      <>
+        {scale}
+        <PaneSections parts={panes.get(orderedIds[0]) ?? []} ctx={ctx} />
+      </>
+    );
   }
 
   const items = orderedIds.map((id) => ({ value: id, label: paneLabel(id) }));
   return (
+    <>
+    {scale}
     <InspectorTabs items={items} defaultValue={defaultPaneId(orderedIds)} ariaLabel={`${node.text} detail tabs`}>
       {orderedIds.map((id) => (
         <TabsContent key={id} value={id} className="min-w-0 focus-visible:outline-none">
@@ -76,5 +86,6 @@ export function NodeInspectorBody({ node, data = NO_INSPECTOR_DATA }: { node: { 
         </TabsContent>
       ))}
     </InspectorTabs>
+    </>
   );
 }

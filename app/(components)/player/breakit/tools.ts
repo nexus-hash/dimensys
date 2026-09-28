@@ -243,6 +243,8 @@ export function describeAction(
     }
     case 'calc':
       return 'Applied a sizing estimate';
+    case 'resize':
+      return `Scaled ${name} to ×${String(value)}`;
     default:
       return tool;
   }
@@ -280,6 +282,7 @@ export function undoPlan(actions: readonly UserAction[], index: number): UndoPla
     case 'intervention':
     case 'fault':
     case 'calc':
+    case 'resize':
       return { kind: 'replay', index };
     default:
       return null;
