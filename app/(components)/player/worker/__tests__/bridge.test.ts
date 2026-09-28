@@ -4,6 +4,7 @@ import type { PlayerStore } from '../../store/playerStore';
 import { WorkerBridge, type WorkerLike } from '../bridge';
 import { getBridge } from '../bridgeRegistry';
 import { onCalcReply, type CalcReply } from '../calcResults';
+import { onRunnerEvents } from '../runnerEvents';
 import { PROTOCOL_VERSION, type WorkerCommand, type WorkerMessage } from '../protocol';
 
 /** A fake `Worker`: records every posted command and lets the test dispatch messages/errors back. */
@@ -383,6 +384,40 @@ describe('WorkerBridge', () => {
     bridge.replay([], 3);
     workers[2].emit({ type: 'ready', protocol: 1, engineVersion: '3', hash: 'h', tickMs: 100, metricKeys: [], healthIds: [], keysEpoch: 0 });
     expect(workers[2].posted.filter((c) => c.type === 'calc')).toHaveLength(0);
+    bridge.dispose();
+  });
+  it('restart() starts a scenario (or free play) in a fresh worker, playing, with the scenario slice and action log reset', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'b', mode: 'free', store, createWorker, visibility: makeVisibility().api });
+    store.setState({ actions: [{ t: 1, tool: 'kill', target: 'n', value: null }] as never });
+    bridge.restart('scenario', 'outage');
+    expect(workers[0].terminated).toBe(true);
+    const init = workers[1].posted[0];
+    expect(init).toMatchObject({ type: 'init', mode: 'scenario', scenarioId: 'outage', paused: false });
+    expect(store.getState().actions).toEqual([]);
+    expect(store.getState().story).toEqual({ scenarioId: 'outage', runner: null, duration: null });
+    workers[1].emit({ type: 'status', playing: true, speed: 1, t: 0, runner: 'running', duration: 90 });
+    expect(store.getState().story).toEqual({ scenarioId: 'outage', runner: 'running', duration: 90 });
+
+    bridge.restart('free');
+    const free = workers[2].posted[0];
+    expect(free).toMatchObject({ type: 'init', mode: 'free' });
+    expect((free as { scenarioId?: string }).scenarioId).toBeUndefined();
+    expect(store.getState().story).toEqual({ scenarioId: null, runner: null, duration: null });
+    bridge.dispose();
+  });
+
+  it('publishes each frame\'s runner events, in order', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'b', mode: 'scenario', scenarioId: 's', store, createWorker, visibility: makeVisibility().api });
+    const got: string[] = [];
+    const off = onRunnerEvents(store, (events) => got.push(...events.map((e) => e.kind)));
+    const frame = (events: WorkerMessage extends infer M ? (M extends { type: 'frame'; events: infer E } ? E : never) : never) =>
+      workers[0].emit({ type: 'frame', t: 1, keysEpoch: 0, metrics: new Float64Array(0), health: new Uint8Array(0), watches: [], events });
+    frame([]);
+    frame([{ kind: 'caption', at: 2, rendered: 'x' }, { kind: 'checkpoint', at: 30, checkpointId: 'cp' }]);
+    expect(got).toEqual(['caption', 'checkpoint']);
+    off();
     bridge.dispose();
   });
 });
