@@ -390,6 +390,21 @@ export interface GaugeView {
   suffix: string;
 }
 
+/**
+ * A request path: the clients that send it, its hops in order and every
+ * link it crosses (all drawn ids). A hop marked `miss` only happens on a
+ * cache miss; `async` starts a fire-and-forget branch.
+ */
+export interface LaneView {
+  id: string;
+  text: string;
+  senders: string[];
+  hops: Array<[string] | [string, 'miss' | 'async']>;
+  wires: string[];
+  /** Neutral metric keys `[requests, p99 latency]`; absent without a simulation. */
+  probes?: [string, string];
+}
+
 export interface CalcView {
   id: string;
   /** Human-readable formula line. */
@@ -499,6 +514,8 @@ export interface ViewData {
   kit?: KitView;
   gauges: GaugeView[];
   calcs: CalcView[];
+  /** Request paths, for tracing on the board. Absent when there are none. */
+  lanes?: LaneView[];
   drills: DrillView[];
   outage?: OutageView;
   algo?: AlgoView;

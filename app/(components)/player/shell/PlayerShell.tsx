@@ -16,6 +16,7 @@ import type { TargetCatalog } from '../breakit/tools';
 import { WalkthroughProvider, type WalkthroughData } from '../walkthrough/WalkthroughContext';
 import { WalkthroughController } from '../walkthrough/WalkthroughController';
 import type { WalkthroughView } from '../walkthrough/model';
+import type { RailData } from '../rail/data';
 
 export interface PlayerShellProps {
   title: string;
@@ -36,6 +37,8 @@ export interface PlayerShellProps {
   walkthroughs?: readonly WalkthroughView[];
   /** Their server-rendered narration (`buildWalkthroughNarration`). */
   narration?: Readonly<Record<string, React.ReactNode>>;
+  /** The left rail's problem header, request paths and estimate (`buildRailData`). */
+  rail?: RailData;
   children: React.ReactNode;
 }
 
@@ -93,6 +96,7 @@ export function PlayerShell({
   switches,
   walkthroughs = NO_WALKTHROUGHS,
   narration = NO_NARRATION,
+  rail,
   children,
 }: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
@@ -141,7 +145,7 @@ export function PlayerShell({
         data-rail-drawer-open={railDrawerOpen}
         data-inspector-open={selection !== null || fixOpen}
       >
-        <LeftRail open={railDrawerOpen} onClose={toggleRail} needs={needs} />
+        <LeftRail open={railDrawerOpen} onClose={toggleRail} needs={needs} rail={rail} />
         <HudTimelineFrame gauges={gauges}>{children}</HudTimelineFrame>
         <RightColumn elementIndex={elementIndex} panels={panels} />
       </main>

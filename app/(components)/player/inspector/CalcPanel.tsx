@@ -34,8 +34,9 @@ export function heroResultId(calc: CalcView): string | undefined {
  * change nothing. When the calculator feeds the simulation, "Apply" sends
  * the same values for real and the worker writes the results into the live
  * run (e.g. a replica count), so the board, HUD and health all move.
+ * `heading={false}` drops the title row where the host already has one.
  */
-export function CalcPanel({ part, calc }: { part: CalcPart; calc: CalcView }) {
+export function CalcPanel({ part, calc, heading = true }: { part: CalcPart; calc: CalcView; heading?: boolean }) {
   const store = usePlayerStoreApi();
   const status = usePlayerStore((s) => s.sim.status);
   const live = status === 'ready';
@@ -111,7 +112,7 @@ export function CalcPanel({ part, calc }: { part: CalcPart; calc: CalcView }) {
 
   return (
     <section className="min-w-0" data-inspector-calc={calc.id}>
-      <SectionHeading title={part.title} assumed={part.assumed} id={headingId} />
+      {heading ? <SectionHeading title={part.title} assumed={part.assumed} id={headingId} /> : null}
       {calc.md ? <p className="mb-3 break-words font-mono text-mono-sm text-ink-muted">{calc.md}</p> : null}
       <div className="grid gap-3 rounded-xl border border-line-hairline bg-surface-raised p-3">
         {calc.sliders.map((s) => {

@@ -5,6 +5,7 @@ import { buildInspectorPanels } from './inspector/InspectorPanels';
 import { buildTargetCatalog } from './breakit/catalog';
 import { buildWalkthroughs } from './walkthrough/model';
 import { buildWalkthroughNarration } from './walkthrough/narration';
+import { buildRailData } from './rail/data';
 import type { ReactNode } from 'react';
 import type { PlayerBootstrap, ViewData } from './types';
 
@@ -173,6 +174,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
           switches={diagram.switches}
           walkthroughs={buildWalkthroughs(diagram)}
           narration={buildWalkthroughNarration(diagram)}
+          rail={buildRailData(diagram)}
         >
           {blueprint}
         </PlayerShell>

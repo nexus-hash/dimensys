@@ -39,7 +39,7 @@ export const SWITCH_REVERT_MS = 280;
 /** Pause between taking a step's decorations off and applying the next one. */
 export const STEP_REVERT_MS = 120;
 
-interface Elements {
+export interface BoardElements {
   svg: SVGSVGElement;
   nodes: Map<string, SVGGElement>;
   links: Map<string, SVGGElement>;
@@ -47,7 +47,8 @@ interface Elements {
   frames: Map<string, SVGGElement>;
 }
 
-function collect(root: ParentNode): Elements | null {
+/** The drawn board's nodes, links, link labels and frames by id (the main board, never an inspector mini-board). */
+export function collectBoardElements(root: ParentNode): BoardElements | null {
   const svg = root.querySelector<SVGSVGElement>('[data-board-level] svg') ?? root.querySelector<SVGSVGElement>('svg');
   if (!svg) return null;
   const byAttr = (attr: string, key: string) => {
@@ -68,7 +69,7 @@ function collect(root: ParentNode): Elements | null {
 }
 
 /** Ids of everything the step dims: every drawn element not lit. Empty when the step lights nothing (then nothing dims). */
-function dimmedIds(els: Elements, step: WalkthroughStep): Set<string> {
+function dimmedIds(els: BoardElements, step: WalkthroughStep): Set<string> {
   const out = new Set<string>();
   const lit = step.litNodes.length + step.litLinks.length + step.litFrames.length;
   if (lit === 0) return out;
@@ -83,7 +84,7 @@ function dimmedIds(els: Elements, step: WalkthroughStep): Set<string> {
 
 export class WalkthroughStage {
   private root: ParentNode;
-  private els: Elements | null = null;
+  private els: BoardElements | null = null;
   private shown: StageState | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private reduced: () => boolean;
@@ -93,8 +94,8 @@ export class WalkthroughStage {
     this.reduced = opts.reducedMotion;
   }
 
-  private elements(): Elements | null {
-    if (!this.els || !this.els.svg.isConnected) this.els = collect(this.root);
+  private elements(): BoardElements | null {
+    if (!this.els || !this.els.svg.isConnected) this.els = collectBoardElements(this.root);
     return this.els;
   }
 
@@ -149,7 +150,7 @@ export class WalkthroughStage {
     this.timer = null;
   }
 
-  private applyStep(els: Elements, state: StageState) {
+  private applyStep(els: BoardElements, state: StageState) {
     const { step } = state;
     this.setDims(els, dimmedIds(els, step));
 
@@ -191,7 +192,7 @@ export class WalkthroughStage {
     this.requestCamera(step.focusBox);
   }
 
-  private currentDims(els: Elements): Set<string> {
+  private currentDims(els: BoardElements): Set<string> {
     const out = new Set<string>();
     for (const [id, g] of els.nodes) if (g.hasAttribute('data-wt-dim')) out.add(`n:${id}`);
     for (const [id, g] of els.links) if (g.hasAttribute('data-wt-dim')) out.add(`l:${id}`);
@@ -199,7 +200,7 @@ export class WalkthroughStage {
     return out;
   }
 
-  private setDims(els: Elements, dims: Set<string>) {
+  private setDims(els: BoardElements, dims: Set<string>) {
     const toggle = (g: Element, on: boolean) => {
       const mine = g.hasAttribute('data-wt-dim');
       if (on && !mine) {
@@ -222,7 +223,7 @@ export class WalkthroughStage {
     for (const [id, g] of els.frames) toggle(g, dims.has(`f:${id}`));
   }
 
-  private clearDecorations(els: Elements) {
+  private clearDecorations(els: BoardElements) {
     for (const g of els.svg.querySelectorAll<SVGGElement>('[data-wt-flow="path"]')) g.querySelector('.cv-link')?.classList.remove('is-hl');
     for (const g of els.svg.querySelectorAll<SVGGElement>('[data-wt-flow]')) {
       if (g.dataset.wtFlow !== 'dim' || g.hasAttribute('data-wt-fade')) delete g.dataset.wtFlow;
@@ -237,7 +238,7 @@ export class WalkthroughStage {
     if (layer) layer.replaceChildren();
   }
 
-  private layer(els: Elements): SVGGElement {
+  private layer(els: BoardElements): SVGGElement {
     let layer = els.svg.querySelector<SVGGElement>('[data-wt-layer]');
     if (!layer) {
       layer = document.createElementNS(SVG_NS, 'g');
