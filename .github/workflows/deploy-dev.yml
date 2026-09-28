@@ -168,7 +168,8 @@ jobs:
           # split didn't hold: a server-data path anywhere in the deployable
           # output, or an "interview"/"secret" key inside the statically
           # served files, both indicate server-only data leaked into what
-          # ships to the browser.
+          # ships to the browser. Only the JSON key form ("interview": …)
+          # counts: the bare word is also a player mode name in the bundle.
           if find .vercel/output -path '*server-data*' | grep -q .; then
             echo "::error::Found server-data path(s) inside .vercel/output:"
             find .vercel/output -path '*server-data*'
@@ -184,12 +185,12 @@ jobs:
             exit 1
           fi
 
-          if [ -d .vercel/output/static ] && grep -rIl '"interview"' .vercel/output/static; then
+          if [ -d .vercel/output/static ] && grep -rIlE '"interview"[[:space:]]*:' .vercel/output/static; then
             echo "::error::Found an \"interview\" key inside .vercel/output/static — server-only diagram data leaked into the public build."
             exit 1
           fi
 
-          if [ -d .vercel/output/static ] && grep -rIl '"secret"' .vercel/output/static; then
+          if [ -d .vercel/output/static ] && grep -rIlE '"secret"[[:space:]]*:' .vercel/output/static; then
             echo "::error::Found a \"secret\" key inside .vercel/output/static — server-only puzzle data leaked into the public build."
             exit 1
           fi
