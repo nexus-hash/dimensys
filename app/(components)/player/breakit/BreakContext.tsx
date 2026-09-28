@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import type { KitView, NeedView, RemedyView } from '../types';
+import type { KitView, NeedView, RemedyView, SwitchView } from '../types';
 import type { TargetCatalog } from './tools';
 
 /**
@@ -15,14 +15,16 @@ export interface BreakData {
   remedies: readonly RemedyView[];
   needs: readonly NeedView[];
   catalog: TargetCatalog;
+  /** Trade-off switches, so a flip in the action log reads by name. */
+  switches?: readonly SwitchView[];
 }
 
 const EMPTY: BreakData = { kit: undefined, remedies: [], needs: [], catalog: { nodes: [], links: [] } };
 
 const BreakDataContext = createContext<BreakData>(EMPTY);
 
-export function BreakDataProvider({ kit, remedies, needs, catalog, children }: BreakData & { children: ReactNode }) {
-  const value = useMemo(() => ({ kit, remedies, needs, catalog }), [kit, remedies, needs, catalog]);
+export function BreakDataProvider({ kit, remedies, needs, catalog, switches, children }: BreakData & { children: ReactNode }) {
+  const value = useMemo(() => ({ kit, remedies, needs, catalog, switches }), [kit, remedies, needs, catalog, switches]);
   return <BreakDataContext.Provider value={value}>{children}</BreakDataContext.Provider>;
 }
 

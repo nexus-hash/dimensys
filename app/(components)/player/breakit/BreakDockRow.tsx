@@ -57,7 +57,7 @@ export function ActionLog({ actions, full = false }: { actions: readonly UserAct
         {shown.map((a, i) => {
           const index = start + i;
           const plan = undoPlan(actions, index);
-          const text = describeAction(a, data.catalog, data.remedies);
+          const text = describeAction(a, data.catalog, data.remedies, data.switches);
           return (
             <li key={index} className="break-log-item" data-tool={a[1]}>
               <span className="break-log-t">{fmtSimTime(a[0])}</span>

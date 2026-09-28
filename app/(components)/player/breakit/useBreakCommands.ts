@@ -16,7 +16,7 @@ import { getBridge } from '../worker/bridgeRegistry';
 import { buildGlobalMetricIndex, readGlobalMetric } from '../metrics/globalMetrics';
 import { breakUiFor, type MetricSnapshot } from './breakStore';
 import { describeAction, fixEntryIndex, undoPlan, withoutEntry, type BreakTool, type TargetCatalog } from './tools';
-import type { RemedyView, UserAction } from '../types';
+import type { RemedyView, SwitchView, UserAction } from '../types';
 
 const SNAPSHOT_CODES = ['e', 'f', 'q', 'm'] as const;
 
@@ -35,6 +35,7 @@ export function readSnapshot(store: PlayerStore): MetricSnapshot {
 export interface BreakCommandsContext {
   catalog: TargetCatalog;
   remedies: readonly RemedyView[];
+  switches?: readonly SwitchView[];
 }
 
 export interface BreakCommands {
@@ -53,14 +54,14 @@ function ready(store: PlayerStore) {
   return bridge && store.getState().sim.status === 'ready' ? bridge : null;
 }
 
-export function useBreakCommands({ catalog, remedies }: BreakCommandsContext): BreakCommands {
+export function useBreakCommands({ catalog, remedies, switches }: BreakCommandsContext): BreakCommands {
   const store = usePlayerStoreApi();
 
   const say = useCallback(
     (action: UserAction) => {
-      toast(describeAction(action, catalog, remedies));
+      toast(describeAction(action, catalog, remedies, switches));
     },
-    [catalog, remedies],
+    [catalog, remedies, switches],
   );
 
   const apply = useCallback(

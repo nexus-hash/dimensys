@@ -120,6 +120,10 @@ describe('undoPlan', () => {
     expect(fixEntryIndex(log, 'fix-a')).toBe(2);
     expect(fixEntryIndex(log, 'nope')).toBe(-1);
   });
+  it('a fix revert keeps every other entry, trade-off flips included', () => {
+    const withFlip: UserAction[] = [[1, 'toggle', 'wc', 'one'], [2, 'intervention', 'fix-a', null], [3, 'toggle', 'wc', 'quorum']];
+    expect(withoutEntry(withFlip, fixEntryIndex(withFlip, 'fix-a'))).toEqual([[1, 'toggle', 'wc', 'one'], [3, 'toggle', 'wc', 'quorum']]);
+  });
   it('offers nothing for a flush or an entry already taken back', () => {
     expect(undoPlan(log, 4)).toBeNull();
     expect(undoPlan([...log, [6, 'restore', 'redis', null]], 0)).toBeNull();
@@ -135,6 +139,9 @@ describe('describeAction', () => {
     expect(describeAction([1, 'spike', null, 1], catalog, remedies)).toBe('Traffic back to 1×');
     expect(describeAction([1, 'slow', 'api', 5], catalog, remedies)).toBe('Slowed API Service 5×');
     expect(describeAction([1, 'intervention', 'fix-a', null], catalog, remedies)).toBe('Applied: Coalesce cache misses');
+    const switches = [{ id: 'wc', text: 'Write consistency', opts: [{ id: 'one', text: 'ONE' }, { id: 'quorum', text: 'QUORUM' }] }];
+    expect(describeAction([1, 'toggle', 'wc', 'one'], catalog, remedies, switches)).toBe('Write consistency: ONE');
+    expect(undoPlan([[1, 'toggle', 'wc', 'one']], 0)).toBeNull();
   });
 });
 

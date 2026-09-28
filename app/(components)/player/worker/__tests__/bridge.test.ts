@@ -365,4 +365,24 @@ describe('WorkerBridge', () => {
     if (init2.type === 'init') expect(init2.paused).toBe(true);
     bridge.dispose();
   });
+  it('replay() re-applies the last applied calculator values once the new worker is ready (they are not in the log), and reset forgets them', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'sha256:' + '0'.repeat(64), mode: 'free', store, createWorker, visibility: makeVisibility().api });
+    bridge.calc('c1', { a: 1 });
+    bridge.calc('c1', { a: 2 });
+    bridge.calc('c1', { a: 9 }, true); // a preview is never re-applied
+    bridge.replay([], 3);
+    expect(workers[1].posted.filter((c) => c.type === 'calc')).toHaveLength(0);
+    workers[1].emit({ type: 'ready', protocol: 1, engineVersion: '3', hash: 'h', tickMs: 100, metricKeys: [], healthIds: [], keysEpoch: 0 });
+    const calcs = workers[1].posted.filter((c) => c.type === 'calc');
+    expect(calcs).toHaveLength(1);
+    expect(calcs[0]).toMatchObject({ id: 'c1', values: { a: 2 } });
+    expect(calcs[0]).not.toHaveProperty('dry');
+
+    bridge.reset();
+    bridge.replay([], 3);
+    workers[2].emit({ type: 'ready', protocol: 1, engineVersion: '3', hash: 'h', tickMs: 100, metricKeys: [], healthIds: [], keysEpoch: 0 });
+    expect(workers[2].posted.filter((c) => c.type === 'calc')).toHaveLength(0);
+    bridge.dispose();
+  });
 });

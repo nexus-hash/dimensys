@@ -75,6 +75,13 @@ export class WorkerBridge {
   private seq = 0;
   private disposed = false;
   private restartedOnce = false;
+  /**
+   * The last applied (not previewed) values per calculator. Calculator
+   * applies aren't in the action log, so a `replay` would otherwise drop
+   * them; they're re-sent once the replayed worker is ready.
+   */
+  private readonly appliedCalcs = new Map<string, CalcCmd['values']>();
+  private reapplyCalcsOnReady = false;
   private wasPlayingBeforeHide = false;
   private stopVisibility: (() => void) | null = null;
 
@@ -109,6 +116,7 @@ export class WorkerBridge {
   }
 
   reset(): void {
+    this.appliedCalcs.clear();
     this.opts.store.setState({ actions: [] });
     this.send({ type: 'reset', seq: this.nextSeq() });
   }
@@ -148,6 +156,7 @@ export class WorkerBridge {
     this.worker = null;
     old?.terminate();
     this.opts.store.setState({ actions: [...actions] });
+    this.reapplyCalcsOnReady = this.appliedCalcs.size > 0;
     this.startWorker({ actions: [...actions], t }, !wasPlaying);
   }
 
@@ -158,6 +167,7 @@ export class WorkerBridge {
    */
   calc(id: string, values: CalcCmd['values'], dry = false): number {
     const seq = this.nextSeq();
+    if (!dry) this.appliedCalcs.set(id, { ...values });
     this.send({ type: 'calc', seq, id, values, ...(dry ? { dry: true as const } : {}) });
     return seq;
   }
@@ -235,6 +245,10 @@ export class WorkerBridge {
         this.opts.store.setState((s) => ({
           sim: { ...s.sim, status: 'ready', keysEpoch: msg.keysEpoch, metricKeys: msg.metricKeys, healthIds: msg.healthIds },
         }));
+        if (this.reapplyCalcsOnReady) {
+          this.reapplyCalcsOnReady = false;
+          for (const [id, values] of this.appliedCalcs) this.send({ type: 'calc', seq: this.nextSeq(), id, values });
+        }
         return;
       case 'keys':
         this.opts.store.setState((s) => ({

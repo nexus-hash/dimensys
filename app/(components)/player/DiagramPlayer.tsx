@@ -168,6 +168,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
           kit={diagram.kit}
           remedies={diagram.remedies}
           catalog={buildTargetCatalog(board)}
+          switches={diagram.switches}
         >
           {blueprint}
         </PlayerShell>

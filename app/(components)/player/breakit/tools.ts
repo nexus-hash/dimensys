@@ -10,7 +10,7 @@
  * the share link's action log carries), so an action is sent exactly as
  * it's described, never translated.
  */
-import type { KitView, RemedyView, UserAction } from '../types';
+import type { KitView, RemedyView, SwitchView, UserAction } from '../types';
 
 /** The five faults the toolbox offers, in the design's order. */
 export type BreakTool = 'kill' | 'spike' | 'partition' | 'slow' | 'flush';
@@ -197,7 +197,7 @@ export function formatMultiplier(v: number): string {
   return `${Number.isInteger(v) ? v : v.toFixed(1)}×`;
 }
 
-export function describeAction(action: UserAction, catalog: TargetCatalog, remedies: readonly RemedyView[]): string {
+export function describeAction(action: UserAction, catalog: TargetCatalog, remedies: readonly RemedyView[], switches: readonly SwitchView[] = []): string {
   const [, tool, target, value] = action;
   const name = target ? targetName({ id: target }, catalog) : '';
   switch (tool) {
@@ -219,6 +219,11 @@ export function describeAction(action: UserAction, catalog: TargetCatalog, remed
       return `Applied: ${remedies.find((r) => r.id === target)?.text ?? target}`;
     case 'degrade':
       return `Degraded ${name}`;
+    case 'toggle': {
+      const sw = switches.find((s) => s.id === target);
+      const opt = sw?.opts.find((o) => o.id === value);
+      return sw ? `${sw.text}: ${opt?.text ?? String(value)}` : `Switched ${target}`;
+    }
     default:
       return tool;
   }

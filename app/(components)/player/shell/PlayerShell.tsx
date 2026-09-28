@@ -10,7 +10,7 @@ import { HudTimelineFrame } from './HudTimelineFrame';
 import { PhoneSheet, SNAP_PERCENTS } from './PhoneSheet';
 import type { ElementIndex } from './selection';
 import type { ModeAvailability } from './modes';
-import type { GaugeView, KitView, NeedView, RemedyView } from '../types';
+import type { GaugeView, KitView, NeedView, RemedyView, SwitchView } from '../types';
 import { BreakController, BreakDataProvider, RightColumn, useBreakUi } from '../breakit';
 import type { TargetCatalog } from '../breakit/tools';
 
@@ -28,6 +28,7 @@ export interface PlayerShellProps {
   kit?: KitView;
   remedies?: readonly RemedyView[];
   catalog?: TargetCatalog;
+  switches?: readonly SwitchView[];
   children: React.ReactNode;
 }
 
@@ -82,6 +83,7 @@ export function PlayerShell({
   kit,
   remedies = EMPTY_REMEDIES,
   catalog = EMPTY_CATALOG,
+  switches,
   children,
 }: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
@@ -108,7 +110,7 @@ export function PlayerShell({
   const sheetPeek = { '--player-sheet-peek': `${SNAP_PERCENTS[snapIndex]}dvh` } as React.CSSProperties;
 
   return (
-    <BreakDataProvider kit={kit} remedies={remedies} needs={needs} catalog={catalog}>
+    <BreakDataProvider kit={kit} remedies={remedies} needs={needs} catalog={catalog} switches={switches}>
     <div className="player-shell" data-player-mode={mode} style={sheetPeek}>
       <TopBar
         title={title}
