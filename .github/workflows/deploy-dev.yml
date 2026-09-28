@@ -5,24 +5,25 @@ name: Deploy Dev (Vercel)
 # the prebuilt Next.js output with `vercel deploy --prebuilt`. Vercel's own
 # Git integration must stay disabled for this project (see vercel.json).
 #
-# Deploys ONLY for:
-#   - push to `main` (this repo's main, latest engine `main`)          -> --prod
-#   - repository_dispatch type `engine-updated` (engine main changed)  -> --prod
-#   - workflow_dispatch (manual)                                       -> --prod
-#   - pull_request targeting `main`, same-repo only (forks skipped,
-#     secrets aren't available to fork PRs)                            -> preview
-#
-# PRs into any other branch (e.g. task/* -> v3) and pushes to any other
-# branch do NOT trigger this workflow.
+# Manual only: Actions → Deploy Dev → Run workflow, on the branch to deploy.
+#   - target `preview`: a preview deployment of that branch, built against
+#     the engine branch of the same name when one exists (else engine main);
+#     the URL is commented on the branch's open PR, if it has one.
+#   - target `production`: --prod, built against engine main.
+# The Test workflow runs first and must pass; nothing is built or deployed
+# otherwise.
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  repository_dispatch:
-    types: [engine-updated]
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
 
 concurrency:
   group: deploy-dev-${{ github.ref }}
@@ -35,13 +36,11 @@ env:
   VERCEL_CLI_VERSION: 60.1.3
 
 jobs:
+  tests:
+    uses: ./.github/workflows/test.yml
+
   deploy:
-    # Guard against PRs targeting a branch other than main (belt-and-suspenders
-    # alongside the `pull_request: branches: [main]` filter above), and skip
-    # fork PRs since they don't have access to the deploy secrets.
-    if: >-
-      (github.event_name != 'pull_request' || github.base_ref == 'main') &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true)
+    needs: tests
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -54,40 +53,31 @@ jobs:
       - name: Determine deploy target
         id: target
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "prod=false" >> "$GITHUB_OUTPUT"
-            echo "environment=preview" >> "$GITHUB_OUTPUT"
-          else
+          if [ "${{ inputs.target }}" = "production" ]; then
             echo "prod=true" >> "$GITHUB_OUTPUT"
             echo "environment=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "prod=false" >> "$GITHUB_OUTPUT"
+            echo "environment=preview" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Determine engine ref
         id: engine_ref
         env:
-          # Passed via env, not interpolated inline into the script, since a
-          # PR head branch name is attacker-controlled input (script-injection
-          # safety) — never echoed or otherwise printed below.
-          HEAD_REF: ${{ github.head_ref }}
+          # Passed via env, not interpolated inline into the script: a branch
+          # name is user-controlled input (script-injection safety).
+          BRANCH: ${{ github.ref_name }}
           DMS_ENGINE_REPO: ${{ secrets.DMS_ENGINE_REPO }}
           DMS_ENGINE_PAT: ${{ secrets.DMS_ENGINE_PAT }}
         run: |
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "ref=${{ github.event.client_payload.sha }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            # A PR preview builds against the engine branch of the same name
-            # as this app PR's head branch, when one exists (so an app PR
-            # depending on unmerged engine work can preview against it);
-            # otherwise it falls back to engine main.
-            if git ls-remote --exit-code --heads "https://x-access-token:${DMS_ENGINE_PAT}@github.com/${DMS_ENGINE_REPO}.git" "$HEAD_REF" > /dev/null 2>&1; then
-              echo "ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
-            else
-              echo "ref=main" >> "$GITHUB_OUTPUT"
-            fi
+          if [ "${{ steps.target.outputs.prod }}" = "true" ]; then
+            # Production always tracks engine main.
+            echo "ref=main" >> "$GITHUB_OUTPUT"
+          elif git ls-remote --exit-code --heads "https://x-access-token:${DMS_ENGINE_PAT}@github.com/${DMS_ENGINE_REPO}.git" "$BRANCH" > /dev/null 2>&1; then
+            # A preview of a branch that depends on unmerged engine work builds
+            # against the engine branch of the same name.
+            echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
           else
-            # Always the engine's main branch — this workflow intentionally
-            # ignores DMS_ENGINE_REF (that secret is used by deploy.yml for
-            # other purposes); push/dispatch always track engine main.
             echo "ref=main" >> "$GITHUB_OUTPUT"
           fi
 
@@ -211,12 +201,12 @@ jobs:
 
   comment-preview-url:
     needs: deploy
-    if: github.event_name == 'pull_request'
+    if: inputs.target == 'preview'
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
-      - name: Comment preview URL on PR
+      - name: Comment preview URL on the branch's open PR
         uses: actions/github-script@v9
         with:
           script: |
@@ -224,10 +214,22 @@ jobs:
             const marker = '<!-- deploy-dev-preview-comment -->';
             const body = `${marker}\n**Vercel preview deployed:** ${url}`;
 
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
+            });
+            if (prs.length === 0) {
+              core.info(`No open PR for this branch; preview: ${url}`);
+              return;
+            }
+            const issue_number = prs[0].number;
+
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number,
             });
 
             const existing = comments.find((c) => c.body && c.body.includes(marker));
@@ -243,7 +245,7 @@ jobs:
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
+                issue_number,
                 body,
               });
             }

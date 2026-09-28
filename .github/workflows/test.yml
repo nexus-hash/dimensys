@@ -1,8 +1,15 @@
 name: Test
 
+# Started by hand (Actions → Test → Run workflow), and called by Deploy Dev,
+# which only deploys once every job here has passed. Linting runs on its own
+# on every commit (lint.yml).
+
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -14,10 +21,7 @@ jobs:
           node-version: '24'
           cache: 'npm'
       - run: npm ci
-      - run: npm run lint
-      - run: npm run lint:boundary
       - run: npm test
-      - run: npx tsc --noEmit
 
   # DS9: the /dev/ui component gallery's a11y (axe) and visual-regression
   # (toHaveScreenshot) specs, in both themes. These pages 404 in a production

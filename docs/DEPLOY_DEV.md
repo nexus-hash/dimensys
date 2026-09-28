@@ -8,22 +8,20 @@ build.
 
 ## When it deploys
 
-- Push to `main` (this repo) → production deploy (the stable dev URL).
-- `repository_dispatch` of type `engine-updated` (sent by dms-engine's `notify-app.yml`
-  after a push to engine `main` passes engine CI) → production deploy, rebuilt against the
-  engine commit that triggered it.
-- Manual `workflow_dispatch` → production deploy (rebuilds against dimensys `main` +
-  engine `main`).
-- Pull requests **whose base branch is `main`**, from branches in this repo only (fork PRs
-  are skipped — forks don't have access to the deploy secrets) → preview deploy, with the
-  preview URL posted/updated as a single PR comment. The preview builds against the engine
-  branch with the same name as the PR's head branch when one exists in the engine repo,
-  otherwise engine `main`.
+Only when started by hand: Actions → **Deploy Dev (Vercel)** → Run workflow, on the branch
+to deploy, choosing a target:
 
-Nothing else triggers a deploy: pushes to any branch other than `main`, and PRs targeting
-any branch other than `main` (e.g. `task/* → v3`), are ignored by both the workflow's
-`on:` filters (`push`/`pull_request: branches: [main]`) and a belt-and-suspenders job-level
-`if:` guard (`github.event_name != 'pull_request' || github.base_ref == 'main'`).
+- `preview` → a preview deploy of that branch, built against the engine branch with the
+  same name when one exists in the engine repo, otherwise engine `main`. If the branch has
+  an open PR, the preview URL is posted (and kept updated in place) as a single PR comment.
+- `production` → a production deploy (the stable dev URL), built against engine `main`.
+
+Before anything is built, the workflow runs the **Test** workflow (unit tests and the
+`/dev/ui` a11y and screenshot checks). The deploy job `needs` it, so a failing test means
+nothing is built or deployed.
+
+No push, PR or engine change deploys on its own. The only workflow that runs on every
+commit is **Lint** (ESLint, the boundary, colour and contrast checks, and the type check).
 
 ## 1. Create the Vercel project
 
@@ -56,42 +54,24 @@ Add under Settings → Secrets and variables → Actions:
 | `DMS_ENGINE_REPO` | Already exists (also used by `deploy.yml`) (e.g. `nexus-hash/dms-engine`) — reused by `deploy-dev.yml`. |
 | `DMS_ENGINE_PAT` | Already exists (also used by `deploy.yml`) — reused by `deploy-dev.yml` to check out the private engine. |
 
-Note: `deploy-dev.yml` does **not** use `DMS_ENGINE_REF`. For `push`/`workflow_dispatch` it
-always builds engine `main`; for `repository_dispatch` it builds the exact commit the engine
-push produced; for a `pull_request` preview it builds the same-named engine branch when one
-exists (else engine `main`) — by design, since the dev site otherwise tracks engine `main`.
+Note: `deploy-dev.yml` does **not** use `DMS_ENGINE_REF`. A production deploy always builds
+engine `main`; a preview builds the same-named engine branch when one exists (else engine
+`main`).
 
-## 3. GitHub secret — dms-engine (`nexus-hash/dms-engine`)
+## 3. Triggering a deploy
 
-| Secret | Value |
-|---|---|
-| `APP_DISPATCH_TOKEN` | A fine-grained GitHub PAT used by `notify-app.yml` to send `repository_dispatch` to `nexus-hash/dimensys`. |
+Actions → **Deploy Dev (Vercel)** → Run workflow → pick the branch and the target. The run
+shows the Test jobs first, then the deploy.
 
-**Minimal scope for `APP_DISPATCH_TOKEN`:** create a fine-grained PAT restricted to the
-single repository `nexus-hash/dimensys`, with repository permission **"Contents: read and
-write"**. Per GitHub's REST API docs, the `POST /repos/{owner}/{repo}/dispatches` endpoint
-requires `contents: write` on the *target* repository (there is no narrower, dedicated
-"dispatch" permission) — read-only `contents: read` is not sufficient. Do not grant any
-other permission, and do not scope it to the engine repo (it only needs to write to
-dimensys).
-
-## 4. Triggering the first deploy
-
-- Simplest: push any commit to dimensys `main` (or re-run `workflow_dispatch` from the
-  Actions tab for `Deploy Dev (Vercel)`).
-- Or push to dms-engine `main`: once its CI passes, `notify-app.yml` fires
-  `repository_dispatch` (`engine-updated`) at dimensys, which starts a production deploy
-  here automatically.
-
-## 5. Finding the URL
+## 4. Finding the URL
 
 - The `deploy-dev.yml` job's `Deploy to Vercel` step logs the deployment URL, and the run
   summary/output shows it directly (also captured as the step output).
 - The Vercel dashboard's Deployments tab shows every deploy and which one is currently
   "Production" (aliased to the stable dev domain).
-- For PRs, the preview URL is posted (and kept updated in place) as a single PR comment.
+- For a preview of a branch with an open PR, the URL is posted (and kept updated in place) as a single PR comment.
 
-## 6. Rolling back
+## 5. Rolling back
 
 - **Fastest:** `vercel rollback` (or in the dashboard, Deployments → pick a prior
   production deployment → "Promote to Production") — instantly re-points the production
