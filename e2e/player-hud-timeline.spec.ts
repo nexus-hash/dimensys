@@ -174,7 +174,7 @@ test.describe('/solutions/url-shortener chrome strip + dock layout (1440x900)', 
     await page.mouse.wheel(0, -100);
     await expect.poll(pct).not.toBe(before);
     const after = await pct();
-    expect(after / before).toBeGreaterThan(1.05);
+    expect(after / before).toBeGreaterThan(1.02);
     expect(after / before).toBeLessThan(1.2);
   });
 

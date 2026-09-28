@@ -1414,7 +1414,7 @@
  * HUD: money spent (one simulated minute = one month) and the auto-scale switch.
  * Same box as a compact stat tile.
  * ========================================================================== */
-.cost-meter { flex: 1.35 1 0; min-width: 0; max-width: 320px; display: grid; grid-template-rows: auto auto; row-gap: 1px; padding: 5px 10px; border-radius: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
+.cost-meter { flex: 1.35 1 0; min-width: 0; max-width: 320px; display: grid; grid-template-rows: auto auto; row-gap: 0; padding: 5px 10px; border-radius: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
 .cost-meter-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; height: 16px; }
 .cost-meter-label { font-size: 11px; font-weight: 500; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cost-meter-auto { display: inline-flex; align-items: center; gap: 6px; font: 500 11px var(--font-mono); color: var(--color-ink-secondary); white-space: nowrap; }

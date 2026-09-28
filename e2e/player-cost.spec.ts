@@ -36,7 +36,9 @@ test.describe('money spent and auto-scale', () => {
     await expect(page.locator('.cost-meter').getByRole('switch')).toBeChecked();
     // 6 pods at a third busy: one at a time down to the fewest that stay under 80%.
     await expect(page.locator('[data-node-id="api-service"] .cv-sub').first()).toHaveText('api · ×3', { timeout: 30000 });
-    await expect(page.locator('.hud-tile').nth(3)).toContainText('↓', { timeout: 10000 });
+    // The cost tile reads "cost … $2,329 /mo …": the first dollar amount is the run rate.
+    const costOf = async () => dollars(((await page.locator('.hud-tile').nth(3).innerText()).match(/\$[\d,]+/) ?? ['NaN'])[0]);
+    await expect.poll(costOf, { timeout: 10000 }).toBeLessThan(2774);
     await expect.poll(() => new URL(page.url()).searchParams.get('a') ?? '', { timeout: 5000 }).not.toBe('');
   });
 

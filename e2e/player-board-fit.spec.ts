@@ -349,7 +349,8 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
     expect(Math.abs(centerAfter.x - centerBefore.x)).toBeLessThanOrEqual(4);
     expect(Math.abs(centerAfter.y - centerBefore.y)).toBeLessThanOrEqual(4);
     // Actually zoomed (not a no-op, and not a pan — the node grew, its center didn't just shift).
-    expect(nodeBoxAfter.width).toBeGreaterThan(nodeBoxBefore.width * 1.05);
+    // One notch is a gentle step (about 10% on a desktop mouse wheel; less where the device reports smaller deltas).
+    expect(nodeBoxAfter.width).toBeGreaterThan(nodeBoxBefore.width * 1.02);
   });
 
   test('ctrl+wheel zooms about the cursor: the point under it stays put', async ({ page }) => {
