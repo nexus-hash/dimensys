@@ -127,6 +127,17 @@ export class ParticlePool {
     }
   }
 
+  /** Frees the particles piled up at a link's cut (it healed): they would otherwise stay frozen there. */
+  releasePiling(linkIdx: number): void {
+    for (let slot = 0; slot < this.capacity; slot++) {
+      if (this.linkIndex[slot] === linkIdx && this.piling[slot]) {
+        this.linkIndex[slot] = -1;
+        this.piling[slot] = 0;
+        this.activeCount--;
+      }
+    }
+  }
+
   /** Frees every particle riding a given link (a link that stopped existing, or heals out of a cut). */
   clearLink(linkIdx: number): void {
     for (let slot = 0; slot < this.capacity; slot++) {

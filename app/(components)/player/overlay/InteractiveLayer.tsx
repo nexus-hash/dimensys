@@ -71,6 +71,8 @@ interface LinkEntry {
   /** The drawn path sampled by arc length (`samplePath`): particles ride exactly the curve the SVG draws. */
   samples: Float32Array;
   spawnAccMs: number;
+  /** Whether the link was cut (particles piling up) on the previous frame. */
+  wasCut?: boolean;
 }
 
 /**
@@ -403,6 +405,9 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         const retryRps = readMetric(idx.linkCols, liveFrame.metrics, link.id, LINK_RETRY_RPS_CODE);
         const retryRatio = rps > 0 && retryRps !== undefined ? Math.min(1, retryRps / rps) : 0;
         const cut = errRatio >= 0.85;
+        // A healed cut releases its pile-up; otherwise those frozen red dots would stay.
+        if (link.wasCut && !cut) pool.releasePiling(li);
+        link.wasCut = cut;
 
         const onPath = wtFlow === 'path';
         const hz = onPath ? Math.min(WT_PATH_MAX_HZ, Math.max(WT_PATH_MIN_HZ, particleSpawnHz(rps))) : particleSpawnHz(rps);

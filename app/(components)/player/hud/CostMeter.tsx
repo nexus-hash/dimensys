@@ -4,7 +4,7 @@
  * The HUD's money card: what the run has cost so far, with one simulated
  * minute billed as one month of the current run rate, next to the switch
  * that turns auto-scaling on for every server and worker (one more pod above
- * 80% busy, one fewer below 70%). Watching it next to the cost tile shows
+ * 70% busy, one fewer after 30 s below 60%). Watching it next to the cost tile shows
  * what autoscaling saves compared with running at peak size all the time.
  */
 import { useId } from 'react';
@@ -49,7 +49,7 @@ export function CostMeter() {
     if (!bridge || store.getState().sim.status !== 'ready') return;
     bridge.applyAction('elastic', null, on ? 1 : 0);
     if (!store.getState().sim.playing) bridge.play();
-    toast(on ? 'Auto-scaling on: +1 pod above 80% busy, −1 below 70%' : 'Auto-scaling off: back to the set sizes');
+    toast(on ? 'Auto-scaling on: +1 pod above 70% busy, −1 after 30 s below 60%' : 'Auto-scaling off: back to the set sizes');
   };
 
   return (
