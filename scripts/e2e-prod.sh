@@ -106,6 +106,7 @@ DEFAULT_SPECS=(
   e2e/player-scale.spec.ts
   e2e/player-cost.spec.ts
   e2e/player-fix-plans.spec.ts
+  e2e/player-restore.spec.ts
   e2e/player-cache-pack.spec.ts
   e2e/player-rail.spec.ts
   e2e/player-scenarios.spec.ts
