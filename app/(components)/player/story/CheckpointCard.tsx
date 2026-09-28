@@ -44,8 +44,9 @@ function CheckpointCard({ ask }: { ask: Ask }) {
   useEffect(() => {
     const root = rootRef.current;
     const before = document.activeElement instanceof HTMLElement && !root?.contains(document.activeElement) ? document.activeElement : null;
-    // In the phone sheet the list may be scrolled: bring the question into view.
-    if (root && root.closest('[role="dialog"]')) root.scrollIntoView({ block: 'start' });
+    // In the phone sheet the tab may be scrolled down its list: the card
+    // leads the tab, so scroll back to the top (tabs and question in view).
+    if (root && root.closest('[role="dialog"]')) scrollParent(root)?.scrollTo({ top: 0 });
     const first = root?.querySelector<HTMLButtonElement>('[data-choice]');
     first?.focus({ preventScroll: true });
     return () => {
@@ -143,6 +144,14 @@ function CheckpointCard({ ask }: { ask: Ask }) {
 function withUnit(value: string, unit: string): string {
   if (!unit) return value;
   return /^[%/]/.test(unit) ? `${value}${unit}` : `${value} ${unit}`;
+}
+
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const y = getComputedStyle(p).overflowY;
+    if ((y === 'auto' || y === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+  }
+  return null;
 }
 
 function visiblePlayButton(): HTMLElement | null {
