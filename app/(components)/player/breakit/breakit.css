@@ -165,7 +165,7 @@
 .break-cf-why { margin-top: 4px; font-size: 12px; line-height: 1.45; color: var(--color-ink-secondary); overflow-wrap: anywhere; }
 .break-cf-read { margin-top: 8px; }
 .break-cf-read th { white-space: nowrap; padding-right: 8px; }
-.break-cf-spark { width: 40%; padding-left: 0; }
+.break-cf-spark { width: 100%; min-width: 64px; padding-left: 0; }
 .break-cf-more { margin-top: 6px; font-size: 12px; color: var(--color-ink-muted); }
 
 /* ── Phone sheet's Fix it tab ─────────────────────────────────────────── */
