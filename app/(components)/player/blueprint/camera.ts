@@ -35,6 +35,27 @@ export function fitCamera(freeW: number, freeH: number, nativeW: number, nativeH
   };
 }
 
+/**
+ * The tall (phone) arrangement's fit: a board much taller than the free
+ * area is fitted to the free *width* and shown from its top — read by
+ * panning down, like a page — rather than shrunk until all of it fits and
+ * nothing is legible. A board that nearly fits both ways gets the plain
+ * `fitCamera`.
+ */
+export function readingFitCamera(freeW: number, freeH: number, nativeW: number, nativeH: number): Camera {
+  const scale = readingFitScale(freeW, freeH, nativeW, nativeH);
+  if (scale === computeFitScale(freeW, freeH, nativeW, nativeH)) return fitCamera(freeW, freeH, nativeW, nativeH);
+  return { scale, x: (freeW - nativeW * scale) / 2, y: 0 };
+}
+
+/** `readingFitCamera`'s scale: the width fit (capped at 1×) when that's clearly bigger than the contain fit, else the contain fit. */
+export function readingFitScale(freeW: number, freeH: number, nativeW: number, nativeH: number): number {
+  const contain = computeFitScale(freeW, freeH, nativeW, nativeH);
+  if (freeW <= 0 || nativeW <= 0) return contain;
+  const width = Math.min(1, freeW / nativeW);
+  return width > contain * 1.05 ? width : contain;
+}
+
 /** `[min, max]` zoom, relative to native (1×) pixels: down to whichever is smaller of the fit or 0.25×, up to 4×. */
 export function zoomRange(fitScale: number): { min: number; max: number } {
   return { min: Math.min(fitScale, 0.25), max: 4 };

@@ -21,7 +21,10 @@ import {
   viewOfCamera,
   CAMERA_VIEW_EVENT,
   easeInOut,
+  readingFitCamera,
+  readingFitScale,
 } from './camera';
+import { applyShape, captureShape, BOARD_SHAPE_EVENT, type BoardShapeDetail, type DrawnShape, type ShapeName } from './shape';
 import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
 import { CAMERA_FOCUS_EVENT, type CameraFocusDetail } from '../walkthrough/stage';
 import type { BoardView, Camera, CameraChangeDetail } from './camera';
@@ -35,6 +38,12 @@ const CAMERA_MOVE_MS = 420;
 export interface BoardStageProps {
   /** The board's own native pixel size (`Board.size`), for the board-fit effect. */
   boardSize: XY;
+  /**
+   * The board's tall (top-to-bottom) arrangement, when it has one: swapped
+   * in on a phone-width player (or wherever it reads much bigger than the
+   * wide one), and back out when the player widens again.
+   */
+  tall?: DrawnShape | null;
   className?: string;
   /**
    * False: a static preview (the home hero). The board still fits its box
@@ -50,6 +59,14 @@ export interface BoardStageProps {
    */
   children: ReactNode;
 }
+
+/** Phone width: the same breakpoint as the player's own phone CSS. */
+const PHONE_QUERY = '(max-width: 639px)';
+/** Off a phone, the tall arrangement is used only when its fit is at least this much bigger than the wide one's. */
+const TALL_ADVANTAGE = 1.5;
+/** Two taps this close in time (ms) and space (px) are a double tap: fit. */
+const DOUBLE_TAP_MS = 320;
+const DOUBLE_TAP_PX = 32;
 
 /** Distance and stage-space midpoint between two tracked pointers (pinch). */
 function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
@@ -82,8 +99,66 @@ function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
  * board; a bare embed board keeps it inside its own box, and a
  * non-interactive (hero preview) board renders none.
  */
-export function BoardStage({ boardSize, className, interactive = true, children }: BoardStageProps) {
+export function BoardStage({ boardSize, tall = null, className, interactive = true, children }: BoardStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
+
+  // ---- arrangement (wide / tall) ----
+  // `sizeRef` is the native size of whichever arrangement the board shows
+  // now; everything below reads it rather than `boardSize`.
+  const sizeRef = useRef<XY>(boardSize);
+  const shapeRef = useRef<ShapeName>('wide');
+  const wideRef = useRef<DrawnShape | null>(null);
+  const [shapeName, setShapeName] = useState<ShapeName>('wide');
+
+  // On a phone the tall arrangement is read from the top at its width fit
+  // (`readingFitCamera`); anywhere else it is contain-fitted like the wide one.
+  const readingRef = useRef(false);
+
+  /** Which arrangement suits a free area of `freeW`×`freeH` (and whether it's read page-style). */
+  function chooseShape(freeW: number, freeH: number): ShapeName {
+    readingRef.current = false;
+    if (!tall || !interactive) return 'wide';
+    if (typeof window !== 'undefined' && window.matchMedia?.(PHONE_QUERY).matches) {
+      readingRef.current = true;
+      return 'tall';
+    }
+    const wide = computeFitScale(freeW, freeH, boardSize[0], boardSize[1]);
+    const tallFit = computeFitScale(freeW, freeH, tall.size[0], tall.size[1]);
+    // A little hysteresis, so a resize near the threshold doesn't flip it back and forth.
+    const advantage = shapeRef.current === 'tall' ? TALL_ADVANTAGE * 0.85 : TALL_ADVANTAGE;
+    return tallFit >= wide * advantage ? 'tall' : 'wide';
+  }
+
+  /** Swaps the drawn arrangement in place and tells the other layers. */
+  function switchShape(next: ShapeName) {
+    if (next === shapeRef.current || !tall) return;
+    const svg = stageRef.current?.querySelector<SVGSVGElement>('[data-board-level] svg');
+    if (!svg) return;
+    wideRef.current ??= captureShape(svg, tall);
+    const shape = next === 'tall' ? tall : wideRef.current;
+    applyShape(svg, findBoardEl(), shape);
+    shapeRef.current = next;
+    sizeRef.current = shape.size;
+    // The old framing was in the other arrangement's coordinates.
+    focusBoxRef.current = null;
+    stashRef.current = null;
+    trackingRef.current = true;
+    stopTween();
+    setShapeName(next);
+    stageRef.current?.dispatchEvent(new CustomEvent<BoardShapeDetail>(BOARD_SHAPE_EVENT, { bubbles: true, detail: { shape: next } }));
+  }
+
+  /** The camera's fit for the current arrangement: the tall one is read from the top at its width fit. */
+  function fitFor(freeW: number, freeH: number): Camera {
+    const [nativeW, nativeH] = sizeRef.current;
+    return readingRef.current ? readingFitCamera(freeW, freeH, nativeW, nativeH) : fitCamera(freeW, freeH, nativeW, nativeH);
+  }
+
+  /** The smallest scale a focus request may frame at: the fit the arrangement opens with. */
+  function focusFloor(freeW: number, freeH: number): number {
+    const [nativeW, nativeH] = sizeRef.current;
+    return readingRef.current ? readingFitScale(freeW, freeH, nativeW, nativeH) : computeFitScale(freeW, freeH, nativeW, nativeH);
+  }
 
   // ---- camera state (BG part 2b) ----
   const cameraRef = useRef<Camera | null>(null);
@@ -121,7 +196,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
       const stage = stageRef.current;
       const to =
         trackingRef.current && stage && stage.clientWidth > 0 && stage.clientHeight > 0
-          ? trackedCamera(stage.clientWidth, stage.clientHeight, computeFitScale(stage.clientWidth, stage.clientHeight, boardSize[0], boardSize[1]))
+          ? trackedCamera(stage.clientWidth, stage.clientHeight)
           : target;
       applyCamera(interpolateCamera(from, to, easeInOut(t)));
       tweenRef.current = t < 1 ? requestAnimationFrame(tick) : 0;
@@ -130,10 +205,9 @@ export function BoardStage({ boardSize, className, interactive = true, children 
   }
 
   /** The camera tracking mode shows: the focus box when one is set, the whole board otherwise. */
-  function trackedCamera(freeW: number, freeH: number, fitScale: number): Camera {
-    const [nativeW, nativeH] = boardSize;
+  function trackedCamera(freeW: number, freeH: number): Camera {
     const box = focusBoxRef.current;
-    return box ? focusCamera(freeW, freeH, box, fitScale) : fitCamera(freeW, freeH, nativeW, nativeH);
+    return box ? focusCamera(freeW, freeH, box, focusFloor(freeW, freeH)) : fitFor(freeW, freeH);
   }
 
   function findBoardEl(): HTMLElement | null {
@@ -148,7 +222,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
       return;
     }
     const stage = stageRef.current;
-    const [nativeW, nativeH] = boardSize;
+    const [nativeW, nativeH] = sizeRef.current;
     // Pan bounds (BG owner review): clamped against *this* stage's current
     // free box, not the fit-time box — a pan/zoom can't be produced without
     // the stage already being measurable, so `stage` is never null here in
@@ -178,10 +252,11 @@ export function BoardStage({ boardSize, className, interactive = true, children 
   function recompute(force = false) {
     const stage = stageRef.current;
     if (!stage) return;
-    const [nativeW, nativeH] = boardSize;
     const freeW = stage.clientWidth;
     const freeH = stage.clientHeight;
     if (freeW <= 0 || freeH <= 0) return;
+    switchShape(chooseShape(freeW, freeH));
+    const [nativeW, nativeH] = sizeRef.current;
     const fitScale = computeFitScale(freeW, freeH, nativeW, nativeH);
     fitScaleRef.current = fitScale;
 
@@ -200,7 +275,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
       }
       if (!tweenRef.current || force) {
         stopTween();
-        applyCamera(trackedCamera(freeW, freeH, fitScale));
+        applyCamera(trackedCamera(freeW, freeH));
       }
       return;
     }
@@ -267,14 +342,14 @@ export function BoardStage({ boardSize, className, interactive = true, children 
         trackingRef.current = true;
         return;
       }
-      const [nativeW, nativeH] = boardSize;
+      const [nativeW, nativeH] = sizeRef.current;
       const fitScale = computeFitScale(freeW, freeH, nativeW, nativeH);
       fitScaleRef.current = fitScale;
       if (box) {
         stashRef.current ??= { camera: current, tracking: trackingRef.current };
         focusBoxRef.current = box;
         trackingRef.current = true;
-        animateTo(trackedCamera(freeW, freeH, fitScale));
+        animateTo(trackedCamera(freeW, freeH));
         return;
       }
       focusBoxRef.current = null;
@@ -285,7 +360,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
         animateTo(stash.camera);
       } else {
         trackingRef.current = true;
-        animateTo(fitCamera(freeW, freeH, nativeW, nativeH));
+        animateTo(fitFor(freeW, freeH));
       }
     }
     function onView(e: Event) {
@@ -314,6 +389,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
     let drag: { moved: boolean; startX: number; startY: number; lastX: number; lastY: number } | null = null;
     let pinch: { startDist: number; startCamera: Camera; fitScale: number } | null = null;
     let suppressClick = false;
+    let lastTap: { t: number; x: number; y: number } | null = null;
 
     function stageXY(clientX: number, clientY: number): XY {
       const rect = stage!.getBoundingClientRect();
@@ -410,6 +486,18 @@ export function BoardStage({ boardSize, className, interactive = true, children 
         drag = { moved: true, startX: remaining[0], startY: remaining[1], lastX: remaining[0], lastY: remaining[1] };
       } else if (pointers.size === 0) {
         if (drag?.moved) suppressClick = true;
+        // Double tap (touch): back to the fit.
+        if (e.type === 'pointerup' && e.pointerType === 'touch' && drag && !drag.moved) {
+          const now = e.timeStamp;
+          if (lastTap && now - lastTap.t < DOUBLE_TAP_MS && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < DOUBLE_TAP_PX) {
+            lastTap = null;
+            fitActive();
+          } else {
+            lastTap = { t: now, x: e.clientX, y: e.clientY };
+          }
+        } else if (drag?.moved) {
+          lastTap = null;
+        }
         drag = null;
       }
     }
@@ -524,6 +612,7 @@ export function BoardStage({ boardSize, className, interactive = true, children 
       <div
         ref={stageRef}
         className={interactive ? 'player-board-stage' : 'player-board-stage is-static'}
+        data-board-shape={shapeName}
         onKeyDown={interactive ? handleKeyDown : undefined}
       >
         {children}

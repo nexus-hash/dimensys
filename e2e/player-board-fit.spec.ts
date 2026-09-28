@@ -25,7 +25,6 @@ import AxeBuilder from '@axe-core/playwright';
  */
 
 const TOLERANCE_PX = 2;
-const WRAP_PADDING_PX = 24; // `.player-board-wrap`'s own CSS padding.
 
 interface FreeBox {
   x: number;
@@ -48,7 +47,9 @@ async function measureFit(page: Page) {
 
   const wrapOuterBox = await page.locator('.player-board-wrap').boundingBox();
   if (!wrapOuterBox) throw new Error('.player-board-wrap has no box (not visible?)');
-  const wrapBox = insetBox(wrapOuterBox, WRAP_PADDING_PX);
+  // 24px, or 12px on a phone (`globals.css`).
+  const pad = await page.locator('.player-board-wrap').evaluate((el) => parseFloat(getComputedStyle(el).paddingTop) || 0);
+  const wrapBox = insetBox(wrapOuterBox, pad);
 
   const boardBox = await page.locator('[data-board-level] > div').first().boundingBox();
   if (!boardBox) throw new Error('board element has no box');
@@ -108,7 +109,10 @@ function expectFit({ nativeW, nativeH, wrapBox, boardBox, canvasBox }: Awaited<R
  * layout box, not layout error.
  */
 async function expectNodesInsideFreeArea(page: Page, wrapBox: FreeBox) {
-  const nodeTolerance = 4;
+  // A node's group box includes its (invisible until focused) 8px focus
+  // ring, which may reach past the free area's edge when the board is
+  // height-bound; the node's card itself never does.
+  const nodeTolerance = 9;
   const nodes = page.locator('[data-board-level] [data-node-id]');
   const count = await nodes.count();
   expect(count).toBeGreaterThan(0);
@@ -230,16 +234,36 @@ test.describe('player board fit — tablet (834x1112)', () => {
   });
 });
 
+/**
+ * Phone: the board switches to its tall (top-to-bottom) arrangement and is
+ * read like a page — fitted to the free area's width, shown from its top,
+ * panned down — instead of being shrunk until all of it fits.
+ */
+function expectReadingFit({ nativeW, wrapBox, boardBox }: Awaited<ReturnType<typeof measureFit>>) {
+  const scale = Math.min(1, wrapBox.width / nativeW);
+  expect(boardBox.width, `board width (scale ${scale.toFixed(3)})`).toBeGreaterThanOrEqual(nativeW * scale - TOLERANCE_PX);
+  expect(boardBox.width).toBeLessThanOrEqual(nativeW * scale + TOLERANCE_PX);
+  expect(Math.abs(boardBox.x + boardBox.width / 2 - (wrapBox.x + wrapBox.width / 2))).toBeLessThanOrEqual(TOLERANCE_PX);
+  expect(Math.abs(boardBox.y - wrapBox.y)).toBeLessThanOrEqual(TOLERANCE_PX);
+}
+
 test.describe('player board fit — phone (390x844)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('fits above the sheet at its default (12%) peek', async ({ page }) => {
+  test('shows the tall arrangement fitted to the width, from its top, above the sheet', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await settle(page);
-    expectFit(await measureFit(page));
+    await expect(page.locator('.player-board-stage')).toHaveAttribute('data-board-shape', 'tall');
+    const fit = await measureFit(page);
+    expect(fit.nativeH).toBeGreaterThan(fit.nativeW);
+    expectReadingFit(fit);
+    const sheetBox = await page.locator('[role="dialog"]').boundingBox();
+    if (sheetBox) expect(fit.wrapOuterBox.y + fit.wrapOuterBox.height).toBeLessThanOrEqual(sheetBox.y + TOLERANCE_PX);
+    // The particle canvas covers the visible part of the board, never past the canvas region.
+    expect(fit.canvasBox.y + fit.canvasBox.height).toBeLessThanOrEqual(fit.wrapOuterBox.y + fit.wrapOuterBox.height + 1);
   });
 
-  test('re-fits to a smaller free area once the sheet is dragged to 50%, canvas follows', async ({ page }) => {
+  test('the free area shrinks once the sheet is dragged to 50%, and the board stays width-fitted above it', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     const before = await measureFit(page);
 
@@ -259,13 +283,10 @@ test.describe('player board fit — phone (390x844)', () => {
     await settle(page);
 
     const after = await measureFit(page);
-    expect(after.wrapBox.height).toBeLessThan(before.wrapBox.height - 100);
-    expectFit(after);
-
-    // The board (and the canvas tracking it) must be entirely above the sheet's current top edge.
+    expectReadingFit(after);
     const sheetBox = await page.locator('[role="dialog"]').boundingBox();
     if (sheetBox) {
-      expect(after.boardBox.y + after.boardBox.height).toBeLessThanOrEqual(sheetBox.y + TOLERANCE_PX);
+      expect(after.wrapOuterBox.y + after.wrapOuterBox.height).toBeLessThanOrEqual(sheetBox.y + TOLERANCE_PX);
       expect(after.canvasBox.y + after.canvasBox.height).toBeLessThanOrEqual(sheetBox.y + TOLERANCE_PX);
     }
   });
@@ -291,7 +312,7 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
    */
   async function emptyCanvasPoint(page: Page): Promise<{ x: number; y: number }> {
     const wrap = (await page.locator('.player-board-wrap').boundingBox())!;
-    return { x: wrap.x + WRAP_PADDING_PX + 30, y: wrap.y + WRAP_PADDING_PX + 30 };
+    return { x: wrap.x + 24 + 30, y: wrap.y + 24 + 30 };
   }
 
   test('drag on empty canvas pans the board rect by the drag delta', async ({ page }) => {

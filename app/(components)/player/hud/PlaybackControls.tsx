@@ -9,9 +9,9 @@
  * "00:32 / 01:30".
  *
  * `registerShortcuts`: the timeline dock's own instance (in
- * `HudTimelineFrame`) is always mounted, so it owns Space/`[`/`]`/R — the
- * phone sheet's Metrics tab reuses this same component (via `TimelineDock`)
- * but must not register the same shortcut ids a second time (both instances
+ * `HudTimelineFrame`) is always mounted, so it owns Space/`[`/`]`/R —
+ * a second copy of the dock (`TimelineDock` with `registerShortcuts={false}`)
+ * must not register the same shortcut ids a second time (both instances
  * are mounted simultaneously; only CSS/tab visibility differs). This is
  * `useShortcut`'s `enabled` parameter, not just its `hidden` field: the
  * registry keys its live entries by id alone, so if *both* instances called

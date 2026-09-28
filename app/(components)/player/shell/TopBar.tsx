@@ -6,6 +6,7 @@ import { PanelLeftIcon, SettingsIcon } from '@/app/(components)/ui/icons';
 import { useCommandPalette, usePlatformModKey } from '@/app/(components)/command';
 import type { PlayerMode } from '../store/playerStore';
 import { ModeSwitcher } from './ModeSwitcher';
+import { ModeMenu } from './ModeMenu';
 import type { ModeAvailability } from './modes';
 import ThemeButton from '../../theme/ThemeButton';
 import { BrandMark } from '../../brand/BrandMark';
@@ -24,6 +25,12 @@ export interface TopBarProps {
  * Share (copies a link to exactly what's on screen) and a settings
  * placeholder (a later task; inert but keyboard-reachable so the frame's
  * tab order is final now).
+ *
+ * Three groups (start / modes / end): the start group is the only one that
+ * shrinks (the title truncates), so nothing overlaps at any width. Tablet
+ * drops the labels to icons (Share, the palette shortcut) and the
+ * breadcrumb's parent; phone swaps the switcher for the mode menu
+ * (`ModeMenu`) and drops the rail toggle and settings (see `globals.css`).
  */
 export function TopBar({ title, modeAvailability, railOpen, onToggleRail }: TopBarProps) {
   const { openPalette } = useCommandPalette();
@@ -31,7 +38,7 @@ export function TopBar({ title, modeAvailability, railOpen, onToggleRail }: TopB
 
   return (
     <header className="player-topbar">
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="player-topbar-start">
         <Link
           href="/"
           className="flex flex-none items-center gap-2 text-[17px] font-bold tracking-[-0.01em] text-ink-primary"
@@ -70,11 +77,12 @@ export function TopBar({ title, modeAvailability, railOpen, onToggleRail }: TopB
         </nav>
       </div>
 
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="player-topbar-modes">
         <ModeSwitcher availability={modeAvailability} />
+        <ModeMenu availability={modeAvailability} />
       </div>
 
-      <div className="flex flex-none items-center gap-1">
+      <div className="player-topbar-end">
         <ShareButton />
         <ShareButton compact />
         <Button variant="ghost" size="sm" className="player-desktop-only gap-1.5" onClick={openPalette} aria-label="Command palette">
@@ -82,7 +90,7 @@ export function TopBar({ title, modeAvailability, railOpen, onToggleRail }: TopB
           <Kbd>K</Kbd>
         </Button>
         <ThemeButton />
-        <IconButton aria-label="Settings" disabled title="Settings (coming soon)">
+        <IconButton aria-label="Settings" disabled title="Settings (coming soon)" className="player-settings">
           <SettingsIcon />
         </IconButton>
       </div>

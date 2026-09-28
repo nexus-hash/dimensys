@@ -33,6 +33,8 @@ export interface WalkthroughStep {
   focusAnchor: Box | null;
   /** Camera target in board units `[cx, cy, w, h]`; `null` = the whole board. */
   focusBox: Box | null;
+  /** The elements `focusBox` frames (the board may be drawn in another arrangement, so the stage re-reads their boxes). Empty = the whole board. */
+  focusIds: string[];
   /** Marker tags `[label, nodeId, nodeBox]` pinned on nodes for this step. */
   markers: Array<[string, string, Box]>;
 }
@@ -66,7 +68,7 @@ export function plainText(md: string): string {
     .trim();
 }
 
-function unionBox(boxes: Box[]): Box | null {
+export function unionBox(boxes: Box[]): Box | null {
   if (boxes.length === 0) return null;
   let x0 = Infinity;
   let y0 = Infinity;
@@ -162,11 +164,21 @@ function buildStep(frame: Frame, index: number, board: Board, markerText: Map<st
   // (all of the board lit = no zoom at all).
   let focusBox: Box | null = null;
   const boxes: Box[] = [];
+  const focusIds: string[] = [];
   const aimBox = aim ? (nodes.get(aim)?.box ?? frames.get(aim)?.box) : undefined;
-  if (aimBox) boxes.push(aimBox);
+  if (aimBox) {
+    boxes.push(aimBox);
+    focusIds.push(aim!);
+  }
   if (litNodes.size < nodes.size || aimBox) {
-    for (const id of litNodes) boxes.push(nodes.get(id)!.box!);
-    for (const id of namedFrames) boxes.push(frames.get(id)!.box);
+    for (const id of litNodes) {
+      boxes.push(nodes.get(id)!.box!);
+      focusIds.push(id);
+    }
+    for (const id of namedFrames) {
+      boxes.push(frames.get(id)!.box);
+      focusIds.push(id);
+    }
   }
   if (boxes.length > 0) focusBox = unionBox(boxes);
 
@@ -195,6 +207,7 @@ function buildStep(frame: Frame, index: number, board: Board, markerText: Map<st
     focusId,
     focusAnchor,
     focusBox,
+    focusIds,
     markers,
   };
 }

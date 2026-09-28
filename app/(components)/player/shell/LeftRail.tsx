@@ -33,35 +33,14 @@ export interface LeftRailProps {
  * (`.player-rail`'s `@media` rules in `globals.css`) — `open` there also
  * gates a click-catching backdrop and Escape, so it behaves like a drawer
  * without a second implementation. Phone drops the rail from the layout
- * entirely (`globals.css`'s phone rules) — the requirement badges reach
- * phone through the bottom sheet's own Metrics tab instead (`PhoneSheet`),
- * which renders the same `<RequirementBadges>` alongside the HUD there.
+ * entirely (`globals.css`'s phone rules): the same sections
+ * (`RailSections`) fill the bottom sheet's Guide tab instead (`PhoneSheet`).
  */
 export function LeftRail({ open, onClose, needs = [], rail }: LeftRailProps) {
   return (
     <>
       <aside className="player-rail" aria-label="Problem, scenarios and walkthroughs">
-        <div className="flex flex-col gap-6 p-4">
-          <RailSection title="Problem">
-            {rail ? <ProblemHeader problem={rail.problem} /> : null}
-            {needs.length > 0 ? <RequirementBadges needs={needs} /> : null}
-          </RailSection>
-          <HowItWorks />
-          {rail && rail.lanes.length > 0 ? (
-            <RailSection title="Request paths" hint="hover to trace">
-              <RequestPaths lanes={rail.lanes} />
-            </RailSection>
-          ) : null}
-          <RailSection title="Scenarios">
-            <ScenarioList />
-          </RailSection>
-          <RailSection title="Walkthroughs">
-            <WalkthroughRail />
-          </RailSection>
-          <RailSection title="Estimates">
-            {rail?.estimate ? <RailEstimates calc={rail.estimate} /> : null}
-          </RailSection>
-        </div>
+        <RailSections needs={needs} rail={rail} className="p-4" />
       </aside>
       {/* Tablet/phone overlay backdrop: dismisses the drawer, never renders past `lg`. */}
       <button
@@ -77,6 +56,47 @@ export function LeftRail({ open, onClose, needs = [], rail }: LeftRailProps) {
         }
       />
     </>
+  );
+}
+
+/**
+ * The rail's sections themselves, shared by the rail (desktop column,
+ * tablet drawer) and the phone sheet's Guide tab.
+ */
+export function RailSections({
+  needs = [],
+  rail,
+  className,
+  touch = false,
+}: {
+  needs?: readonly NeedView[];
+  rail?: RailData;
+  className?: string;
+  /** Touch copy ("tap" rather than "hover"), for the phone sheet. */
+  touch?: boolean;
+}) {
+  return (
+    <div className={['flex flex-col gap-6', className].filter(Boolean).join(' ')}>
+      <RailSection title="Problem">
+        {rail ? <ProblemHeader problem={rail.problem} /> : null}
+        {needs.length > 0 ? <RequirementBadges needs={needs} /> : null}
+      </RailSection>
+      <HowItWorks />
+      {rail && rail.lanes.length > 0 ? (
+        <RailSection title="Request paths" hint={touch ? 'tap to trace' : 'hover to trace'}>
+          <RequestPaths lanes={rail.lanes} />
+        </RailSection>
+      ) : null}
+      <RailSection title="Scenarios">
+        <ScenarioList />
+      </RailSection>
+      <RailSection title="Walkthroughs">
+        <WalkthroughRail />
+      </RailSection>
+      <RailSection title="Estimates">
+        {rail?.estimate ? <RailEstimates calc={rail.estimate} /> : null}
+      </RailSection>
+    </div>
   );
 }
 

@@ -2,7 +2,7 @@ export { Board } from './Board';
 export { Node } from './Node';
 export type { LeafNodeType } from './Node';
 export { Link, LinkLabel } from './Link';
-export { SubsystemFrame } from './Subsystem';
+export { SubsystemFrame, frameTabLayout } from './Subsystem';
 export { HealthGlyph } from './HealthGlyph';
 export { DsaCell } from './DsaCell';
 export { PointerMarker } from './PointerMarker';

@@ -7,6 +7,7 @@ import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider'
 import { useActiveWalkthrough, useWalkthroughData } from './WalkthroughContext';
 import { openWalkthrough, stepBy } from './actions';
 import { WalkthroughStage } from './stage';
+import { BOARD_SHAPE_EVENT } from '../blueprint/shape';
 
 /**
  * Walkthrough mode's behaviour, with no UI of its own:
@@ -37,7 +38,10 @@ export function WalkthroughController({ boardRootRef }: { boardRootRef: RefObjec
     if (!root) return;
     const stage = new WalkthroughStage(root, { reducedMotion: isMotionReduced });
     stageRef.current = stage;
+    const onShape = () => stage.refresh();
+    root.addEventListener(BOARD_SHAPE_EVENT, onShape);
     return () => {
+      root.removeEventListener(BOARD_SHAPE_EVENT, onShape);
       stage.dispose();
       stageRef.current = null;
     };

@@ -31,6 +31,11 @@ function LaneStat({ probes }: { probes: RailLane['probes'] }) {
   );
 }
 
+/** The player the list belongs to: its own ancestor, or (the phone sheet is portalled out of it) the page's one player. */
+function shellOf(el: Element | null): Element | null {
+  return el?.closest('.player-shell') ?? document.querySelector('.player-shell');
+}
+
 /**
  * The diagram's request paths. Hovering or focusing one traces it on the
  * board (its nodes and links lit, the rest dimmed); a click pins the trace,
@@ -54,14 +59,14 @@ export function RequestPaths({ lanes }: { lanes: readonly RailLane[] }) {
   const shown = walking ? null : (hovered ?? focused ?? pinned);
 
   useEffect(() => {
-    const root = listRef.current?.closest('.player-shell');
+    const root = shellOf(listRef.current);
     if (!root) return;
     const lane = shown ? lanes.find((l) => l.id === shown) : undefined;
     traceOnBoard(root, lane ?? null);
   }, [shown, lanes]);
 
   useEffect(() => {
-    const root = listRef.current?.closest('.player-shell');
+    const root = shellOf(listRef.current);
     return () => {
       if (root) traceOnBoard(root, null);
     };

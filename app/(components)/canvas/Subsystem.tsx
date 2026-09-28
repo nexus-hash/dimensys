@@ -5,6 +5,22 @@ const TAB_FONT_SIZE = 11;
 const TAB_LETTER_SPACING_EM = 0.06;
 
 /**
+ * A frame tab's geometry at a given frame width: the clip width, the
+ * (possibly truncated) upper-case label and the hit area's width. Shared
+ * with the player's alternate (phone) arrangement, which redraws a frame at
+ * another width in place.
+ */
+export function frameTabLayout(label: string, width: number): { tabAreaWidth: number; displayLabel: string; hitWidth: number } {
+  // A little inset from the frame's own edges/corners on both sides.
+  const tabAreaWidth = Math.max(0, width - 4);
+  const charW = TAB_FONT_SIZE * (MONO_CHAR_EM + TAB_LETTER_SPACING_EM);
+  const displayLabel = truncateToWidth(label.toUpperCase(), tabAreaWidth, charW);
+  // Hit area: the drawn text's own width (plus a little slack), full tab height.
+  const hitWidth = Math.min(tabAreaWidth, [...displayLabel].length * charW + 8);
+  return { tabAreaWidth, displayLabel, hitWidth };
+}
+
+/**
  * A group's frame: a dashed border with a subtle fill, drawn round nodes the
  * caller places inside `width`×`height` (it doesn't lay them out), and the
  * group's name as a small mono tab above its top-left edge.
@@ -41,12 +57,7 @@ export function SubsystemFrame({
   interactive?: boolean;
 }) {
   const tabClipId = `${boardId}-${id}-tab-clip`;
-  // A little inset from the frame's own edges/corners on both sides.
-  const tabAreaWidth = Math.max(0, width - 4);
-  const charW = TAB_FONT_SIZE * (MONO_CHAR_EM + TAB_LETTER_SPACING_EM);
-  const displayLabel = truncateToWidth(label.toUpperCase(), tabAreaWidth, charW);
-  // Hit area: the drawn text's own width (plus a little slack), full tab height.
-  const hitWidth = Math.min(tabAreaWidth, [...displayLabel].length * charW + 8);
+  const { tabAreaWidth, displayLabel, hitWidth } = frameTabLayout(label, width);
 
   return (
     <g className={'cv-subsystem' + (selected ? ' is-selected' : '')} data-frame-id={id} transform={`translate(${x}, ${y})`}>

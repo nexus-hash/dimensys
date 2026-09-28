@@ -22,7 +22,7 @@ export interface HudStripProps {
  * task) sits in its own row underneath and takes no space while empty.
  *
  * Requirement badges don't render here: they're a per-requirement list
- * sized for the left rail (`LeftRail.tsx`), and the phone sheet's Metrics
+ * sized for the left rail (`LeftRail.tsx`), and the phone sheet's Guide
  * tab (`PhoneSheet.tsx`).
  *
  * Phone: the tiles collapse behind one summary button (the first two
@@ -52,7 +52,7 @@ export function HudStrip({ gauges, zoomHostRef }: HudStripProps) {
 }
 
 export interface TimelineDockProps {
-  /** `false` for the phone sheet's own copy of this dock (`PhoneSheet.tsx`) — see `PlaybackControls`' doc comment: only one mounted instance may own the Space/`[`/`]`/R shortcuts. */
+  /** `false` for any second copy of this dock — see `PlaybackControls`' doc comment: only one mounted instance may own the Space/`[`/`]`/R shortcuts. */
   registerShortcuts?: boolean;
 }
 

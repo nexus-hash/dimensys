@@ -166,6 +166,7 @@ export function PlayerShell({
         panels={panels}
         gauges={gauges}
         needs={needs}
+        rail={rail}
         snapIndex={snapIndex}
         onSnapIndexChange={setSnapIndex}
       />

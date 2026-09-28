@@ -172,6 +172,30 @@ export interface Board {
   wires: LinkView[];
   /** Frames, outer before inner (draw order). Absent when there are none. */
   frames?: FrameView[];
+  /**
+   * The same board arranged top to bottom for narrow screens: every drawn
+   * block, wire and frame placed again. Geometry only — ids, text and
+   * everything else stay on the entries above. Absent when there is none.
+   */
+  tall?: BoardShape;
+}
+
+/** An alternate placement of a board's blocks, wires and frames (`Board.tall`). */
+export interface BoardShape {
+  /** `[w, h]`. */
+  size: XY;
+  /** Block id → its box here. */
+  boxes: { [blockId: string]: Box };
+  /** Wire id → its route here (same meaning as `LinkView.route`/`curve`/`cap`). */
+  wires: { [wireId: string]: WireShape };
+  /** Frame id → its box here. Absent when there are no frames. */
+  frames?: { [frameId: string]: Box };
+}
+
+export interface WireShape {
+  route: XY[];
+  curve?: true;
+  cap?: { pt: XY; axis: 'h' | 'v'; sz: XY };
 }
 
 // ---------------------------------------------------------------------------

@@ -760,6 +760,10 @@
 .player-shell {
   display: grid;
   grid-template-rows: 48px minmax(0, 1fr);
+  /* The page opts into the whole screen (`viewportFit: cover`): keep the
+     chrome clear of a notch or rounded corners. The bottom inset belongs to
+     the phone sheet, which sits over the bottom edge. */
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
   background: var(--color-surface-page);
   height: 100%;
   min-height: 0;
@@ -779,6 +783,56 @@
 }
 .player-topbar .player-rail-toggle { display: none; }
 .player-topbar .player-phone-only { display: none; }
+/* Three groups: only the start one (brand, rail toggle, breadcrumb) shrinks
+   — its title truncates — so the modes and the end group never overlap it.
+   Start and end share the spare width equally, which keeps the modes
+   centred while there's room. */
+.player-topbar-start { display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; }
+.player-topbar-modes { display: flex; align-items: center; flex: none; min-width: 0; }
+.player-topbar-end { display: flex; align-items: center; justify-content: flex-end; gap: 4px; flex: 1 1 0; min-width: max-content; }
+.player-mode-menu { display: none; }
+.player-mode-menu {
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  max-width: 150px;
+  padding: 0 8px 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-raised);
+  font: 500 14px var(--font-sans);
+  color: var(--color-ink-primary);
+}
+.player-mode-menu:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.player-mode-menu-chev { width: 16px; height: 16px; flex: none; color: var(--color-ink-muted); }
+.player-mode-menu-list {
+  z-index: var(--z-index-chrome);
+  min-width: 220px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-elevation-2);
+}
+.player-mode-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font: 500 15px var(--font-sans);
+  color: var(--color-ink-primary);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+.player-mode-menu-item[data-highlighted] { background: var(--color-surface-glass); }
+.player-mode-menu-item[data-state="checked"] { font-weight: 600; }
+.player-mode-menu-item[data-disabled] { color: var(--color-ink-muted); cursor: default; }
+.player-mode-menu-soon { font: 500 12px var(--font-mono); color: var(--color-ink-muted); }
+.player-mode-menu-check { width: 16px; height: 16px; color: var(--color-brand-ink, var(--color-ink-primary)); }
 
 .player-body {
   display: grid;
@@ -988,6 +1042,11 @@
   .player-body { grid-template-columns: minmax(0, 1fr); }
   .player-topbar .player-rail-toggle { display: inline-flex; }
   .player-topbar .mode-kbd-hint { display: none; }
+  /* Tablet: the labelled Share and the palette shortcut give way to the
+     icon-only Share, and the breadcrumb drops its parent, so the bar fits
+     beside the full mode switcher at 834px and below. */
+  .player-topbar .player-desktop-only { display: none; }
+  .player-topbar .player-phone-only { display: inline-flex; }
   .player-rail {
     position: absolute; inset: 0 auto 0 0; width: 300px; z-index: var(--z-index-sheet);
     box-shadow: var(--shadow-elevation-2); transform: translateX(-102%);
@@ -1022,10 +1081,16 @@
 @media (max-width: 639px) {
   .player-shell { grid-template-rows: 44px minmax(0, 1fr); }
   .player-topbar { padding: 0 6px; gap: 4px; }
+  .player-topbar-start { gap: 4px; }
+  .player-topbar-end { gap: 0; }
   .player-topbar .player-mode-switcher,
   .player-topbar .player-rail-toggle,
+  .player-topbar .player-settings,
   .player-topbar .player-desktop-only { display: none; }
   .player-topbar .player-phone-only { display: inline-flex; }
+  .player-topbar .player-mode-menu { display: inline-flex; }
+  .player-topbar :is(button, a[href]) { min-width: 44px; min-height: 44px; justify-content: center; }
+  .player-topbar .player-mode-menu { justify-content: flex-start; border-color: transparent; }
   .player-rail, .player-inspector { display: none; }
   /* `padding-right` reset (T3.6 fix): the tablet rule above reserves
      340px of `.player-canvas-area`'s own width for the inspector *overlay*
@@ -1041,6 +1106,9 @@
      `padding-right` to clear. */
   .player-body[data-inspector-open="true"] .player-canvas-area { padding-right: 0; }
   .player-canvas-area { padding-bottom: var(--player-sheet-peek, 12dvh); }
+  /* Every pixel of a phone's width goes to the board (the tall arrangement
+     is fitted to it), so the canvas keeps only a 12px margin. */
+  .player-board-wrap { padding: 12px; }
   /* Phone strip: the tiles collapse behind one summary button (the first
      two values); expanded, they drop into a 2×2 grid on their own line
      inside the strip and the board re-fits to what's left. Only Fit shows
@@ -1078,7 +1146,31 @@
   .player-timeline-dock { padding: 6px 8px; gap: 6px; }
   .player-timeline-dock .player-narration-slot { display: none; }
   .player-tl-speed, .player-tl-note, .player-tl-reset { display: none; }
+
+  /* Touch targets: every control in the player and its sheet is at least
+     44px on each side (inline prose links excepted). */
+  .player-hud-summary { height: 44px; }
+  .player-zoom-slot { min-width: 44px; }
+  .player-zoom-slot .player-zoom-fit { width: 44px; height: 44px; }
+  .player-timeline-slot { height: 44px; }
+  .player-shell :is(button, [role="tab"], [role="checkbox"], [role="switch"]),
+  .player-sheet :is(button, [role="tab"], [role="checkbox"], [role="switch"]) { min-height: 44px; min-width: 44px; }
+  .player-sheet [role="tablist"] [role="tab"] { height: 44px; }
+  .player-shell .player-tl-btn { width: 44px; height: 44px; }
+  /* Slider thumbs: a 16px disc inside a 44px transparent hit box. */
+  .player-shell [role="slider"],
+  .player-sheet [role="slider"]:not([aria-label="Resize sheet"]) {
+    width: 44px; height: 44px; border: 14px solid transparent; background-clip: padding-box; box-shadow: none;
+  }
+  /* The sheet: a 44px grab handle, and room for the home indicator. */
+  .player-sheet > [aria-label="Resize sheet"] { height: 44px; }
+  .player-sheet > :last-child { padding-top: 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* The phone sheet's Live and Guide tabs. */
+.player-sheet-live { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+.player-sheet-live .player-sheet-hud { padding: 0; }
+.player-sheet-guide { padding-top: 12px; }
 
 /* DSA cells */
 .cv-cell rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }

@@ -19,7 +19,8 @@
  * the same elements survive.
  */
 import type { Box } from '../types';
-import type { WalkthroughStep } from './model';
+import { unionBox, type WalkthroughStep } from './model';
+import { drawnBox } from '../blueprint/shape';
 import { XML_NS as SVG_NS } from '../overlay/xmlNs';
 
 /** The camera request event `BoardStage` listens for. `box: null` returns to the view from before the walkthrough. */
@@ -134,6 +135,19 @@ export class WalkthroughStage {
     else this.timer = setTimeout(apply, delay);
   }
 
+  /**
+   * The board swapped arrangement (`blueprint/shape.ts`): badges, markers
+   * and the camera framing were placed for the old one, so the shown step is
+   * put on again, at once.
+   */
+  refresh(): void {
+    const els = this.elements();
+    if (!els || !this.shown) return;
+    this.cancel();
+    this.clearDecorations(els);
+    this.applyStep(els, this.shown);
+  }
+
   /** Drops everything this stage put on the board, immediately and without touching the camera. */
   dispose(): void {
     this.cancel();
@@ -176,20 +190,26 @@ export class WalkthroughStage {
       if (els.links.has(id)) g.dataset.wtFlow = 'dim';
     }
 
+    // Boxes as the board is drawn now (either arrangement); the step's own
+    // precomputed boxes only stand in when an element can't be read.
+    const boxOf = (id: string, fallback: Box | null): Box | null => drawnBox(els.svg, id) ?? fallback;
     const layer = this.layer(els);
     if (step.focusId) {
       const g = els.nodes.get(step.focusId) ?? els.frames.get(step.focusId);
       g?.classList.add('is-wt-focus');
-      if (step.focusAnchor) layer.appendChild(badge(step.focusAnchor, state.stepIndex + 1, els.frames.has(step.focusId)));
+      const anchor = boxOf(step.focusId, step.focusAnchor);
+      if (anchor) layer.appendChild(badge(anchor, state.stepIndex + 1, els.frames.has(step.focusId)));
     }
     const stacked = new Map<string, number>();
     for (const [label, nodeId, box] of step.markers) {
       const n = stacked.get(nodeId) ?? 0;
       stacked.set(nodeId, n + 1);
-      layer.appendChild(marker(label, box, n));
+      layer.appendChild(marker(label, boxOf(nodeId, box) ?? box, n));
     }
 
-    this.requestCamera(step.focusBox);
+    const ids = step.focusIds ?? [];
+    const read = ids.map((id) => drawnBox(els.svg, id));
+    this.requestCamera(ids.length > 0 && read.every((b) => b !== null) ? unionBox(read as Box[]) : step.focusBox);
   }
 
   private currentDims(els: BoardElements): Set<string> {

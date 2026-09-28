@@ -6,11 +6,11 @@ import AxeBuilder from '@axe-core/playwright';
  * real production runtime for a diagram that ships a simulation
  * (`url-shortener`). Covers: HUD values change over time, pause freezes
  * them, speed changes the sim clock's rate, badges render with accessible
- * text, and the phone sheet's Metrics tab carries the same content.
+ * text, and the phone sheet's Live and Guide tabs carry the same content.
  *
  * The HUD strip and timeline dock are each mounted *twice* by the shell
  * (T3.16) — once in the top chrome (`HudTimelineFrame`, never hidden, at
- * any breakpoint), once again inside the phone bottom sheet's "Metrics" tab
+ * any breakpoint), once again inside the phone bottom sheet's "Live" tab
  * (`PhoneSheet`, shown only below the `sm` breakpoint) — so a person on
  * phone can read live numbers from the sheet without looking past it at the
  * thin top strip. Both copies read the same shared store, so they always
@@ -19,7 +19,7 @@ import AxeBuilder from '@axe-core/playwright';
  * for the phone sheet's copy) rather than counting `.hud-tile` unscoped,
  * which would double-count. Requirement badges render once more, in the
  * left rail's "Problem" section (`.player-rail`) — the phone sheet's own
- * Metrics tab carries its own copy for phone, where the rail is hidden.
+ * Live and Guide tabs carry their own copy for phone, where the rail is hidden.
  */
 
 const READY_TIMEOUT = 20000; // generous: shared/contended hosts can be slow to hydrate under load
@@ -92,7 +92,7 @@ test.describe('/solutions/url-shortener HUD + timeline', () => {
     // The rail only renders (statically shown, not the phone/tablet overlay
     // drawer) at desktop widths — the "Mobile Chrome" project's own default
     // viewport is phone-sized, where the rail is CSS-hidden by design (its
-    // content reaches phone through the bottom sheet's Metrics tab instead,
+    // content reaches phone through the bottom sheet's Guide tab instead,
     // covered by the next test).
     await page.setViewportSize({ width: 1440, height: 900 });
     await waitForReady(page);
@@ -117,13 +117,14 @@ test.describe('/solutions/url-shortener HUD + timeline', () => {
       .toBe(true);
   });
 
-  test('phone: the bottom sheet Metrics tab shows the same HUD tiles and requirement badges', async ({ page }) => {
+  test('phone: the bottom sheet Live tab shows the same HUD tiles, and its Guide tab the requirement badges', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await waitForReady(page);
-    await page.getByRole('tab', { name: 'Metrics' }).click();
+    await page.getByRole('tab', { name: 'Live' }).click();
     const sheetTiles = page.locator('[role="dialog"] .hud-tile');
     await expect(sheetTiles.first()).toBeVisible({ timeout: READY_TIMEOUT });
     await expect(sheetTiles).toHaveCount(4);
+    await page.getByRole('tab', { name: 'Guide' }).click();
     await expect(page.locator('[role="dialog"] .hud-req-badges > *').first()).toBeVisible();
   });
 });

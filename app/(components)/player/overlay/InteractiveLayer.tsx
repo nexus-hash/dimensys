@@ -41,6 +41,7 @@ import { findBoardLevel, findBoardSvg, linkLabelFor, linkPath as findLinkPath } 
 import { MAX_PARTICLES, ParticlePool, particleSpawnHz, particleTravelMs, pickParticleKind, progressForPileup, pointOnSamples, samplePath } from './particleMath';
 import type { HealthState, NodeMeterKind } from '@/app/(components)/canvas';
 import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
+import { BOARD_SHAPE_EVENT } from '../blueprint/shape';
 
 /** A walkthrough step's path always carries at least this many particles/sec, so its flow reads even with no live traffic. */
 const WT_PATH_MIN_HZ = 2.5;
@@ -544,6 +545,14 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     const onCameraChange = () => sizeCanvas();
     container.addEventListener('playercamerachange', onCameraChange);
 
+    // The board swapped arrangement (`blueprint/shape.ts`): every link path
+    // moved, so the particles' sampled paths are re-read.
+    const onShapeChange = () => {
+      if (!reduced) rebuildLinks();
+      sizeCanvas();
+    };
+    container.addEventListener(BOARD_SHAPE_EVENT, onShapeChange);
+
     // ---- hover tooltip + click/keyboard selection ----
     function describeTarget(el: Element): { title: string; lines: string[] } | null {
       const nodeGroup = el.closest<SVGGElement>('[data-node-id]');
@@ -685,6 +694,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
       ro?.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       container.removeEventListener('playercamerachange', onCameraChange);
+      container.removeEventListener(BOARD_SHAPE_EVENT, onShapeChange);
       reducedMql?.removeEventListener?.('change', onReducedChange);
       container.removeEventListener('pointerover', onPointerOver);
       container.removeEventListener('pointerout', onPointerOut);

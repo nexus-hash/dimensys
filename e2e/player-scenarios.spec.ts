@@ -266,17 +266,17 @@ test.describe('scenarios (desktop)', () => {
 test.describe('scenarios (phone)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('the story starts from the sheet and its checkpoint opens there', async ({ page }) => {
+  test('the story starts from the sheet Guide tab and its checkpoint opens on Live', async ({ page }) => {
     await open(page);
     const sheet = page.locator('[role="dialog"]');
-    await sheet.getByRole('tab', { name: 'Scenarios' }).click();
+    await sheet.getByRole('tab', { name: 'Guide' }).click();
     await sheet.locator(`[data-scenario="${STORY}"] .story-opt`).click();
     await expect(root(page)).toHaveAttribute('data-sim-status', 'ready', { timeout: READY_TIMEOUT });
     await expect(page.locator('[data-dock="board"] [data-story-narration]')).toBeVisible({ timeout: 15000 });
     await jumpToCheckpoint(page);
     await expect(sheet.locator(`[data-checkpoint]`)).toBeVisible();
     await expect(page.locator('.player-canvas-area [data-checkpoint]')).toHaveCount(0);
-    await expect(sheet.getByRole('tab', { name: 'Scenarios' })).toHaveAttribute('aria-selected', 'true');
+    await expect(sheet.getByRole('tab', { name: 'Live' })).toHaveAttribute('aria-selected', 'true');
     await expect(sheet.locator('[data-choice]').first()).toBeFocused();
     await sheet.locator('[data-choice]').last().click();
     await expect(sheet.locator('[data-checkpoint]')).toHaveCount(0);
@@ -299,7 +299,7 @@ test.describe('checkpoint axe (light + dark)', () => {
         await expect(page.locator('html')).toHaveAttribute('data-theme', scheme);
         if (viewport.width < 640) {
           const sheet = page.locator('[role="dialog"]');
-          await sheet.getByRole('tab', { name: 'Scenarios' }).click();
+          await sheet.getByRole('tab', { name: 'Guide' }).click();
           await sheet.locator(`[data-scenario="${STORY}"] .story-opt`).click();
         } else if (viewport.width < 1024) {
           await page.getByRole('button', { name: 'Toggle left rail' }).click();
