@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { RequirementBadges } from '../hud/RequirementBadges';
+import { WalkthroughRail } from '../walkthrough/WalkthroughRail';
 import type { NeedView } from '../types';
 
 export interface LeftRailProps {
@@ -17,7 +18,9 @@ export interface LeftRailProps {
  * every section below is an empty, correctly-labelled slot; a later task
  * fills each with real content (the problem title/meta pills, the scenario
  * list, the walkthrough step list, the sizing calculators). T3.8 fills only
- * the requirement badges inside "Problem", not the whole section.
+ * the requirement badges inside "Problem", not the whole section. The
+ * Walkthroughs section lists the diagram's walkthroughs and the playing
+ * one's steps (`WalkthroughRail`).
  *
  * On tablet/phone this same markup becomes an overlay drawer purely via CSS
  * (`.player-rail`'s `@media` rules in `globals.css`) — `open` there also
@@ -36,7 +39,9 @@ export function LeftRail({ open, onClose, needs = [] }: LeftRailProps) {
             {needs.length > 0 ? <RequirementBadges needs={needs} /> : null}
           </RailSection>
           <RailSection title="Scenarios" />
-          <RailSection title="Walkthroughs" />
+          <RailSection title="Walkthroughs">
+            <WalkthroughRail />
+          </RailSection>
           <RailSection title="Estimates" />
         </div>
       </aside>

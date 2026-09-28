@@ -1196,3 +1196,116 @@
 .home-reveal.is-visible {
   transform: none;
 }
+
+/* ============================================================================
+ * Player — Walkthrough mode.
+ *
+ * Rail: the walkthrough options (radio-style) and the playing one's
+ * numbered step list, the current step marked with an ink bar. Dock: the
+ * narration card under the board (where you are, the step's title and
+ * narration, progress dots, Prev / Next / Exit). Board: what a step lights
+ * stays at full opacity and the rest dims (`is-dimmed`, applied by the
+ * walkthrough stage); the step's path links draw in ink; the focused
+ * element pulses softly and carries the step's number.
+ * ========================================================================= */
+.wt-rail { display: flex; flex-direction: column; gap: 4px; }
+.wt-opt {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%;
+  padding: 8px; border-radius: 8px; text-align: left;
+  font-size: 13px; line-height: 1.4; color: var(--color-ink-secondary);
+  transition: background-color var(--transition-duration-micro), color var(--transition-duration-micro);
+}
+.wt-opt:hover { background: var(--color-surface-glass); color: var(--color-ink-primary); }
+.wt-opt:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.wt-opt[aria-current="true"] { background: var(--color-brand-subtle); color: var(--color-ink-primary); }
+.wt-opt-dot {
+  width: 14px; height: 14px; flex: none; margin-top: 2px; border-radius: 50%;
+  border: 1.5px solid var(--color-line-strong); display: grid; place-items: center;
+}
+.wt-opt[aria-current="true"] .wt-opt-dot { border-color: var(--color-brand); }
+.wt-opt[aria-current="true"] .wt-opt-dot::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--color-brand); }
+.wt-opt-title { display: block; overflow-wrap: anywhere; }
+.wt-opt small { display: block; margin-top: 1px; font: 500 12px var(--font-mono); color: var(--color-ink-muted); }
+
+.wt-steps { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.wt-steps li { position: relative; }
+.wt-steps li::before {
+  content: attr(data-n); position: absolute; left: 8px; top: 8px; pointer-events: none;
+  font: 600 12px/18px var(--font-mono); color: var(--color-ink-muted);
+}
+.wt-steps button {
+  display: block; width: 100%; text-align: left; padding: 8px 8px 8px 30px; border-radius: 8px;
+  font-size: 13px; line-height: 1.4; color: var(--color-ink-secondary); overflow-wrap: anywhere;
+  transition: background-color var(--transition-duration-micro);
+}
+.wt-steps button:hover { background: var(--color-surface-glass); }
+.wt-steps button:focus-visible { outline: 2px solid var(--color-brand); outline-offset: -2px; }
+.wt-steps li[aria-current="step"] button { color: var(--color-ink-primary); background: var(--color-surface-glass); box-shadow: inset 2px 0 0 var(--color-ink-primary); }
+.wt-steps li[aria-current="step"]::before { color: var(--color-ink-primary); }
+.wt-steps b { display: block; font-weight: 500; line-height: 18px; color: var(--color-ink-primary); }
+/* One line of narration per step in the list, never more than two. */
+.wt-step-sum { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wt-rail-hint { margin: 8px 0 0 8px; font-size: 12px; color: var(--color-ink-muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+.wt-narr {
+  display: flex; gap: 12px; align-items: flex-start; min-height: 78px;
+  padding: 10px 14px; border-radius: 12px;
+  background: var(--color-surface-raised); border: 1px solid var(--color-line-hairline);
+}
+.wt-narr-body { flex: 1; min-width: 0; animation: wt-narrin 320ms var(--ease-emphasized); }
+@keyframes wt-narrin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.wt-narr-k { display: flex; gap: 8px; align-items: center; min-width: 0; margin: 0 0 4px; font: 500 12px var(--font-mono); color: var(--color-ink-muted); }
+.wt-narr-title { margin: 0 0 2px; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--color-ink-primary); overflow-wrap: anywhere; }
+/* The narration scrolls inside the card rather than pushing the board off screen. */
+.wt-narr-md { max-height: 7.8em; overflow: auto; font-size: 15px; line-height: 1.55; color: var(--color-ink-primary); text-wrap: pretty; overflow-wrap: anywhere; }
+.wt-narr-md p, .wt-narr-md li { margin: 0; font-size: 15px; line-height: 1.55; }
+.wt-narr-md > div, .wt-narr-md li > div { max-width: none; }
+.wt-narr-md div > :not(:last-child) { margin-bottom: 4px; }
+.wt-narr-parts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.wt-narr-parts li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.wt-narr-parts b { font: 600 12px var(--font-mono); color: var(--color-ink-muted); white-space: nowrap; }
+.wt-narr-acts { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.wt-narr-btns { display: flex; gap: 4px; align-items: center; }
+.wt-dots { display: flex; gap: 5px; align-items: center; height: 8px; padding-right: 4px; }
+.wt-dot { width: 6px; height: 6px; border-radius: 3px; background: var(--color-line-strong); transition: width var(--transition-duration-small) var(--ease-emphasized), background-color var(--transition-duration-small); }
+.wt-dot[data-state="done"] { background: var(--color-ink-muted); }
+.wt-dot[data-state="current"] { width: 18px; background: var(--color-ink-primary); }
+
+/* Board. Opacity eases both ways, so a revert fades back in rather than snapping. */
+.cv-node, .cv-linkgroup, .cv-link-label, .cv-subsystem { transition: opacity var(--transition-duration-panel); }
+.cv-subsystem.is-dimmed { opacity: .2; }
+.cv-node.is-wt-focus .cv-halo { stroke: var(--color-ink-primary); stroke-width: 10; stroke-opacity: .08; }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='off']) .cv-node.is-wt-focus .cv-halo { animation: wt-focuspulse 1.6s ease-in-out infinite; }
+}
+@keyframes wt-focuspulse { 0%, 100% { stroke-opacity: .04; } 50% { stroke-opacity: .18; } }
+.cv-subsystem.is-wt-focus .cv-body { stroke: var(--color-ink-primary); stroke-width: 1.5; }
+.cv-linkgroup[data-wt-flow="path"] .cv-link { stroke-width: 2; }
+.cv-node[data-wt-tone] .cv-ring { stroke-width: 2; }
+.cv-node[data-wt-tone="ok"] .cv-ring { stroke: var(--color-signal-ok); }
+.cv-node[data-wt-tone="warn"] .cv-ring { stroke: var(--color-signal-warn); }
+.cv-node[data-wt-tone="critical"] .cv-ring { stroke: var(--color-signal-critical); }
+.cv-node[data-wt-tone="info"] .cv-ring { stroke: var(--color-signal-flow); }
+.cv-node[data-wt-tone="accent"] .cv-ring { stroke: var(--color-brand); }
+.cv-node[data-wt-tone="muted"] .cv-ring { stroke: var(--color-ink-muted); }
+.cv-linkgroup[data-wt-tone="ok"] .cv-link { stroke: var(--color-signal-ok); }
+.cv-linkgroup[data-wt-tone="warn"] .cv-link { stroke: var(--color-signal-warn); }
+.cv-linkgroup[data-wt-tone="critical"] .cv-link { stroke: var(--color-signal-critical); }
+.cv-linkgroup[data-wt-tone="info"] .cv-link { stroke: var(--color-signal-flow); }
+.cv-linkgroup[data-wt-tone="accent"] .cv-link { stroke: var(--color-brand); }
+.cv-linkgroup[data-wt-tone="muted"] .cv-link { stroke: var(--color-ink-muted); }
+.wt-layer { pointer-events: none; }
+.wt-badge circle { fill: var(--color-ink-primary); stroke: var(--color-surface-canvas); stroke-width: 2; }
+.wt-badge text { font: 600 12px var(--font-mono); fill: var(--color-surface-page); }
+
+@media (max-width: 639px) {
+  /* Phone: the dock under the board is otherwise just the transport row,
+     but a walkthrough's narration is the point of the mode, so its card
+     stays in view there, compact; the board re-fits above it. */
+  .player-timeline-dock[data-dock="board"] .player-narration-slot:has(.wt-narr) { display: block; }
+  .wt-narr { flex-wrap: wrap; gap: 6px; min-height: 0; padding: 8px 10px; }
+  .wt-narr-title { font-size: 14px; }
+  .wt-narr-md { max-height: 4.8em; font-size: 14px; }
+  .wt-narr-md p, .wt-narr-md li { font-size: 14px; }
+  .wt-narr-acts { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+}

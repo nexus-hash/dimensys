@@ -3,6 +3,8 @@ import { PlayerBlueprint } from './blueprint';
 import { PlayerShell, buildElementIndex, modeAvailability } from './shell';
 import { buildInspectorPanels } from './inspector/InspectorPanels';
 import { buildTargetCatalog } from './breakit/catalog';
+import { buildWalkthroughs } from './walkthrough/model';
+import { buildWalkthroughNarration } from './walkthrough/narration';
 import type { ReactNode } from 'react';
 import type { PlayerBootstrap, ViewData } from './types';
 
@@ -169,6 +171,8 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
           remedies={diagram.remedies}
           catalog={buildTargetCatalog(board)}
           switches={diagram.switches}
+          walkthroughs={buildWalkthroughs(diagram)}
+          narration={buildWalkthroughNarration(diagram)}
         >
           {blueprint}
         </PlayerShell>

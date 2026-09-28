@@ -4,6 +4,7 @@ import { useId, useMemo, useState, type ReactNode } from 'react';
 import { HudTable, HudSummary, HudTileRow, useHudReadings } from '../hud/HudTiles';
 import { PlaybackControls } from '../hud/PlaybackControls';
 import { ZoomSlotContext } from '../blueprint/zoomSlot';
+import { WalkthroughNarration } from '../walkthrough/WalkthroughNarration';
 import type { GaugeView } from '../types';
 import { BreakDockRow, BreakToolbox } from '../breakit';
 
@@ -63,8 +64,10 @@ export interface TimelineDockProps {
  */
 export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {}) {
   return (
-    <div className="player-timeline-dock">
-      <div className="player-narration-slot" aria-live="polite" data-narration-slot />
+    <div className="player-timeline-dock" data-dock={registerShortcuts ? 'board' : 'sheet'}>
+      <div className="player-narration-slot" aria-live="polite" data-narration-slot>
+        <WalkthroughNarration />
+      </div>
       {registerShortcuts ? <BreakDockRow /> : null}
       <div className="player-timeline-slot" role="group" aria-label="Playback" data-timeline-slot>
         <PlaybackControls registerShortcuts={registerShortcuts} />

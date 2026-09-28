@@ -13,6 +13,9 @@ import type { ModeAvailability } from './modes';
 import type { GaugeView, KitView, NeedView, RemedyView, SwitchView } from '../types';
 import { BreakController, BreakDataProvider, RightColumn, useBreakUi } from '../breakit';
 import type { TargetCatalog } from '../breakit/tools';
+import { WalkthroughProvider, type WalkthroughData } from '../walkthrough/WalkthroughContext';
+import { WalkthroughController } from '../walkthrough/WalkthroughController';
+import type { WalkthroughView } from '../walkthrough/model';
 
 export interface PlayerShellProps {
   title: string;
@@ -29,6 +32,10 @@ export interface PlayerShellProps {
   remedies?: readonly RemedyView[];
   catalog?: TargetCatalog;
   switches?: readonly SwitchView[];
+  /** Walkthroughs resolved against the board (`buildWalkthroughs`); defaults to none. */
+  walkthroughs?: readonly WalkthroughView[];
+  /** Their server-rendered narration (`buildWalkthroughNarration`). */
+  narration?: Readonly<Record<string, React.ReactNode>>;
   children: React.ReactNode;
 }
 
@@ -84,6 +91,8 @@ export function PlayerShell({
   remedies = EMPTY_REMEDIES,
   catalog = EMPTY_CATALOG,
   switches,
+  walkthroughs = NO_WALKTHROUGHS,
+  narration = NO_NARRATION,
   children,
 }: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
@@ -92,6 +101,12 @@ export function PlayerShell({
   const [railOpen, setRailOpen] = React.useState(true);
   const [railDrawerOpen, setRailDrawerOpen] = React.useState(false);
   const [snapIndex, setSnapIndex] = React.useState(0);
+  const shellRef = React.useRef<HTMLDivElement>(null);
+  const breakAvailable = modeAvailability.break === 'available';
+  const walkthroughData = React.useMemo<WalkthroughData>(
+    () => ({ walkthroughs, narration, breakAvailable }),
+    [walkthroughs, narration, breakAvailable],
+  );
 
   function toggleRail() {
     setRailOpen((open) => !open);
@@ -110,8 +125,9 @@ export function PlayerShell({
   const sheetPeek = { '--player-sheet-peek': `${SNAP_PERCENTS[snapIndex]}dvh` } as React.CSSProperties;
 
   return (
+    <WalkthroughProvider value={walkthroughData}>
     <BreakDataProvider kit={kit} remedies={remedies} needs={needs} catalog={catalog} switches={switches}>
-    <div className="player-shell" data-player-mode={mode} style={sheetPeek}>
+    <div ref={shellRef} className="player-shell" data-player-mode={mode} style={sheetPeek}>
       <TopBar
         title={title}
         modeAvailability={modeAvailability}
@@ -138,10 +154,14 @@ export function PlayerShell({
         onSnapIndexChange={setSnapIndex}
       />
       <BreakController />
+      <WalkthroughController boardRootRef={shellRef} />
     </div>
     </BreakDataProvider>
+    </WalkthroughProvider>
   );
 }
 
 const EMPTY_REMEDIES: readonly RemedyView[] = [];
 const EMPTY_CATALOG: TargetCatalog = { nodes: [], links: [] };
+const NO_WALKTHROUGHS: readonly WalkthroughView[] = [];
+const NO_NARRATION: Readonly<Record<string, React.ReactNode>> = {};
