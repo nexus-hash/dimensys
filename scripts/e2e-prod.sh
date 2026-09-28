@@ -74,6 +74,7 @@ npx playwright test \
   e2e/player-interactive-layer.spec.ts \
   e2e/player-board-fit.spec.ts \
   e2e/player-inspector.spec.ts \
+  e2e/player-inspector-advanced.spec.ts \
   e2e/player-label-geometry.spec.ts \
   e2e/player-hud-timeline.spec.ts \
   e2e/player-frames.spec.ts \
