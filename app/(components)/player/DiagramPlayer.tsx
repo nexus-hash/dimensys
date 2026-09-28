@@ -1,7 +1,7 @@
 import { PlayerIsland } from './PlayerIsland';
 import { PlayerBlueprint } from './blueprint';
 import { PlayerShell, buildElementIndex, modeAvailability } from './shell';
-import { buildInspectorPanels } from './inspector';
+import { buildInspectorPanels } from './inspector/InspectorPanels';
 import type { ReactNode } from 'react';
 import type { PlayerBootstrap, ViewData } from './types';
 
@@ -146,7 +146,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
   // Every node's/link's inspector body, rendered once here (server-side —
   // see `buildInspectorPanels`'s own doc comment) rather than fetched or
   // built client-side per selection.
-  const panels = buildInspectorPanels(board, elementIndex);
+  const panels = buildInspectorPanels(board, elementIndex, { switches: diagram.switches, calcs: diagram.calcs });
 
   // A plain `<div>`, not a labelled `<section>`: an accessibly-named
   // `<section>` is itself a landmark ("region"), and `PlayerShell` already

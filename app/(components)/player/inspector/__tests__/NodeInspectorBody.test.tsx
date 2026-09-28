@@ -2,11 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NodeInspectorBody } from '../NodeInspectorBody';
-import type { NodeView } from '../../types';
+import type { NodeView, Part } from '../../types';
+
+/** A part of a shape this app has never seen (a newer view file): the only thing that still renders "Coming soon". */
+function unknownPart(pane: string, title: string): Part {
+  return { shape: 'hologram', pane, title } as unknown as Part;
+}
 
 /**
- * Only sync-safe shapes (`pairs`/`grid`/`bullets`/`risks`, plus the
- * `trade`/`calc` advanced fallback) are used here — `prose`/`source`/
+ * Only sync-safe shapes (`pairs`/`grid`/`bullets`/`risks`, a static
+ * `trade`, plus an unknown shape's "Coming soon" fallback) are used here — `prose`/`source`/
  * `notedSource` wrap async Server Components (`Markdown`/`CodeBlock`/
  * `AnnotatedCode`), which `@testing-library/react`'s plain DOM renderer
  * can't itself await; those three get their own renderer-level tests in
@@ -132,7 +137,7 @@ describe('NodeInspectorBody', () => {
         node={node({
           parts: [
             // "deferred" appears FIRST in the sheet, but has no real (simple-shape) section.
-            { shape: 'trade', pane: 'deferred', title: 'Tradeoffs', axes: [['Speed', 9]], picks: [] },
+            unknownPart('deferred', 'Tradeoffs'),
             { shape: 'pairs', pane: 'overview', title: 'Overview specs', pairs: [['a', '1']] },
           ],
         })}
@@ -143,39 +148,41 @@ describe('NodeInspectorBody', () => {
     expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('keeps a mixed pane (real content + an advanced part) in its original spot — only an all-advanced pane is demoted', () => {
+  it('keeps a mixed pane (real content + an unknown part) in its original spot — only an all-unknown pane is demoted', () => {
     render(
       <NodeInspectorBody
         node={node({
           parts: [
-            {
-              shape: 'trade',
-              pane: 'operations',
-              title: 'Tradeoffs',
-              axes: [['Speed', 9]],
-              picks: [],
-            },
+            unknownPart('operations', 'Tradeoffs'),
             { shape: 'risks', pane: 'operations', title: 'Bottlenecks', risks: [{ text: 'R1', danger: 'D1', remedy: 'M1' }] },
             { shape: 'pairs', pane: 'overview', title: 'Overview specs', pairs: [['a', '1']] },
           ],
         })}
       />,
     );
-    // "operations" has a real `risks` section alongside the advanced `trade` one, so it is NOT
+    // "operations" has a real `risks` section alongside the unknown one, so it is NOT
     // demoted — strip order stays first-appearance (Operations, then Overview).
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Operations', 'Overview']);
   });
 
-  it('an advanced (not-yet-rendered) shape shows the "Coming soon" fallback instead of dropping the part', () => {
+  it('an unknown shape shows the "Coming soon" fallback instead of dropping the part', () => {
+    render(<NodeInspectorBody node={node({ parts: [unknownPart('operations', 'Key Generation Trade-offs')] })} />);
+    expect(screen.getByText('Key Generation Trade-offs')).toBeTruthy();
+    expect(screen.getByText('Coming soon')).toBeTruthy();
+  });
+
+  it('a tradeoff part without a live switch renders its axes and options, not "Coming soon"', () => {
     render(
       <NodeInspectorBody
         node={node({
-          parts: [{ shape: 'trade', pane: 'operations', title: 'Key Generation Trade-offs', axes: [['Speed', 9]], picks: [] }],
+          parts: [{ shape: 'trade', pane: 'operations', title: 'Key Generation Trade-offs', axes: [['Speed', 9]], picks: [{ text: 'Base62', plus: 'Short', minus: 'Collisions' }] }],
         })}
       />,
     );
-    expect(screen.getByText('Key Generation Trade-offs')).toBeTruthy();
-    expect(screen.getByText('Coming soon')).toBeTruthy();
+    expect(screen.queryByText('Coming soon')).toBeNull();
+    expect(screen.getByText('Speed')).toBeTruthy();
+    expect(screen.getByText('9 / 10')).toBeTruthy();
+    expect(screen.getByText('Base62')).toBeTruthy();
   });
 
   it('section headings start at h3 (the inspector header above it owns the h2)', () => {
