@@ -621,16 +621,6 @@ export interface RuntimeManifest {
 /** One logged user action: `[t, tool, target, value]`. */
 export type UserAction = [number, string, string | null, number | string | boolean | null];
 
-/** Decoded share URL. Codec is T3.12. */
-export interface ShareState {
-  docId: string;
-  r?: number;
-  v?: string;
-  st?: string;
-  t?: number;
-  a?: UserAction[];
-}
-
 /** Health tokens as published by the worker's metrics snapshot. */
 export type SimHealthToken = 'ok' | 'warn' | 'critical' | 'info' | 'accent' | 'muted';
 

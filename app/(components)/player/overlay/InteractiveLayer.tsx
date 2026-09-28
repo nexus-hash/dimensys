@@ -15,6 +15,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { WorkerBridge } from '../worker/bridge';
+import { takeBootRun } from '../share/shareSlot';
 import { HEALTH_CODES } from '../worker/protocol';
 import type { PlayerBootstrap, SimHealthToken } from '../types';
 import {
@@ -122,13 +123,24 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
     const start = () => {
       if (cancelled) return;
+      // A share link's run (the full player reads the URL before this runs):
+      // rebuilt from its action log at its time, then playing or paused as shared.
+      const boot = interactive ? takeBootRun(store) : null;
       try {
         bridge = new WorkerBridge({
           runtimeUrl: bootstrap.runtimeUrl!,
           simUrl: bootstrap.simUrl!,
           build: bootstrap.hash,
-          mode: 'free',
+          mode: boot?.scenario ? 'scenario' : 'free',
+          ...(boot?.scenario ? { scenarioId: boot.scenario.id } : {}),
           store,
+          ...(boot
+            ? {
+                restore: { actions: boot.actions, t: boot.t, ...(boot.scenario ? { choices: boot.scenario.choices } : {}) },
+                startPaused: !boot.playing,
+                onRestored: (skipped: number) => boot.onReady(skipped),
+              }
+            : {}),
         });
       } catch {
         // Construction failed synchronously (unsupported browser, blocked module worker, ...):
@@ -136,12 +148,14 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         // bridge exists, so there's nothing further to flip here.
         return;
       }
-      // Healthy baseline autoplay: play as soon as the worker reports ready.
+      // Healthy baseline autoplay: play as soon as the worker reports ready
+      // (a shared run plays or stays paused as it was shared, at its speed).
       const unsub = store.subscribe(() => {
         const s = store.getState();
-        if (s.sim.status === 'ready' && !s.sim.playing) {
-          bridge?.play();
+        if (s.sim.status === 'ready') {
           unsub();
+          if (boot && boot.speed !== 1) bridge?.setSpeed(boot.speed);
+          if (!s.sim.playing && (!boot || boot.playing)) bridge?.play();
         } else if (s.sim.status === 'error') {
           unsub();
         }

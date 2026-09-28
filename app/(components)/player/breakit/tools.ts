@@ -241,6 +241,8 @@ export function describeAction(
       const opt = sw?.opts.find((o) => o.id === value);
       return sw ? `${sw.text}: ${opt?.text ?? String(value)}` : `Switched ${target}`;
     }
+    case 'calc':
+      return 'Applied a sizing estimate';
     default:
       return tool;
   }
@@ -277,6 +279,7 @@ export function undoPlan(actions: readonly UserAction[], index: number): UndoPla
       return value !== 1 && !later.some((a) => a[1] === 'spike') ? { kind: 'inverse', tool: 'spike', target: null, value: 1 } : null;
     case 'intervention':
     case 'fault':
+    case 'calc':
       return { kind: 'replay', index };
     default:
       return null;

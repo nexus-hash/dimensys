@@ -170,3 +170,35 @@ export function interpolateCamera(a: Camera, b: Camera, t: number): Camera {
 export function easeInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
+
+// ---------------------------------------------------------------------------
+// The view as a share link carries it
+// ---------------------------------------------------------------------------
+
+/**
+ * A camera in board terms, independent of the screen: the board point at
+ * the centre of the stage (`x`, `y`, native px) and the zoom (`z`).
+ */
+export interface BoardView {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** Ask a board to show this view (`detail`: a `BoardView`), dispatched on its `.player-board-stage`. */
+export const CAMERA_VIEW_EVENT = 'playercameraview';
+
+/** `playercamerachange`'s detail: the user's own view, or `null` while the camera is fitted/framed for them. */
+export interface CameraChangeDetail {
+  view: BoardView | null;
+}
+
+export function viewOfCamera(camera: Camera, freeW: number, freeH: number): BoardView {
+  return { x: (freeW / 2 - camera.x) / camera.scale, y: (freeH / 2 - camera.y) / camera.scale, z: camera.scale };
+}
+
+/** The camera that shows `view` on a stage of this size (zoom clamped to the usual range). */
+export function cameraForView(view: BoardView, freeW: number, freeH: number, fitScale: number): Camera {
+  const scale = clampScale(view.z, fitScale);
+  return { scale, x: freeW / 2 - view.x * scale, y: freeH / 2 - view.y * scale };
+}

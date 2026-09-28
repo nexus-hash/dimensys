@@ -9,7 +9,7 @@ import { ReplaysVisual } from './(components)/home/ReplaysVisual';
 import { WalkthroughVisual } from './(components)/home/WalkthroughVisual';
 import { ShareVisual } from './(components)/home/ShareVisual';
 import { loadPlayerDiagram } from './(server)/engine/publicData';
-import { walkthroughHref } from './(components)/player/walkthrough/url';
+import { walkthroughHref } from './(components)/player/share/codec';
 
 /**
  * Home (S4.6a). Structure and copy follow the approved design intent: one

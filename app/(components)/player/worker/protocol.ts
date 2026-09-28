@@ -132,6 +132,15 @@ export interface ReadyMsg {
   healthIds: string[];
   /** Bumped whenever `metricKeys`/`healthIds` change; frames carry the epoch they use. */
   keysEpoch: number;
+  /** Indices into `init.restore.actions` that no longer resolve and were skipped (a share link made on an older diagram). Absent when none were. */
+  skipped?: number[];
+  /**
+   * A restored run's lead-up, for the HUD: the global metric keys, their
+   * readings after the run's first tick and their per-tick readings over
+   * the last 60 s up to the restore point (`series[i]` follows `keys[i]`
+   * over `t`). Only after a `restore`.
+   */
+  past?: { keys: string[]; first: number[]; t: number[]; series: number[][] };
 }
 
 /** Re-sent key tables after the node/link set changes. */

@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { IconButton, Button, Kbd } from '@/app/(components)/ui';
-import { PanelLeftIcon, ShareIcon, SettingsIcon } from '@/app/(components)/ui/icons';
+import { PanelLeftIcon, SettingsIcon } from '@/app/(components)/ui/icons';
 import { useCommandPalette, usePlatformModKey } from '@/app/(components)/command';
 import type { PlayerMode } from '../store/playerStore';
 import { ModeSwitcher } from './ModeSwitcher';
 import type { ModeAvailability } from './modes';
 import ThemeButton from '../../theme/ThemeButton';
 import { BrandMark } from '../../brand/BrandMark';
+import { ShareButton } from '../share/ShareButton';
 
 export interface TopBarProps {
   title: string;
@@ -20,8 +21,9 @@ export interface TopBarProps {
 /**
  * The player's top bar: rail toggle, the breadcrumb (Explore › diagram
  * title — the title is the page's `h1`), the mode switcher,
- * and share/settings placeholders (real affordances are a later task — these
- * are inert but keyboard-reachable so the frame's tab order is final now).
+ * Share (copies a link to exactly what's on screen) and a settings
+ * placeholder (a later task; inert but keyboard-reachable so the frame's
+ * tab order is final now).
  */
 export function TopBar({ title, modeAvailability, railOpen, onToggleRail }: TopBarProps) {
   const { openPalette } = useCommandPalette();
@@ -73,14 +75,8 @@ export function TopBar({ title, modeAvailability, railOpen, onToggleRail }: TopB
       </div>
 
       <div className="flex flex-none items-center gap-1">
-        {/* Placeholders — the share sheet and settings menu are later tasks. */}
-        <Button variant="ghost" size="sm" className="player-desktop-only" disabled aria-disabled title="Share (coming soon)">
-          <ShareIcon />
-          Share
-        </Button>
-        <IconButton aria-label="Share" disabled className="player-phone-only">
-          <ShareIcon />
-        </IconButton>
+        <ShareButton />
+        <ShareButton compact />
         <Button variant="ghost" size="sm" className="player-desktop-only gap-1.5" onClick={openPalette} aria-label="Command palette">
           <Kbd>{modKey}</Kbd>
           <Kbd>K</Kbd>

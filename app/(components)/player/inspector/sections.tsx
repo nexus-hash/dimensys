@@ -234,7 +234,8 @@ function TradeSection({ part, ctx }: { part: TradePart; ctx: SectionContext }) {
 function CalcSection({ part, ctx }: { part: CalcPart; ctx: SectionContext }) {
   const calc = ctx.calcs.find((c) => c.id === part.calc);
   if (!calc) return <AdvancedSection part={part} />;
-  return <CalcPanel part={part} calc={calc} />;
+  // Keyed: another element's calculator in the same spot is a new panel, not this one's sliders reused.
+  return <CalcPanel key={calc.id} part={part} calc={calc} />;
 }
 
 function SparkSection({ part, ctx }: { part: SparkPart; ctx: SectionContext }) {

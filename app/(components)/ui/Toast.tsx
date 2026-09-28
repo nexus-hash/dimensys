@@ -40,14 +40,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             'data-[swipe=end]:animate-[fadeout_200ms_var(--ease-exit)]',
           )}
         >
-          <RadixToast.Title className={cn('flex-1', VARIANT_CLASSES[item.variant])}>
-            {item.title}
-          </RadixToast.Title>
-          {item.description ? (
-            <RadixToast.Description className="text-ink-secondary text-[12px]">
-              {item.description}
-            </RadixToast.Description>
-          ) : null}
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <RadixToast.Title className={VARIANT_CLASSES[item.variant]}>{item.title}</RadixToast.Title>
+            {item.description ? (
+              // On the toast's inverted surface: the page color, softened (the ink tokens are for the page).
+              <RadixToast.Description className="text-[12px] font-normal text-surface-page/80">{item.description}</RadixToast.Description>
+            ) : null}
+          </div>
         </RadixToast.Root>
       ))}
       <RadixToast.Viewport

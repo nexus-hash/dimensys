@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Button, Pill, Slider } from '@/app/(components)/ui';
 import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { getBridge } from '../worker/bridgeRegistry';
 import { onCalcReply } from '../worker/calcResults';
-import type { CalcPart, CalcView } from '../types';
+import type { CalcPart, CalcView, UserAction } from '../types';
 import { SectionHeading } from './SectionHeading';
 import { formatCalcValue, formatSliderValue, sliderStep, snapSliderValue } from './calcFormat';
 
@@ -16,6 +16,26 @@ type Values = Record<string, number>;
 
 function initialValues(calc: CalcView): Values {
   return Object.fromEntries(calc.sliders.map((s) => [s.id, s.init]));
+}
+
+/** The values this calculator was last applied with, from the action log (`id=value,…`), or `null`. */
+export function lastAppliedText(actions: readonly UserAction[], calcId: string): string | null {
+  for (let i = actions.length - 1; i >= 0; i--) {
+    const [, tool, target, value] = actions[i];
+    if (tool === 'calc' && target === calcId && typeof value === 'string') return value;
+  }
+  return null;
+}
+
+export function parseCalcValues(text: string): Values | null {
+  const out: Values = {};
+  for (const part of text.split(',')) {
+    const eq = part.indexOf('=');
+    const n = Number(part.slice(eq + 1));
+    if (eq <= 0 || !Number.isFinite(n)) return null;
+    out[part.slice(0, eq)] = n;
+  }
+  return out;
 }
 
 function sameValues(a: Values, b: Values): boolean {
@@ -33,7 +53,9 @@ export function heroResultId(calc: CalcView): string | undefined {
  * the formulas; while the sliders move it answers previews (`dry`), which
  * change nothing. When the calculator feeds the simulation, "Apply" sends
  * the same values for real and the worker writes the results into the live
- * run (e.g. a replica count), so the board, HUD and health all move.
+ * run (e.g. a replica count), so the board, HUD and health all move. The
+ * apply joins the action log, so a share link replays it; the panel reads
+ * what's applied back from that log (a restored link shows its values).
  * `heading={false}` drops the title row where the host already has one.
  */
 export function CalcPanel({ part, calc, heading = true }: { part: CalcPart; calc: CalcView; heading?: boolean }) {
@@ -44,14 +66,18 @@ export function CalcPanel({ part, calc, heading = true }: { part: CalcPart; calc
   const hero = heroResultId(calc);
   const headingId = useId();
 
-  const [values, setValues] = useState<Values>(() => initialValues(calc));
+  // What's applied lives in the action log: Reset, an undo and a share link all agree with it.
+  const appliedText = usePlayerStore((s) => lastAppliedText(s.actions, calc.id));
+  const applied = useMemo(() => {
+    const parsed = appliedText === null ? null : parseCalcValues(appliedText);
+    return parsed ? { ...initialValues(calc), ...parsed } : null;
+  }, [appliedText, calc]);
+  const [values, setValues] = useState<Values>(() => applied ?? initialValues(calc));
   const [outputs, setOutputs] = useState<Record<string, number> | null>(null);
-  const [applied, setApplied] = useState<Values | null>(null);
   const [applying, setApplying] = useState(false);
   const [failed, setFailed] = useState(false);
   const previewSeq = useRef(-1);
   const applySeq = useRef(-1);
-  const pendingApply = useRef<Values | null>(null);
 
   // Replies for this calculator's own commands only.
   useEffect(
@@ -66,25 +92,17 @@ export function CalcPanel({ part, calc, heading = true }: { part: CalcPart; calc
         }
         setFailed(false);
         if (reply.outputs) setOutputs({ ...reply.outputs });
-        if (isApply) {
-          setApplying(false);
-          setApplied(pendingApply.current);
-        }
+        if (isApply) setApplying(false);
       }),
     [store],
   );
 
-  // A restarted run (Reset, a scrub back) starts from the authored sizing
-  // again: whatever was applied is gone.
-  useEffect(() => {
-    let lastT = -1;
-    return store.subscribe(() => {
-      const t = store.getState().sim.frame?.t;
-      if (t === undefined) return;
-      if (t < lastT - 0.5) setApplied(null);
-      lastT = t;
-    });
-  }, [store]);
+  // Applied from elsewhere (a share link rebuilding the run): show those values.
+  const [seenApplied, setSeenApplied] = useState(appliedText);
+  if (appliedText !== seenApplied) {
+    setSeenApplied(appliedText);
+    if (applied && !sameValues(values, applied)) setValues(applied);
+  }
 
   // Live preview, debounced.
   const valuesKey = JSON.stringify(values);
@@ -100,7 +118,6 @@ export function CalcPanel({ part, calc, heading = true }: { part: CalcPart; calc
   function apply() {
     const bridge = getBridge(store);
     if (!bridge || !live) return;
-    pendingApply.current = { ...values };
     setApplying(true);
     applySeq.current = bridge.calc(calc.id, { ...values });
   }

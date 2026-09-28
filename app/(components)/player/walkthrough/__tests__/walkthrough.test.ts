@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { buildWalkthroughs, plainText } from '../model';
-import { readWalkthroughParams, writeWalkthroughParams, walkthroughHref } from '../url';
 import { openWalkthrough, stepBy, exitWalkthrough } from '../actions';
 import { WalkthroughStage, CAMERA_FOCUS_EVENT, type StageState } from '../stage';
 import { createPlayerStore, initialPlayerState } from '../../store/playerStore';
@@ -102,24 +101,6 @@ describe('walkthrough model', () => {
 
   it('plainText strips markdown marks', () => {
     expect(plainText('A [link](http://x) and `code` with **bold**')).toBe('A link and code with bold');
-  });
-});
-
-describe('walkthrough URL', () => {
-  it('resolves a walkthrough and its step by id or 1-based number', () => {
-    expect(readWalkthroughParams('?v=wt-write&st=w2', walkthroughs)).toEqual({ id: 'wt-write', stepIndex: 1 });
-    expect(readWalkthroughParams('?v=wt-write&st=3', walkthroughs)).toEqual({ id: 'wt-write', stepIndex: 2 });
-    expect(readWalkthroughParams('?v=wt-write&st=99', walkthroughs)).toEqual({ id: 'wt-write', stepIndex: 2 });
-    expect(readWalkthroughParams('?v=wt-write', walkthroughs)).toEqual({ id: 'wt-write', stepIndex: 0 });
-    expect(readWalkthroughParams('?v=nope', walkthroughs)).toBeNull();
-    expect(readWalkthroughParams('', walkthroughs)).toBeNull();
-  });
-
-  it('writes and clears only its own params', () => {
-    expect(writeWalkthroughParams('?x=1', { id: 'wt-write', stepId: 'w2' })).toBe('?x=1&v=wt-write&st=w2');
-    expect(writeWalkthroughParams('?x=1&v=wt-write&st=w2', null)).toBe('?x=1');
-    expect(writeWalkthroughParams('?v=wt-write&st=w2', null)).toBe('');
-    expect(walkthroughHref('url-shortener', 'wt-write')).toBe('/solutions/url-shortener?v=wt-write');
   });
 });
 

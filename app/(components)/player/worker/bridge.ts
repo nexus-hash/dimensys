@@ -4,6 +4,10 @@
  * into a `PlayerStore` — the latest frame only, at the worker's own 10 Hz
  * cadence (`SNAPSHOT_HZ`).
  *
+ * Share links: `restore` starts the very first run from an action log at a
+ * time (the worker rebuilds it tick by tick, deterministically), and
+ * `onRestored` reports how many of those actions no longer resolved.
+ *
  * Resilience: on a fatal error (`error.fatal`, `worker.onerror` or a
  * `messageerror`) the bridge restarts the underlying worker exactly once,
  * re-`init`s it with the store's own action log as `restore`, and only then
@@ -25,6 +29,7 @@ import {
 } from './protocol';
 import { registerBridge, unregisterBridge } from './bridgeRegistry';
 import { publishCalcReply } from './calcResults';
+import { setLeadUp } from '../metrics/leadUp';
 import { publishRunnerEvents } from './runnerEvents';
 import type { UserAction } from '../types';
 
@@ -48,6 +53,12 @@ export interface WorkerBridgeOptions {
   mode: 'free' | 'scenario';
   scenarioId?: string;
   store: PlayerStore;
+  /** Start the first run rebuilt from this log at `t` (a share link) instead of the healthy start. */
+  restore?: { actions: readonly UserAction[]; t: number; choices?: { [checkpointId: string]: string | null } };
+  /** Start paused. */
+  startPaused?: boolean;
+  /** Called once, when the `restore` run is ready: how many of its actions were skipped. */
+  onRestored?: (skipped: number) => void;
   /** Injection point for tests; defaults to `new Worker(runtimeUrl, { type: 'module' })`. */
   createWorker?: (url: string) => WorkerLike;
   /** Injection point for tests; defaults to `document.hidden` / `document.addEventListener`. */
@@ -76,13 +87,9 @@ export class WorkerBridge {
   private seq = 0;
   private disposed = false;
   private restartedOnce = false;
-  /**
-   * The last applied (not previewed) values per calculator. Calculator
-   * applies aren't in the action log, so a `replay` would otherwise drop
-   * them; they're re-sent once the replayed worker is ready.
-   */
-  private readonly appliedCalcs = new Map<string, CalcCmd['values']>();
-  private reapplyCalcsOnReady = false;
+  /** The log the current worker was started from, until its `ready` says which entries it kept. */
+  private restoring: UserAction[] | null = null;
+  private onRestored: ((skipped: number) => void) | null = null;
   private wasPlayingBeforeHide = false;
   private stopVisibility: (() => void) | null = null;
 
@@ -90,7 +97,17 @@ export class WorkerBridge {
     this.opts = options;
     this.createWorker = options.createWorker ?? defaultCreateWorker;
     this.visibility = options.visibility ?? defaultVisibility;
-    this.startWorker();
+    if (options.mode === 'scenario' && options.scenarioId) {
+      this.opts.store.setState((s) => ({ story: { ...s.story, scenarioId: options.scenarioId! } }));
+    }
+    if (options.restore) {
+      const actions = [...options.restore.actions];
+      this.opts.store.setState({ actions });
+      this.onRestored = options.onRestored ?? null;
+      this.startWorker({ actions, t: options.restore.t, ...(options.restore.choices ? { choices: options.restore.choices } : {}) }, !!options.startPaused);
+    } else {
+      this.startWorker(undefined, !!options.startPaused);
+    }
     this.stopVisibility = this.visibility.onChange(() => this.onVisibilityChange());
     // Registered synchronously, before any worker message can land — see
     // `bridgeRegistry.ts` for why that ordering is the whole point (T3.8's
@@ -117,7 +134,6 @@ export class WorkerBridge {
   }
 
   reset(): void {
-    this.appliedCalcs.clear();
     this.opts.store.setState({ actions: [] });
     this.send({ type: 'reset', seq: this.nextSeq() });
   }
@@ -148,7 +164,7 @@ export class WorkerBridge {
    * back out of the log (a reverted fix): the result is exactly the run
    * that would have happened without it, and the share link stays the
    * shorter log. Keeps playing if it was playing. Doesn't use up the one
-   * crash restart.
+   * crash restart. Calculator applies are in the log like everything else.
    */
   replay(actions: readonly UserAction[], t: number): void {
     if (this.disposed) return;
@@ -157,7 +173,6 @@ export class WorkerBridge {
     this.worker = null;
     old?.terminate();
     this.opts.store.setState({ actions: [...actions] });
-    this.reapplyCalcsOnReady = this.appliedCalcs.size > 0;
     this.startWorker({ actions: [...actions], t }, !wasPlaying);
   }
 
@@ -173,8 +188,8 @@ export class WorkerBridge {
     this.worker = null;
     old?.terminate();
     this.opts = { ...this.opts, mode, scenarioId: mode === 'scenario' ? scenarioId : undefined };
-    this.appliedCalcs.clear();
-    this.reapplyCalcsOnReady = false;
+    this.restoring = null;
+    this.onRestored = null;
     this.opts.store.setState((s) => ({
       actions: [],
       sim: { ...s.sim, playing: false, errorCode: undefined },
@@ -185,12 +200,12 @@ export class WorkerBridge {
 
   /**
    * Evaluates a calculator. `dry` only previews the outputs; without it the
-   * worker also applies the calculator's binds to the live run. Returns the
+   * worker also applies the calculator's binds to the live run, and logs
+   * the apply as a `calc` action (echoed like any other). Returns the
    * command's `seq`: the reply (`calcResults.ts`) carries the same one.
    */
   calc(id: string, values: CalcCmd['values'], dry = false): number {
     const seq = this.nextSeq();
-    if (!dry) this.appliedCalcs.set(id, { ...values });
     this.send({ type: 'calc', seq, id, values, ...(dry ? { dry: true as const } : {}) });
     return seq;
   }
@@ -234,6 +249,7 @@ export class WorkerBridge {
     worker.addEventListener('error', () => this.onFatal());
     worker.addEventListener('messageerror', () => this.onFatal());
 
+    this.restoring = restore ? [...restore.actions] : null;
     const init: InitCmd = {
       type: 'init',
       seq: this.nextSeq(),
@@ -268,10 +284,9 @@ export class WorkerBridge {
         this.opts.store.setState((s) => ({
           sim: { ...s.sim, status: 'ready', keysEpoch: msg.keysEpoch, metricKeys: msg.metricKeys, healthIds: msg.healthIds },
         }));
-        if (this.reapplyCalcsOnReady) {
-          this.reapplyCalcsOnReady = false;
-          for (const [id, values] of this.appliedCalcs) this.send({ type: 'calc', seq: this.nextSeq(), id, values });
-        }
+        // A share link's run: the HUD gets the lead-up this page never saw.
+        if (this.onRestored && msg.past) setLeadUp(this.opts.store, msg.past);
+        this.settleRestore(msg.skipped ?? []);
         return;
       case 'keys':
         this.opts.store.setState((s) => ({
@@ -319,6 +334,19 @@ export class WorkerBridge {
         }
         return;
     }
+  }
+
+  /** The worker kept all but `skipped` of the log it was started from: make the store's log match. */
+  private settleRestore(skipped: readonly number[]): void {
+    const restoring = this.restoring;
+    this.restoring = null;
+    if (restoring && skipped.length) {
+      const drop = new Set(skipped);
+      this.opts.store.setState({ actions: restoring.filter((_, i) => !drop.has(i)) });
+    }
+    const report = this.onRestored;
+    this.onRestored = null;
+    report?.(restoring ? skipped.length : 0);
   }
 
   private onFatal(): void {

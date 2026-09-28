@@ -17,11 +17,14 @@ import {
   DRAG_THRESHOLD_PX,
   focusCamera,
   interpolateCamera,
+  cameraForView,
+  viewOfCamera,
+  CAMERA_VIEW_EVENT,
   easeInOut,
 } from './camera';
 import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
 import { CAMERA_FOCUS_EVENT, type CameraFocusDetail } from '../walkthrough/stage';
-import type { Camera } from './camera';
+import type { BoardView, Camera, CameraChangeDetail } from './camera';
 import { ZoomControls } from './ZoomControls';
 import { useZoomSlot } from './zoomSlot';
 import type { Box, XY } from '../types';
@@ -94,6 +97,8 @@ export function BoardStage({ boardSize, className, interactive = true, children 
   const focusBoxRef = useRef<Box | null>(null);
   const stashRef = useRef<{ camera: Camera; tracking: boolean } | null>(null);
   const tweenRef = useRef(0);
+  // A view asked for before the stage could be measured (a share link's).
+  const pendingViewRef = useRef<BoardView | null>(null);
 
   function stopTween() {
     if (tweenRef.current) cancelAnimationFrame(tweenRef.current);
@@ -159,7 +164,9 @@ export function BoardStage({ boardSize, className, interactive = true, children 
     boardEl.style.height = `${nativeH}px`;
     boardEl.style.transformOrigin = '0 0';
     boardEl.style.transform = cameraTransform(camera);
-    stageRef.current?.dispatchEvent(new CustomEvent('playercamerachange', { bubbles: true }));
+    // The user's own view (share links carry it); `null` while it's fitted or framed for them.
+    const view = !trackingRef.current && stage && stage.clientWidth > 0 ? viewOfCamera(camera, stage.clientWidth, stage.clientHeight) : null;
+    stageRef.current?.dispatchEvent(new CustomEvent<CameraChangeDetail>('playercamerachange', { bubbles: true, detail: { view } }));
     if (readoutFrameRef.current) cancelAnimationFrame(readoutFrameRef.current);
     readoutFrameRef.current = requestAnimationFrame(() => {
       readoutFrameRef.current = 0;
@@ -177,6 +184,13 @@ export function BoardStage({ boardSize, className, interactive = true, children 
     if (freeW <= 0 || freeH <= 0) return;
     const fitScale = computeFitScale(freeW, freeH, nativeW, nativeH);
     fitScaleRef.current = fitScale;
+
+    const pendingView = pendingViewRef.current;
+    if (pendingView && !force) {
+      pendingViewRef.current = null;
+      showView(pendingView);
+      return;
+    }
 
     if (force || trackingRef.current) {
       trackingRef.current = true;
@@ -201,6 +215,22 @@ export function BoardStage({ boardSize, className, interactive = true, children 
 
   function fitActive() {
     recompute(true);
+  }
+
+  /** Shows a view given in board terms (a share link's): the user's own view from then on. */
+  function showView(view: BoardView) {
+    const stage = stageRef.current;
+    const freeW = stage?.clientWidth ?? 0;
+    const freeH = stage?.clientHeight ?? 0;
+    if (!stage || freeW <= 0 || freeH <= 0) {
+      pendingViewRef.current = view;
+      return;
+    }
+    const fitScale = computeFitScale(freeW, freeH, boardSize[0], boardSize[1]);
+    fitScaleRef.current = fitScale;
+    stopTween();
+    trackingRef.current = false;
+    applyCamera(cameraForView(view, freeW, freeH, fitScale));
   }
 
   // Board fit (T3.16, extended by BG part 2b): re-fits the board on every
@@ -258,9 +288,15 @@ export function BoardStage({ boardSize, className, interactive = true, children 
         animateTo(fitCamera(freeW, freeH, nativeW, nativeH));
       }
     }
+    function onView(e: Event) {
+      const view = (e as CustomEvent<BoardView>).detail;
+      if (view && Number.isFinite(view.x) && Number.isFinite(view.y) && view.z > 0) showView(view);
+    }
     stage.addEventListener(CAMERA_FOCUS_EVENT, onFocus);
+    stage.addEventListener(CAMERA_VIEW_EVENT, onView);
     return () => {
       stage.removeEventListener(CAMERA_FOCUS_EVENT, onFocus);
+      stage.removeEventListener(CAMERA_VIEW_EVENT, onView);
       stopTween();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

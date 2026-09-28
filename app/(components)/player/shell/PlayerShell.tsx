@@ -15,6 +15,7 @@ import { BreakController, BreakDataProvider, RightColumn, useBreakUi } from '../
 import type { TargetCatalog } from '../breakit/tools';
 import { WalkthroughProvider, type WalkthroughData } from '../walkthrough/WalkthroughContext';
 import { WalkthroughController } from '../walkthrough/WalkthroughController';
+import { ShareController } from '../share/ShareController';
 import type { WalkthroughView } from '../walkthrough/model';
 import type { RailData } from '../rail/data';
 import { StoryController, StoryProvider, type StoryData } from '../story';
@@ -74,9 +75,9 @@ export interface PlayerShellProps {
  * tablet/phone overlay via `data-rail-drawer-open`, and one handler flips
  * both together since only one is ever visually relevant at a time.
  *
- * URL state (T3.12) hook: that task reads/writes `mode` (and
- * `selection`) through the same store this shell reads — it doesn't need
- * anything from this file beyond the store already being there.
+ * URL state: `ShareController` reads a share link into the store on load
+ * and keeps the address bar on the current state; it needs nothing from
+ * this file beyond the store, the element index and the mode list.
  *
  * `snapIndex` (the phone sheet's current snap point) is owned here, not by
  * `PhoneSheet`, so it can also drive `--player-sheet-peek` on this root —
@@ -171,6 +172,7 @@ export function PlayerShell({
       <BreakController />
       <WalkthroughController boardRootRef={shellRef} />
       <StoryController boardRootRef={shellRef} />
+      <ShareController boardRootRef={shellRef} elements={elementIndex} modes={modeAvailability} />
     </div>
     </BreakDataProvider>
     </StoryProvider>
