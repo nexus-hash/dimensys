@@ -606,45 +606,36 @@
 .cv-node.cv-health-critical .cv-chip rect { stroke: var(--color-signal-critical); }
 .cv-node .cv-chip text { font: 600 12px var(--font-mono); fill: var(--color-ink-primary); }
 
-.cv-node.cv-subsystem-card .cv-body { stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
-.cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
-.cv-node .cv-tab, .cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
-/* The expanded frame's tab is a drill-down entry point (T3.4) — the rest of
-   `.cv-subsystem` stays decorative/non-interactive. */
-.cv-tab-hit { cursor: pointer; outline: none; }
-.cv-tab-hit:hover .cv-tab { fill: var(--color-ink-primary); }
-.cv-tab-hit:focus-visible { outline: 2px solid var(--color-ink-primary); outline-offset: 2px; }
+/* A group's frame: a dashed hairline border, a subtle fill and a mono tab
+   label above its top-left edge. Pure decoration — no hover, no focus, no
+   pointer events (a click on it falls through to the canvas). */
+.cv-subsystem { pointer-events: none; }
+.cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-width: 1; stroke-dasharray: 4 3; }
+.cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
 
 /* ============================================================================
- * Player — subsystem drill-down (T3.4).
- *
- * Every level (the top board and each subsystem's own board, any depth) is
- * pre-rendered server-side; only the active one is un-hidden. Both stack in
- * the same grid cell so entering/leaving can briefly overlap for the
- * crossfade instead of the page jumping height. The blanket reduced-motion
- * rule above already collapses both animations to a near-instant cut under
- * `prefers-reduced-motion`/`data-motion="off"`.
+ * Player — the board stage (pan/zoom camera).
  *
  * `min-width: 0` on both: grid items default to `min-width: auto`, which —
  * same flex/grid "automatic minimum size" trap `StaticBlueprint.tsx` guards
- * against on its own box — would otherwise let a level's content set an
+ * against on its own box — would otherwise let the board's content set an
  * unshrinkable floor on this grid cell's column, wide enough to overflow a
  * narrow viewport.
  * ========================================================================= */
-/* `DrillStage`'s own outer wrapper (T3.16): without an explicit size here,
+/* `BoardStage`'s own outer wrapper (T3.16): without an explicit size here,
    this div sizes to its content (its only non-decorative descendant is the
    grid below), which breaks the `width/height: 100%` chain those rules rely
    on — a percentage height only resolves against a *definite* parent
    height, and "auto" (content-based) doesn't count as definite. */
-.player-drill-root { display: contents; }
+.player-board-root { display: contents; }
 /* `grid-template-columns/rows: 1fr` (T3.16): with no explicit track sizing, a
    grid's implicit single track sizes to its *content* even when the grid
-   container itself has a definite 100% size — so without this, every level
+   container itself has a definite 100% size — so without this, the board
    sat in a cell shrunk to whatever size the pre-JS-fit CSS fallback gave it,
    not the stage's true full box, and the board-fit effect below measured
    that shrunk cell instead of the real free area. */
-.player-drill-stage { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; width: 100%; height: 100%; min-width: 0; min-height: 0; position: relative; touch-action: none; }
-/* No flex-centering here (BG part 2b): once hydrated, `DrillStage`'s camera
+.player-board-stage { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; width: 100%; height: 100%; min-width: 0; min-height: 0; position: relative; touch-action: none; }
+/* No flex-centering here (BG part 2b): once hydrated, `BoardStage`'s camera
    effect takes over positioning its one child (the board) entirely —
    `position: absolute; left/top: 0` plus a `translate()/scale()` transform
    (see `camera.ts`) — since a camera needs to place the board anywhere in
@@ -654,14 +645,10 @@
    `margin-inline: auto`) center it exactly as before, because plain block
    layout (unlike a flex/grid parent) honors `margin: auto` centering on its
    own — see `StaticBlueprint`'s own comment for that box's sizing. */
-.player-drill-level {
+.player-board-level {
   grid-area: 1 / 1; outline: none; width: 100%; height: 100%; min-width: 0; min-height: 0;
   position: relative;
 }
-.player-drill-level.is-entering { animation: player-drill-in var(--transition-duration-scene) var(--ease-emphasized) both; }
-.player-drill-level.is-leaving { animation: player-drill-out var(--transition-duration-small) var(--ease-exit) both; }
-@keyframes player-drill-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
-@keyframes player-drill-out { from { opacity: 1; } to { opacity: 0; } }
 
 @keyframes cv-ringpulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
 @keyframes cv-dashrot { to { stroke-dashoffset: -24; } }
@@ -690,7 +677,7 @@
 .cv-link.is-flow-static { stroke-dasharray: 2 6; }
 
 /* Interactive layer overlay (T3.3): the particle canvas sits over the active
-   drill level's SVG (positioned/sized imperatively in `InteractiveLayer.tsx`
+   board's SVG (positioned/sized imperatively in `InteractiveLayer.tsx`
    to match that SVG's own box within `data-player-root`) and never captures
    pointer events itself — hover/click targets stay the static SVG's own
    nodes/links underneath it. */
@@ -729,12 +716,12 @@
 
 /* The home hero's board (`<DiagramPlayer variant="hero">`): a fixed wide box
    inside the hero card, framed by the card itself (no border or radius of
-   its own). `DrillStage` fits the board inside the padded content box with
+   its own). `BoardStage` fits the board inside the padded content box with
    the same camera fit the full player uses. The stage takes no pointer
    input at all (`.is-static`): no hover or selection styling, no drag, and
    a wheel or touch scroll over it scrolls the page. */
 .player-hero { position: relative; aspect-ratio: 960 / 440; padding: 12px; overflow: hidden; }
-.player-drill-stage.is-static { pointer-events: none; touch-action: auto; }
+.player-board-stage.is-static { pointer-events: none; touch-action: auto; }
 
 /* The hero card's live indicator: a brand dot with a soft expanding ring. */
 .live-dot { width: 8px; height: 8px; flex: none; border-radius: 9999px; background: var(--color-brand); animation: live-dot 2s ease-out infinite; }
@@ -878,7 +865,7 @@
    buttons are 30px squares. */
 .player-zoom-controls button { width: 30px; height: 30px; }
 /* A bare embed/hero board has no strip: the cluster sits in the board's own
-   bottom-right corner there. `.player-drill-root` is `display: contents`,
+   bottom-right corner there. `.player-board-root` is `display: contents`,
    so this positions against the board's wrapper. */
 .player-zoom-controls.is-overlay {
   position: absolute;
@@ -897,9 +884,9 @@
 
 /* 24px inner padding (T3.16 board-fit follow-up): without it the board sits
    flush against the rail's border and the far viewport edge whenever it's
-   wide enough to be width-bound — `.player-drill-stage`'s `width/height:
+   wide enough to be width-bound — `.player-board-stage`'s `width/height:
    100%` resolves against this box's *content* box, so the padding shrinks
-   the free area the fit effect (`DrillStage`) measures for free, no JS
+   the free area the fit effect (`BoardStage`) measures for free, no JS
    change needed. */
 .player-board-wrap {
   position: relative;
@@ -1010,7 +997,7 @@
   /* An overlay doesn't push layout on its own — reserve its width from the
      canvas area's own box (not just visually slide over it) so the board
      re-fits to stay clear of it too, matching "nothing overlaps the
-     diagram" everywhere else. The board-fit effect (`DrillStage`) picks
+     diagram" everywhere else. The board-fit effect (`BoardStage`) picks
      this up for free via its `ResizeObserver` on `.player-board-wrap`. */
   .player-canvas-area {
     padding-right: 0;

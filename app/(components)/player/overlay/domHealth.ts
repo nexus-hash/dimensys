@@ -1,7 +1,7 @@
 /**
  * Applies live health/meter/selection state to the server-rendered static
  * blueprint's existing SVG elements, in place — no React re-render (T3.3
- * scope 2). The static render (`Node`/`SubsystemCollapsed` in the canvas
+ * scope 2). The static render (`Node` in the canvas
  * kit) always opens on the healthy baseline, which means a fresh page has
  * none of the conditional health-glyph/chip markup in the DOM yet (that kit
  * only emits it when `health !== 'ok'`, since the player always opens
@@ -35,7 +35,7 @@ function ensureGlyphHost(nodeGroup: SVGGElement): SVGGElement {
   if (!host) {
     host = document.createElementNS(XML_NS, 'g') as SVGGElement;
     host.setAttribute('class', 'cv-glyph');
-    // Same offset every leaf/subsystem node draws its glyph at server-side (top-right, 22px in from the right edge).
+    // Same offset every node draws its glyph at server-side (top-right, 22px in from the right edge).
     const { width } = bodySize(nodeGroup);
     host.setAttribute('transform', `translate(${width - 22}, 8)`);
     nodeGroup.appendChild(host);
@@ -80,7 +80,7 @@ export interface NodeHealthUpdate {
   meter?: { kind: NodeMeterKind; value: number; text: string; severity?: 'ok' | 'warn' | 'critical' };
 }
 
-/** `nodeGroup` is the `.cv-node` element (`[data-node-id]`) — a leaf node or a collapsed subsystem, both share this shape. */
+/** `nodeGroup` is the `.cv-node` element (`[data-node-id]`). */
 export function applyNodeHealth(nodeGroup: SVGGElement, update: NodeHealthUpdate): void {
   setHealthClass(nodeGroup, update.state);
   nodeGroup.classList.toggle('is-pulsing', update.state === 'critical' && !!update.pulsing);

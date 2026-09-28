@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { Link, estimatePillSize } from '../Link';
-import { SubsystemCollapsed, SubsystemFrame } from '../Subsystem';
+import { SubsystemFrame } from '../Subsystem';
 import { DsaCell } from '../DsaCell';
 import { PointerMarker } from '../PointerMarker';
 import { LldCard } from '../LldCard';
@@ -72,25 +72,17 @@ describe('Link', () => {
   });
 });
 
-describe('Subsystem', () => {
-  it('renders the collapsed affordance with node count and health', () => {
-    const { container } = render(
-      <svg>
-        <SubsystemCollapsed boardId="b1" id="sub1" label="Key Generation Service" nodeCount={5} health="warn" healthLabel="p99 900 ms" />
-      </svg>,
-    );
-    const g = container.querySelector('[data-node-id="sub1"]');
-    expect(g?.getAttribute('aria-label')).toContain('5 nodes');
-    expect(g?.getAttribute('aria-label')).toContain('warn');
-  });
-
-  it('renders the expanded frame with a tab label', () => {
-    const { getByText } = render(
+describe('SubsystemFrame', () => {
+  it('renders the frame with a tab label, and nothing focusable or clickable', () => {
+    const { getByText, container } = render(
       <svg>
         <SubsystemFrame boardId="b1" id="frame1" label="cluster" width={400} height={300} />
       </svg>,
     );
     expect(getByText('CLUSTER')).toBeTruthy();
+    const frame = container.querySelector('[data-frame-id="frame1"]')!;
+    expect(frame).toHaveClass('cv-subsystem');
+    expect(frame.querySelector('[tabindex], [role="button"], [data-node-id]')).toBeNull();
   });
 
   it('truncates a long frame tab label with an ellipsis instead of overflowing', () => {
@@ -157,35 +149,5 @@ describe('LldCard', () => {
     expect(getByText('UrlShortener')).toBeTruthy();
     expect(getByText(/− db: Database/)).toBeTruthy();
     expect(getByText(/\+ shorten\(url: string\): string/)).toBeTruthy();
-  });
-});
-
-describe('SubsystemCollapsed (card with aggregate meter)', () => {
-  it('draws the meter row and the inline expand glyph, and carries its children for the live aggregate', () => {
-    const { container } = render(
-      <svg>
-        <SubsystemCollapsed
-          boardId="b1"
-          id="kgs"
-          label="Key Generation Service"
-          nodeCount={2}
-          width={224}
-          height={72}
-          meter={{ kind: 'util', value: 0.5, text: '50%' }}
-          childIds={['kgs-worker', 'kgs-db']}
-        />
-      </svg>,
-    );
-    const g = container.querySelector('[data-node-id="kgs"]')!;
-    expect(g).toHaveAttribute('data-meter-kind', 'util');
-    expect(g).toHaveAttribute('data-child-ids', 'kgs-worker kgs-db');
-    expect(g.querySelector('.cv-label')?.textContent).toBe('Key Generation Service');
-    expect(g.querySelector('.cv-sub')?.textContent).toBe('2 nodes');
-    expect(g.querySelector('.cv-mtext')?.textContent).toBe('50%');
-    // Bar and value never overlap.
-    const track = g.querySelector('.cv-mtrack')!;
-    const barEnd = Number(track.getAttribute('x')) + Number(track.getAttribute('width'));
-    expect(barEnd).toBeLessThan(224 - 12 - 4 * 11 * 0.6);
-    expect(g.querySelector('.cv-expand')).toBeTruthy();
   });
 });

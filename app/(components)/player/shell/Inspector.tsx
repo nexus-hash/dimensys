@@ -38,9 +38,7 @@ export function Inspector({ elementIndex, panels }: InspectorProps) {
   }
 
   // Only live while a selection exists to close, i.e. only while this frame
-  // is actually showing something — see the module doc for why Escape here
-  // and `DrillStage`'s own Escape (subsystem exit) can both be registered at
-  // once without conflict.
+  // is actually showing something.
   useShortcutScope('player-inspector', selection !== null);
   useShortcut(
     { id: 'player:close-inspector', keys: 'escape', label: 'Close the inspector', group: 'Player', when: 'player-inspector' },

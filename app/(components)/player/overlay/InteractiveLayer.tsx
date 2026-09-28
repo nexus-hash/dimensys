@@ -36,14 +36,14 @@ import {
 import { buildMetricIndex, readMetric, type MetricIndex } from './metricIndex';
 import { classifyHealth, healthChipText, meterSeverity } from './health';
 import { applyNodeHealth, applyLinkHealth, setSelected, setStaticFlow } from './domHealth';
-import { findActiveLevel, findBoardSvg, linkLabelFor, linkPath as findLinkPath } from './readBoard';
+import { findBoardLevel, findBoardSvg, linkLabelFor, linkPath as findLinkPath } from './readBoard';
 import { MAX_PARTICLES, ParticlePool, particleSpawnHz, particleTravelMs, pickParticleKind, progressForPileup, pointOnSamples, samplePath } from './particleMath';
 import type { HealthState, NodeMeterKind } from '@/app/(components)/canvas';
 import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
 
 export interface InteractiveLayerProps {
   bootstrap: PlayerBootstrap;
-  /** The player root element (`data-player-root`) — an ancestor of every drill level's SVG. */
+  /** The player root element (`data-player-root`) — an ancestor of the board's SVG. */
   containerRef: RefObject<HTMLDivElement | null>;
   /** False: health/meters and particles only — no hover tooltip, selection or keyboard input. Default true. */
   interactive?: boolean;
@@ -98,26 +98,6 @@ function meterReading(
   const util = readMetric(idx.nodeCols, frame.metrics, id, UTILIZATION_CODE);
   if (util === undefined) return undefined;
   return { kind: 'util', value: util, text: `${Math.round(util * 100)}%`, severity: meterSeverity(util) };
-}
-
-/**
- * A collapsed subsystem card's meter: the *highest* utilization among the
- * nodes inside it (not the mean — a subsystem is as close to saturation as
- * its hottest member, and a mean would hide one saturated node behind idle
- * ones). `undefined` when no child publishes utilization this epoch.
- */
-function aggregateUtilization(
-  childIds: readonly string[],
-  idx: MetricIndex,
-  frame: { metrics: Float64Array },
-): { kind: NodeMeterKind; value: number; text: string; severity: 'ok' | 'warn' | 'critical' } | undefined {
-  let max: number | undefined;
-  for (const child of childIds) {
-    const util = readMetric(idx.nodeCols, frame.metrics, child, UTILIZATION_CODE);
-    if (util !== undefined && (max === undefined || util > max)) max = util;
-  }
-  if (max === undefined) return undefined;
-  return { kind: 'util', value: max, text: `${Math.round(max * 100)}%`, severity: meterSeverity(max) };
 }
 
 export function InteractiveLayer({ bootstrap, containerRef, interactive = true }: InteractiveLayerProps) {
@@ -220,12 +200,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         });
 
         const meterKind = (el.dataset.meterKind as NodeMeterKind | undefined) ?? undefined;
-        const childIds = el.dataset.childIds;
-        const meter = childIds
-          ? aggregateUtilization(childIds.split(' '), idx, frame)
-          : meterKind
-            ? meterReading(meterKind, idx, frame, id, up === 0)
-            : undefined;
+        const meter = meterKind ? meterReading(meterKind, idx, frame, id, up === 0) : undefined;
 
         applyNodeHealth(el, {
           state,
@@ -254,7 +229,6 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     let rafId = 0;
     let lastTs = 0;
     let ro: ResizeObserver | null = null;
-    let observedSvg: Element | null = null;
     let reduced = isMotionReduced();
 
     function rebuildLinks() {
@@ -262,7 +236,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         pool.linkIndex[slot] = -1;
       });
       links = [];
-      const level = findActiveLevel(container);
+      const level = findBoardLevel(container);
       const svg = findBoardSvg(level);
       if (!svg) return;
       for (const [id, group] of linkEls) {
@@ -284,7 +258,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
     function sizeCanvas() {
       const canvas = canvasRef.current;
-      const level = findActiveLevel(container);
+      const level = findBoardLevel(container);
       const svg = findBoardSvg(level);
       if (!canvas || !svg) return;
       // The canvas is `position: absolute` in `data-player-root` (the closest positioned
@@ -297,7 +271,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
       // Clip to the canvas *region* (BG part 2b owner review), not the SVG's
       // own rect: the camera can pan/zoom the board past the region's own
-      // edges (that's the point — see `DrillStage`'s pan clamp, which still
+      // edges (that's the point — see `BoardStage`'s pan clamp, which still
       // allows most of the board to leave the region on purpose), and
       // without this the overlay canvas — sized to the full, now-larger-
       // than-the-region SVG rect — drew particles that visually spilled
@@ -473,11 +447,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     startLoop();
 
     // Two things need watching, not one, for the canvas to always match the
-    // active level's board box (T3.16 board-fit follow-up): the free area
-    // itself (`.player-drill-stage`, stable across drill changes — its own
-    // size changes whenever the rail collapses, the inspector opens/closes,
-    // the phone sheet's snap changes, or the window resizes) *and* the
-    // active board element (`DrillStage`'s fit effect writes an explicit
+    // board's box (T3.16 board-fit follow-up): the free area itself
+    // (`.player-board-stage` — its own size changes whenever the rail
+    // collapses, the inspector opens/closes, the phone sheet's snap
+    // changes, or the window resizes) *and* the board element
+    // (`BoardStage`'s fit effect writes an explicit
     // pixel width/height straight onto it, which is its own resize — and,
     // separately, a board already capped at its native size can *recenter*
     // within a still-growing free area with no size change of its own at
@@ -486,29 +460,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     ro = new ResizeObserver(() => {
       sizeCanvas();
     });
-    const stageEl = container.querySelector<HTMLElement>('.player-drill-stage');
+    const stageEl = container.querySelector<HTMLElement>('.player-board-stage');
     if (stageEl) ro.observe(stageEl);
 
-    function observeActiveSvg() {
-      const level = findActiveLevel(container);
-      const svg = findBoardSvg(level);
-      if (svg === observedSvg) return;
-      if (observedSvg) ro?.unobserve(observedSvg);
-      observedSvg = svg;
-      if (svg) ro?.observe(svg);
-    }
-    observeActiveSvg();
-
-    let prevDrill = store.getState().drill;
-    const unsubDrill = store.subscribe(() => {
-      const d = store.getState().drill;
-      if (d !== prevDrill) {
-        prevDrill = d;
-        rebuildLinks();
-        sizeCanvas();
-        observeActiveSvg();
-      }
-    });
+    const boardSvg = findBoardSvg(findBoardLevel(container));
+    if (boardSvg) ro.observe(boardSvg);
 
     const onVisibility = () => {
       // The rAF loop itself checks `document.hidden` every tick; nothing else to do here,
@@ -517,11 +473,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     };
     document.addEventListener('visibilitychange', onVisibility);
 
-    // The pan/zoom camera (BG part 2b, `DrillStage`) moves/scales the active
-    // level's board via a CSS `transform` — a translate/scale never fires
+    // The pan/zoom camera (BG part 2b, `BoardStage`) moves/scales the
+    // board via a CSS `transform` — a translate/scale never fires
     // `ResizeObserver` (the content box itself doesn't change), so without
     // this the overlay canvas (and its particles) would drift out of step
-    // with the board on every pan or zoom. `DrillStage` dispatches this
+    // with the board on every pan or zoom. `BoardStage` dispatches this
     // event (bubbling) on every camera update; `sizeCanvas` just re-reads
     // the board SVG's current (post-transform) `getBoundingClientRect()`,
     // which already reflects the camera regardless of how it got there.
@@ -630,8 +586,6 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
       if (e.key !== 'Enter' && e.key !== ' ') return;
       if (!(e.target instanceof Element)) return;
       const nodeGroup = e.target.closest('[data-node-id]');
-      // Subsystem entry (handled by `DrillStage`) already calls `preventDefault`; a plain
-      // leaf node has no such handler, so this is a no-op for anything `DrillStage` claimed.
       if (nodeGroup && !e.defaultPrevented) selectFromTarget(nodeGroup);
     }
 
@@ -657,7 +611,6 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
     return () => {
       unsubscribeHealth();
-      unsubDrill();
       cleanupReduced?.();
       stopLoop();
       ro?.disconnect();

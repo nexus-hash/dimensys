@@ -38,7 +38,7 @@ const SCOPED_RE = /^([nlf]):(.+)$/;
  * `global.<metric>` forms, which this app no longer understands).
  *
  * The code is split off at the *last* `.`, not the first: an element id may
- * itself contain dots (e.g. a nested-subsystem id), but a code never does.
+ * itself contain dots, but a code never does.
  */
 export function parseMetricKey(key: string): ParsedMetricKey | null {
   if (key.startsWith('g.')) {

@@ -70,15 +70,6 @@ export interface PlayerState {
   walkthrough: WalkthroughSlice;
   /** Canonical, worker-stamped action log: the share link's `a` param. */
   actions: readonly UserAction[];
-  /**
-   * Subsystem drill path (T3.4): ids of every subsystem entered, root-first.
-   * `[]` means the top level. Each id is a subsystem's own layout — its own
-   * coordinate space, not a to-scale inset of the parent board — so drilling
-   * in swaps to that subsystem's own rendered level rather than zooming the
-   * shared canvas. See `blueprint/drill.ts` for how a path resolves to a
-   * board, and `blueprint/DrillStage.tsx` for the transition + breadcrumbs.
-   */
-  drill: readonly string[];
 }
 
 export type PlayerStateUpdate = Partial<PlayerState> | ((state: PlayerState) => Partial<PlayerState>);
@@ -111,38 +102,7 @@ export function initialPlayerState(bootstrap: Pick<PlayerBootstrap, 'diagramId' 
     story: { scenarioId: null, runner: null, duration: null },
     walkthrough: { id: null, stepIndex: 0 },
     actions: [],
-    drill: [],
   };
-}
-
-// ---------------------------------------------------------------------------
-// Drill-path reducers (T3.4). Pure functions of `PlayerState`, returning a
-// patch — callers do `store.setState((s) => enterSubsystem(s, id))`. Kept
-// pure (and store-agnostic beyond `PlayerState.drill`) so they're testable
-// with no store, no DOM and no board data at all.
-// ---------------------------------------------------------------------------
-
-/** Enters one more level: pushes `subsystemId` onto the drill path. */
-export function enterSubsystem(state: PlayerState, subsystemId: string): Partial<PlayerState> {
-  if (state.drill[state.drill.length - 1] === subsystemId) return {};
-  return { drill: [...state.drill, subsystemId], selection: null };
-}
-
-/** Goes up exactly one level. A no-op at the top level. */
-export function exitSubsystem(state: PlayerState): Partial<PlayerState> {
-  if (state.drill.length === 0) return {};
-  return { drill: state.drill.slice(0, -1), selection: null };
-}
-
-/**
- * Jumps to an arbitrary breadcrumb depth (`0` = top level, `state.drill.length`
- * = already there / no-op). Out-of-range depths clamp instead of throwing, so
- * a stale breadcrumb click never puts the path in an invalid state.
- */
-export function goToDrillDepth(state: PlayerState, depth: number): Partial<PlayerState> {
-  const clamped = Math.max(0, Math.min(depth, state.drill.length));
-  if (clamped === state.drill.length) return {};
-  return { drill: state.drill.slice(0, clamped), selection: null };
 }
 
 export function createPlayerStore(initial: PlayerState): PlayerStore {

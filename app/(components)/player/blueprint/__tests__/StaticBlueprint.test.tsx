@@ -172,58 +172,29 @@ describe('StaticBlueprint', () => {
     expect(container.querySelector('[data-link-id="future"]')).toBeNull();
   });
 
-  it('renders a folded subsystem as the collapsed affordance with its inner node count', () => {
-    const board: Board = {
-      size: [400, 200],
-      blocks: [
-        {
-          id: 'sub1',
-          form: 'subSystem',
-          text: 'Key Service',
-          box: [200, 100, 192, 96],
-          folded: true,
-          inner: { size: [300, 72], blocks: [{ id: 'w1', form: 'worker', text: 'W' }, { id: 'w2', form: 'worker', text: 'W2' }], wires: [] },
-        },
-      ],
-      wires: [],
-    };
-    const { container } = render(<StaticBlueprint board={board} boardId="b1" />);
-    const g = container.querySelector('[data-node-id="sub1"]');
-    expect(g?.getAttribute('aria-label')).toContain('2 nodes');
-    // The inner content is not drawn while folded.
-    expect(container.querySelector('[data-node-id="w1"]')).toBeNull();
-  });
-
-  it('renders an expanded subsystem as a frame with its inner nodes/links positioned in the parent space', () => {
+  it('draws a frame round a group, behind its nodes, with no card or control of its own', () => {
     const board: Board = {
       size: [600, 300],
       blocks: [
-        {
-          id: 'sub1',
-          form: 'subSystem',
-          text: 'Key Service',
-          box: [300, 150, 192, 96],
-          folded: false,
-          inner: {
-            size: [200, 100],
-            blocks: [
-              { id: 'inner-a', form: 'worker', text: 'A', box: [50, 50, 100, 50] },
-              { id: 'inner-b', form: 'db', text: 'B', box: [150, 50, 100, 50] },
-            ],
-            wires: [{ id: 'inner-link', a: 'inner-a', b: 'inner-b', line: 'sync', route: [[100, 50], [150, 50]] }],
-          },
-        },
+        { id: 'inner-a', form: 'worker', text: 'A', box: [200, 150, 100, 50] },
+        { id: 'inner-b', form: 'db', text: 'B', box: [400, 150, 100, 50] },
       ],
-      wires: [],
+      wires: [{ id: 'inner-link', a: 'inner-a', b: 'inner-b', line: 'sync', route: [[250, 150], [350, 150]] }],
+      frames: [{ id: 'sub1', text: 'Key Service', look: 'cluster', box: [300, 150, 328, 78], holds: ['inner-a', 'inner-b'] }],
     };
     const { container, getByText } = render(<StaticBlueprint board={board} boardId="b1" />);
-    // Frame tab shows the subsystem's own label and node count, uppercased by the canvas kit.
-    expect(getByText('KEY SERVICE · 2 NODES')).toBeTruthy();
-    // Inner nodes are positioned relative to the frame's top-left, which is centered on the subsystem's box.
-    // Frame top-left = (300 - 200/2, 150 - 100/2) = (200, 100). inner-a center (50,50) -> absolute (250, 150).
-    const innerA = container.querySelector('[data-node-id="inner-a"]');
-    expect(innerA?.getAttribute('transform')).toBe('translate(200, 125)'); // (250 - 100/2, 150 - 50/2): drawn at its own box size
-    expect(container.querySelector('[data-link-id="inner-link"]')).toBeTruthy();
+    // The tab shows the group's own label, uppercased by the canvas kit (no node count, no expand glyph).
+    expect(getByText('KEY SERVICE')).toBeTruthy();
+    const frame = container.querySelector('[data-frame-id="sub1"]')!;
+    expect(frame.getAttribute('transform')).toBe('translate(136, 111)');
+    expect(frame.querySelector('.cv-body')).toHaveAttribute('width', '328');
+    // Drawn first: every node and link comes after it, so it sits behind them.
+    const svg = container.querySelector('svg')!;
+    const order = [...svg.querySelectorAll('[data-frame-id], [data-node-id], [data-link-id]')];
+    expect(order[0]).toBe(frame);
+    // Its children are ordinary nodes at the board's own coordinates.
+    expect(container.querySelector('[data-node-id="inner-a"]')?.getAttribute('transform')).toBe('translate(150, 125)');
+    expect(container.querySelector('[data-node-id="sub1"]')).toBeNull();
   });
 
   it('defaults every element to ok health with no lookup (the healthy baseline)', () => {

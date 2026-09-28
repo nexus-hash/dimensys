@@ -70,7 +70,7 @@ export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {
 }
 
 /**
- * The canvas frame: wraps the board (`children`, i.e. `DrilldownBlueprint`
+ * The canvas frame: wraps the board (`children`, i.e. `PlayerBlueprint`
  * + its `InteractiveLayer` overlay) between the chrome strip above and the
  * narration/transport dock below — nothing floats over the diagram. The
  * board's zoom cluster is portalled up into the strip through

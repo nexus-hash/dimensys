@@ -6,25 +6,24 @@ import { PanelLeftIcon, ShareIcon, SettingsIcon } from '@/app/(components)/ui/ic
 import { useCommandPalette, usePlatformModKey } from '@/app/(components)/command';
 import type { PlayerMode } from '../store/playerStore';
 import { ModeSwitcher } from './ModeSwitcher';
-import { PlayerBreadcrumbs } from './PlayerBreadcrumbs';
 import type { ModeAvailability } from './modes';
 import ThemeButton from '../../theme/ThemeButton';
 import { BrandMark } from '../../brand/BrandMark';
 
 export interface TopBarProps {
   title: string;
-  labelsById: Record<string, string>;
   modeAvailability: Record<PlayerMode, ModeAvailability>;
   railOpen: boolean;
   onToggleRail: () => void;
 }
 
 /**
- * The player's top bar: rail toggle, breadcrumbs, the mode switcher,
+ * The player's top bar: rail toggle, the breadcrumb (Explore › diagram
+ * title — the title is the page's `h1`), the mode switcher,
  * and share/settings placeholders (real affordances are a later task — these
  * are inert but keyboard-reachable so the frame's tab order is final now).
  */
-export function TopBar({ title, labelsById, modeAvailability, railOpen, onToggleRail }: TopBarProps) {
+export function TopBar({ title, modeAvailability, railOpen, onToggleRail }: TopBarProps) {
   const { openPalette } = useCommandPalette();
   const modKey = usePlatformModKey();
 
@@ -49,17 +48,23 @@ export function TopBar({ title, labelsById, modeAvailability, railOpen, onToggle
           <PanelLeftIcon />
         </IconButton>
 
-        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-body text-ink-secondary">
-          <Link
-            href="/problems"
-            className="player-desktop-only flex items-center gap-1 rounded px-1 -mx-1 hover:text-ink-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            Explore
-          </Link>
-          <span aria-hidden="true" className="player-desktop-only text-ink-muted">
-            &rsaquo;
-          </span>
-          <PlayerBreadcrumbs rootLabel={title} labelsById={labelsById} />
+        <nav aria-label="Breadcrumb" className="min-w-0 text-body text-ink-secondary">
+          <ol className="flex min-w-0 items-center gap-1">
+            <li className="player-desktop-only flex flex-none items-center gap-1">
+              <Link
+                href="/problems"
+                className="rounded px-1 -mx-1 hover:text-ink-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                Explore
+              </Link>
+              <span aria-hidden="true" className="text-ink-muted">
+                &rsaquo;
+              </span>
+            </li>
+            <li className="min-w-0" aria-current="page">
+              <h1 className="truncate text-[15px] font-medium text-ink-primary">{title}</h1>
+            </li>
+          </ol>
         </nav>
       </div>
 

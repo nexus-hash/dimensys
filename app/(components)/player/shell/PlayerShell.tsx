@@ -15,7 +15,6 @@ import type { GaugeView, NeedView } from '../types';
 
 export interface PlayerShellProps {
   title: string;
-  labelsById: Record<string, string>;
   elementIndex: ElementIndex;
   modeAvailability: Record<PlayerMode, ModeAvailability>;
   /** Every node's/link's pre-rendered inspector body (T3.6), handed to both `Inspector` and `PhoneSheet` — see `DiagramPlayer.tsx`. Defaults to `{}` for callers (and existing tests) that don't pass one. */
@@ -31,10 +30,10 @@ export interface PlayerShellProps {
  * The player shell (T3.16): top bar, left rail, inspector frame, the HUD/
  * timeline frame around the board, and the phone bottom sheet — the frames
  * and slots the rest of the player fills in. `children` is the board itself
- * (`DrilldownBlueprint`, server-rendered) and mounts inside the HUD/timeline
+ * (`PlayerBlueprint`, server-rendered) and mounts inside the HUD/timeline
  * frame's board-wrap; `InteractiveLayer` (a sibling of this whole shell —
- * see `PlayerIsland.tsx`) keeps aligning its overlay canvas to the active
- * level's own rect inside `data-player-root` regardless of what chrome
+ * see `PlayerIsland.tsx`) keeps aligning its overlay canvas to the board's
+ * own rect inside `data-player-root` regardless of what chrome
  * surrounds it, so nothing here has to know about it.
  *
  * Rail collapse and inspector-open are the only two bits of state this
@@ -56,13 +55,13 @@ export interface PlayerShellProps {
  * tablet/phone overlay via `data-rail-drawer-open`, and one handler flips
  * both together since only one is ever visually relevant at a time.
  *
- * URL state (T3.12) hook: that task reads/writes `mode` (and `drill`,
+ * URL state (T3.12) hook: that task reads/writes `mode` (and
  * `selection`) through the same store this shell reads — it doesn't need
  * anything from this file beyond the store already being there.
  *
  * `snapIndex` (the phone sheet's current snap point) is owned here, not by
  * `PhoneSheet`, so it can also drive `--player-sheet-peek` on this root —
- * the board-fit effect (`DrillStage`) measures the canvas area's free space
+ * the board-fit effect (`BoardStage`) measures the canvas area's free space
  * via a plain `ResizeObserver`, and that free space only shrinks correctly
  * when the sheet is dragged up to 50%/92% if the canvas area's own reserved
  * bottom padding tracks the sheet's *actual* current height, not just its
@@ -70,7 +69,6 @@ export interface PlayerShellProps {
  */
 export function PlayerShell({
   title,
-  labelsById,
   elementIndex,
   modeAvailability,
   panels = {},
@@ -104,7 +102,6 @@ export function PlayerShell({
     <div className="player-shell" data-player-mode={mode} style={sheetPeek}>
       <TopBar
         title={title}
-        labelsById={labelsById}
         modeAvailability={modeAvailability}
         railOpen={railOpen}
         onToggleRail={toggleRail}

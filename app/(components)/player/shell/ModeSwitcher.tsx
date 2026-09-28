@@ -13,8 +13,8 @@ export interface ModeSwitcherProps {
 /**
  * The mode segmented control, wired to the store: `mode` (T3.16's own
  * slice — URL sync is T3.12's job, see `PlayerShell`'s hook comment).
- * Switching modes only ever writes `mode`; it never touches `selection` or
- * `drill` (switching modes keeps the camera and selection).
+ * Switching modes only ever writes `mode`; it never touches `selection`
+ * (switching modes keeps the camera and selection).
  *
  * Digits 1–4 are registered one at a time (not looped over `MODE_DEFS`) so
  * each call site is a plain, statically-shaped `useShortcut` — safe under

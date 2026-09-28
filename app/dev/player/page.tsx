@@ -10,7 +10,7 @@ export const metadata = {
 
 /** Hand-written stand-in for a view-data document, so the skeleton renders without synced output. */
 const FIXTURE: ViewData = {
-  fmt: 2,
+  fmt: 3,
   build: `sha256:${'0'.repeat(64)}`,
   id: 'dev-fixture',
   rev: 1,
@@ -33,7 +33,7 @@ const FIXTURE: ViewData = {
   live: false,
 };
 
-/** A small hand-built board exercising every element the static blueprint (T3.2) draws: nodes, a folded and an expanded subsystem, and every link style. */
+/** A small hand-built board exercising every element the static blueprint (T3.2) draws: nodes, a framed group, and every link style. */
 const BLUEPRINT_FIXTURE_BOARD: NonNullable<ViewData['board']> = {
   size: [1040, 420],
   blocks: [
@@ -42,45 +42,18 @@ const BLUEPRINT_FIXTURE_BOARD: NonNullable<ViewData['board']> = {
     { id: 'api-service', form: 'server', flavor: 'api', text: 'API Service', box: [528, 90, 144, 72], stack: 6, duty: 'primary' },
     { id: 'cache-redis', form: 'cache', flavor: 'redis', text: 'Redis Cache', box: [528, 210, 144, 72] },
     { id: 'db-nosql', form: 'db', flavor: 'cassandra', text: 'URL Storage', box: [756, 210, 144, 72], stack: 3 },
-    {
-      id: 'kgs-service',
-      form: 'subSystem',
-      text: 'Key Generation Service',
-      box: [300, 210, 192, 96],
-      folded: true,
-      inner: {
-        size: [300, 72],
-        blocks: [
-          { id: 'kgs-worker', form: 'worker', text: 'KGS Worker', box: [80, 36, 144, 72] },
-          { id: 'kgs-db', form: 'db', flavor: 'sql', text: 'Key Pool', box: [220, 36, 144, 72] },
-        ],
-        wires: [{ id: 'kgs-link', a: 'kgs-worker', b: 'kgs-db', line: 'sync', route: [[152, 36], [148, 36]] }],
-      },
-    },
-    {
-      id: 'analytics',
-      form: 'subSystem',
-      text: 'Analytics Pipeline',
-      box: [900, 340, 192, 96],
-      folded: false,
-      inner: {
-        size: [340, 100],
-        blocks: [
-          { id: 'ana-worker', form: 'worker', text: 'Worker', box: [70, 50, 144, 72] },
-          { id: 'ana-store', form: 'objectStore', text: 'Cold Store', box: [260, 50, 144, 72] },
-        ],
-        wires: [{ id: 'ana-link', a: 'ana-worker', b: 'ana-store', line: 'stream', route: [[142, 50], [188, 50]] }],
-      },
-    },
+    { id: 'kgs-worker', form: 'worker', text: 'KGS Worker', box: [186, 340, 144, 72] },
+    { id: 'kgs-db', form: 'db', flavor: 'sql', text: 'Key Pool', box: [386, 340, 144, 72] },
   ],
   wires: [
     { id: 'l-client-lb', a: 'client-web', b: 'lb-main', line: 'sync', route: [[144, 90], [228, 90]] },
     { id: 'l-lb-api', a: 'lb-main', b: 'api-service', line: 'sync', route: [[372, 90], [456, 90]] },
     { id: 'l-api-cache', a: 'api-service', b: 'cache-redis', line: 'sync', text: 'cache read', route: [[528, 126], [528, 174]] },
     { id: 'l-api-db', a: 'api-service', b: 'db-nosql', line: 'async', text: 'async write', two: true, route: [[600, 126], [720, 174]] },
-    { id: 'l-api-kgs', a: 'api-service', b: 'kgs-service', line: 'sync', route: [[456, 108], [396, 150]] },
-    { id: 'l-db-analytics', a: 'db-nosql', b: 'analytics', line: 'stream', route: [[828, 246], [880, 292]] },
+    { id: 'l-api-kgs', a: 'api-service', b: 'kgs-worker', line: 'sync', route: [[456, 108], [258, 340]] },
+    { id: 'kgs-link', a: 'kgs-worker', b: 'kgs-db', line: 'stream', route: [[258, 340], [314, 340]] },
   ],
+  frames: [{ id: 'kgs-service', text: 'Key Generation Service', look: 'cluster', box: [286, 340, 372, 100], holds: ['kgs-worker', 'kgs-db'] }],
 };
 
 /** Demonstrates the static blueprint's color-by hook (T3.2): a per-id health lookup, defaulting every other element to `ok`. */
@@ -88,7 +61,7 @@ const HEALTH_DEMO: HealthLookup = {
   'lb-main': { state: 'warn', label: 'p99 640 ms' },
   'db-nosql': { state: 'critical', label: 'err 38%' },
   'cache-redis': { state: 'down', label: 'DOWN' },
-  'kgs-service': { state: 'recovering', label: 'warming 42%' },
+  'kgs-worker': { state: 'recovering', label: 'warming 42%' },
 };
 
 async function loadRealDiagram(id: string): Promise<ViewData | null> {
@@ -105,7 +78,7 @@ async function loadRealDiagram(id: string): Promise<ViewData | null> {
 /**
  * T3.2 dev check: the static blueprint renders server-side, with real synced
  * documents when available, plus a hand-built fixture exercising every
- * element (nodes, a folded and an expanded subsystem, every link style) and
+ * element (nodes, a framed group, every link style) and
  * the color-by health hook. Development only — 404s in production, same as
  * `/dev/ui`.
  */
@@ -144,7 +117,7 @@ export default async function DevPlayerPage() {
       <section>
         <h2 className="mb-2 text-title-2 text-ink-primary">Static blueprint fixture (T3.2)</h2>
         <p className="mb-4 text-body text-ink-secondary">
-          Nodes, links (sync/async/stream, bidirectional), a folded subsystem and an expanded one, drawn server-side.
+          Nodes, links (sync/async/stream, bidirectional) and a framed group, drawn server-side.
         </p>
         <StaticBlueprint
           board={BLUEPRINT_FIXTURE_BOARD}

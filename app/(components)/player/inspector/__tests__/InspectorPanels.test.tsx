@@ -14,25 +14,17 @@ const board: Board = {
       sheet: { parts: [{ shape: 'pairs', pane: 'overview', title: 'Specs', pairs: [['Region', 'us-east-1']] }] },
     },
     { id: 'plain', form: 'client', text: 'No sheet here' },
-    {
-      id: 'sub',
-      form: 'subSystem',
-      text: 'Subsystem',
-      inner: {
-        size: [100, 100],
-        blocks: [{ id: 'inner-a', form: 'db', text: 'Inner DB', sheet: { parts: [{ shape: 'prose', pane: 'overview', title: 'Note', md: 'hi' }] } }],
-        wires: [],
-      },
-    },
+    { id: 'inner-a', form: 'db', text: 'Inner DB', sheet: { parts: [{ shape: 'prose', pane: 'overview', title: 'Note', md: 'hi' }] } },
   ],
   wires: [{ id: 'l1', a: 'api', b: 'plain', line: 'sync' }],
+  frames: [{ id: 'sub', text: 'Subsystem', look: 'cluster', box: [200, 100, 200, 100], holds: ['inner-a'] }],
 };
 
 describe('buildInspectorPanels', () => {
   const index = buildElementIndex(board);
   const panels = buildInspectorPanels(board, index);
 
-  it('builds one panel per top-level node', () => {
+  it('builds one panel per node', () => {
     render(<>{panels.api}</>);
     expect(screen.getByText('Specs')).toBeTruthy();
     expect(screen.getByText('us-east-1')).toBeTruthy();
@@ -45,8 +37,9 @@ describe('buildInspectorPanels', () => {
     expect(screen.getByText('No sheet here')).toBeTruthy();
   });
 
-  it('walks into nested subsystem boards too', () => {
+  it('builds a framed group\'s nodes a panel like any other, and none for the frame', () => {
     expect(panels['inner-a']).toBeTruthy();
+    expect(panels.sub).toBeUndefined();
   });
 
   it('gives a node with no sheet a panel too (the "no details" fallback)', () => {

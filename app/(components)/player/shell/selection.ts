@@ -12,19 +12,12 @@ export interface ElementIndex {
   links: Map<string, LinkView>;
 }
 
-/** Indexes every node and link in `board`, including nested subsystem boards, by id. */
+/** Indexes every node and link in `board` by id. */
 export function buildElementIndex(board: Board): ElementIndex {
-  const nodes = new Map<string, NodeView>();
-  const links = new Map<string, LinkView>();
-  function walk(level: Board) {
-    for (const block of level.blocks) {
-      nodes.set(block.id, block);
-      if (block.inner) walk(block.inner);
-    }
-    for (const wire of level.wires) links.set(wire.id, wire);
-  }
-  walk(board);
-  return { nodes, links };
+  return {
+    nodes: new Map<string, NodeView>(board.blocks.map((b) => [b.id, b])),
+    links: new Map<string, LinkView>(board.wires.map((w) => [w.id, w])),
+  };
 }
 
 /** A node's label, a link's `"A → B"`, or the flow's own id — `null` when nothing is selected. */

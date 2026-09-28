@@ -1,5 +1,5 @@
 import { PlayerIsland } from './PlayerIsland';
-import { DrilldownBlueprint, subsystemLabelsById } from './blueprint';
+import { PlayerBlueprint } from './blueprint';
 import { PlayerShell, buildElementIndex, modeAvailability } from './shell';
 import { buildInspectorPanels } from './inspector';
 import type { ReactNode } from 'react';
@@ -54,10 +54,10 @@ export function toBootstrap(diagram: ViewData, runtimeUrl: string | null): Playe
  * `<DiagramPlayer>`: a Server Component.
  *
  * Renders the frame server-side and hands a small serialisable bootstrap to
- * the one client boundary, `<PlayerIsland>`. The static SVG blueprint (T3.2),
- * every subsystem level included (T3.4's `<DrilldownBlueprint>`), goes in as
- * a server-rendered child, so a readable diagram needs no client JS and is
- * the LCP element; drilling into a subsystem is progressive enhancement on
+ * the one client boundary, `<PlayerIsland>`. The static SVG blueprint (T3.2,
+ * `<PlayerBlueprint>`: every node, framed groups included) goes in as a
+ * server-rendered child, so a readable diagram needs no client JS and is
+ * the LCP element; the camera and live layer are progressive enhancement on
  * top of that same markup. A diagram with no board yet (catalog-only)
  * renders a placeholder instead.
  */
@@ -93,9 +93,9 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
   // when this is the more restrictive constraint (e.g. a short container).
   // A plain block box's default `width: auto` already fills its containing
   // block (the embed/hero, non-shell path below), and the shell's own
-  // `.player-drill-level` centers a flex item sized the same way.
+  // `.player-board-level` centers a flex item sized the same way.
   const blueprint = (
-    <DrilldownBlueprint board={board} boardId={`blueprint-${diagram.id}`} rootLabel={diagram.head.title} interactive={variant !== 'hero'} />
+    <PlayerBlueprint board={board} boardId={`blueprint-${diagram.id}`} title={diagram.head.title} interactive={variant !== 'hero'} />
   );
 
   // The home hero: a fixed wide box the card frames (no border/radius of its
@@ -118,7 +118,7 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
   // rails or inspector frame.
   //
   // `style={{ aspectRatio }}` gives this `<section>` itself a real height:
-  // the board's own layers (`.player-drill-level`/`.player-drill-stage`,
+  // the board's own layers (`.player-board-level`/`.player-board-stage`,
   // then the absolutely-positioned `.relative.overflow-visible` aspect box)
   // are built for the full shell, where an ancestor (`PlayerShell`) supplies
   // a definite height for their `h-full` chain to resolve against. Outside
@@ -141,7 +141,6 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
     );
   }
 
-  const labelsById = subsystemLabelsById(board);
   const elementIndex = buildElementIndex(board);
   const availability = modeAvailability(diagram);
   // Every node's/link's inspector body, rendered once here (server-side —
@@ -160,7 +159,6 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
       <PlayerIsland bootstrap={toBootstrap(diagram, runtimeUrl)}>
         <PlayerShell
           title={diagram.head.title}
-          labelsById={labelsById}
           elementIndex={elementIndex}
           modeAvailability={availability}
           panels={panels}

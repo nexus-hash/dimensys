@@ -7,24 +7,20 @@
  * layout (`getBoundingClientRect`, screen pixels): `getBBox`/`getPointAtLength`
  * report in the SVG's own user-unit coordinate space regardless of how the
  * viewport has scaled it, so they stay correct through resize, DPR changes
- * and drill-down level swaps with no re-measurement plumbing.
+ * and camera moves with no re-measurement plumbing.
  */
 
-/** The currently-visible drill level's container, or the stage/root itself when there's no drill-down (no `[data-drill-key]` levels at all). */
-export function findActiveLevel(root: HTMLElement): HTMLElement {
-  const levels = root.querySelectorAll<HTMLElement>('[data-drill-key]');
-  for (const level of levels) {
-    if (!level.hidden) return level;
-  }
-  return root;
+/** The board's container (`[data-board-level]`), or the root itself when there's none (a bare board). */
+export function findBoardLevel(root: HTMLElement): HTMLElement {
+  return root.querySelector<HTMLElement>('[data-board-level]') ?? root;
 }
 
-/** The active level's own `<svg>` (the static blueprint's board element). */
+/** The board's own `<svg>` (the static blueprint's board element). */
 export function findBoardSvg(level: HTMLElement): SVGSVGElement | null {
   return level.querySelector('svg');
 }
 
-/** Center of a node/subsystem group, in the SVG's own viewBox units. `null` if the id isn't present in this level. */
+/** Center of a node group, in the SVG's own viewBox units. `null` if the id isn't present on the board. */
 export function nodeCenter(svg: SVGSVGElement, nodeId: string): { x: number; y: number } | null {
   const el = svg.querySelector<SVGGraphicsElement>(`[data-node-id="${cssEscape(nodeId)}"]`);
   if (!el) return null;
@@ -42,7 +38,7 @@ export function linkPath(svg: SVGSVGElement, linkId: string): SVGPathElement | n
   return group?.querySelector<SVGPathElement>('path.cv-link') ?? null;
 }
 
-/** A link's label pill (drawn in the level's label pass, after every link — not inside the link's own group). */
+/** A link's label pill (drawn in the board's label pass, after every link — not inside the link's own group). */
 export function linkLabelFor(linkGroup: Element, linkId: string): SVGGElement | null {
   const svg = linkGroup.closest('svg');
   return svg?.querySelector<SVGGElement>(`[data-link-label-for="${cssEscape(linkId)}"]`) ?? null;

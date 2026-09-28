@@ -1,11 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
-import { enterSubsystem, exitSubsystem } from '../store/playerStore';
 import { useShortcut, useShortcutScope } from '@/app/(components)/command';
-import { drillKey } from './drill';
 import {
   cameraTransform,
   computeFitScale,
@@ -24,31 +21,24 @@ import { ZoomControls } from './ZoomControls';
 import { useZoomSlot } from './zoomSlot';
 import type { XY } from '../types';
 
-export interface DrillStageProps {
-  /** The top level's own label — used only for the live-region announcement. */
-  rootLabel: string;
-  /** Subsystem id → label, for every drillable subsystem anywhere in the diagram (any depth). */
-  labelsById: Record<string, string>;
-  /** Drill key → that level's own native pixel size (`boardSizesByDrillKey`), for the board-fit effect. */
-  boardSizes: Record<string, XY>;
+export interface BoardStageProps {
+  /** The board's own native pixel size (`Board.size`), for the board-fit effect. */
+  boardSize: XY;
   className?: string;
   /**
    * False: a static preview (the home hero). The board still fits its box
    * and re-fits on resize, but there are no zoom controls, no pointer/wheel
-   * pan or zoom (a wheel over it scrolls the page), no click/keyboard drill
-   * and no player keyboard scope. Default true.
+   * pan or zoom (a wheel over it scrolls the page) and no player keyboard
+   * scope. Default true.
    */
   interactive?: boolean;
   /**
-   * One `<div data-drill-key="…">` per level (root's key is `""`), each
-   * wrapping that level's own `<StaticBlueprint>` — pre-rendered server-side
-   * by `DrilldownBlueprint`. This component only toggles which one is
-   * visible; it draws nothing itself.
+   * One `<div data-board-level>` wrapping the board's `<StaticBlueprint>`,
+   * pre-rendered server-side by `PlayerBlueprint`. This component only
+   * moves and scales it (the camera); it draws nothing itself.
    */
   children: ReactNode;
 }
-
-const EXIT_FALLBACK_MS = 700; // safety net if `animationend` never fires (animations disabled some other way, a hidden tab, …).
 
 /** Distance and stage-space midpoint between two tracked pointers (pinch). */
 function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
@@ -58,11 +48,9 @@ function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
 }
 
 /**
- * The player's subsystem drill-down (T3.4) and pan/zoom camera (BG part 2b):
- * shows exactly one pre-rendered level at a time, drives the enter/exit
- * transition, keeps focus and an aria-live announcement in step, and owns
- * that level's own camera (translate + scale, applied as one CSS transform
- * to the level's board element — see `camera.ts`).
+ * The player's pan/zoom camera (BG part 2b): owns the board's camera
+ * (translate + scale, applied as one CSS transform to the board element —
+ * see `camera.ts`).
  *
  * This measures only its own box (`stageRef`, a `ResizeObserver` on it) —
  * never the HUD strip, timeline dock, rail or inspector. Those bands are
@@ -72,85 +60,46 @@ function pointerGeometry(a: XY, b: XY): { dist: number; mid: XY } {
  * only ever ask *this* element for its own `clientWidth`/`clientHeight`.
  *
  * Camera state is plain refs, not the shared store: chrome-only (never part
- * of a share link, never synced across tabs), keyed by drill key so each
- * level remembers its own camera independently — entering a subsystem
- * starts that level at its own fit; going back finds the parent's entry
- * still in the map, camera untouched. `tracking` (per level) is true until
- * the user pans or zooms that level; while true, every resize (window,
- * rail/inspector toggle, phone sheet snap) re-fits it, same as the old
- * board-fit effect this replaces. Once false, the camera holds until the
- * user hits Fit (`0`, or the zoom cluster's Fit button), which re-fits and
- * flips `tracking` back to true.
+ * of a share link, never synced across tabs). `tracking` is true until the
+ * user pans or zooms; while true, every resize (window, rail/inspector
+ * toggle, phone sheet snap) re-fits the board. Once false, the camera holds
+ * until the user hits Fit (`0`, or the zoom cluster's Fit button), which
+ * re-fits and flips `tracking` back to true.
  *
  * The zoom cluster itself renders into the chrome strip above the board
  * when the player shell provides one (`ZoomSlotContext`), never over the
  * board; a bare embed board keeps it inside its own box, and a
  * non-interactive (hero preview) board renders none.
  */
-export function DrillStage({ rootLabel, labelsById, boardSizes, className, interactive = true, children }: DrillStageProps) {
-  const drill = usePlayerStore((s) => s.drill);
-  const store = usePlayerStoreApi();
+export function BoardStage({ boardSize, className, interactive = true, children }: BoardStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const liveRef = useRef<HTMLDivElement>(null);
-  const prevDrillRef = useRef<readonly string[]>([]);
-  // The element that triggered entry into each subsystem id, so exiting can
-  // return focus to it (a breadcrumb click has no such element — it falls
-  // back to the level's own group in that case).
-  const triggerRef = useRef<Map<string, HTMLElement>>(new Map());
-  // Set right before an ascending `setState` (Escape / a breadcrumb click) so
-  // the effect below — which is what actually un-hides the target level —
-  // can focus the *specific* trigger element once that level is ready,
-  // instead of racing it with a separately-scheduled callback.
-  const pendingFocusIdRef = useRef<string | undefined>(undefined);
-  // A per-level generation counter. A level can flip enter→leave→enter
-  // faster than its *previous* phase's callbacks (the `animationend`
-  // listener, and the `EXIT_FALLBACK_MS` timer that's a safety net for a
-  // missed one) resolve — a real reduced-motion run hit exactly this: a fast
-  // re-entry's leftover leave-settle fired mid-transition and forced
-  // `hidden = true` back onto a level a newer transition had already made
-  // visible again. Every phase captures the element's generation at the
-  // moment it starts; its callbacks check it's still current before doing
-  // anything, so a stale one — whichever of the two fires — is a no-op.
-  const levelGenerationRef = useRef<Map<HTMLElement, number>>(new Map());
-
-  const activeKey = drillKey(drill);
-  const activeKeyRef = useRef(activeKey);
-  activeKeyRef.current = activeKey;
 
   // ---- camera state (BG part 2b) ----
-  const cameraRef = useRef<Map<string, Camera>>(new Map());
-  const trackingRef = useRef<Map<string, boolean>>(new Map());
-  const fitScaleRef = useRef<Map<string, number>>(new Map());
+  const cameraRef = useRef<Camera | null>(null);
+  const trackingRef = useRef(true);
+  const fitScaleRef = useRef(1);
   const [readout, setReadout] = useState({ percent: 100, fitScale: 1 });
   const readoutFrameRef = useRef(0);
 
-  function findBoardEl(key: string): HTMLElement | null {
-    const stage = stageRef.current;
-    if (!stage) return null;
-    const levels = Array.from(stage.querySelectorAll<HTMLElement>('[data-drill-key]'));
-    const levelEl = levels.find((el) => el.dataset.drillKey === key);
+  function findBoardEl(): HTMLElement | null {
+    const levelEl = stageRef.current?.querySelector<HTMLElement>('[data-board-level]');
     return (levelEl?.firstElementChild as HTMLElement | null) ?? null;
   }
 
-  function applyCamera(key: string, camera: Camera) {
-    if (key !== activeKeyRef.current) {
-      cameraRef.current.set(key, camera);
-      return;
-    }
-    const boardEl = findBoardEl(key);
-    const size = boardSizes[key];
-    if (!boardEl || !size) {
-      cameraRef.current.set(key, camera);
+  function applyCamera(camera: Camera) {
+    const boardEl = findBoardEl();
+    if (!boardEl) {
+      cameraRef.current = camera;
       return;
     }
     const stage = stageRef.current;
-    const [nativeW, nativeH] = size;
+    const [nativeW, nativeH] = boardSize;
     // Pan bounds (BG owner review): clamped against *this* stage's current
     // free box, not the fit-time box — a pan/zoom can't be produced without
     // the stage already being measurable, so `stage` is never null here in
     // practice, but the fallback (no clamp) is harmless if it ever were.
     camera = stage ? clampPan(camera, stage.clientWidth, stage.clientHeight, nativeW, nativeH) : camera;
-    cameraRef.current.set(key, camera);
+    cameraRef.current = camera;
     boardEl.style.position = 'absolute';
     boardEl.style.left = '0';
     boardEl.style.top = '0';
@@ -164,120 +113,53 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
     if (readoutFrameRef.current) cancelAnimationFrame(readoutFrameRef.current);
     readoutFrameRef.current = requestAnimationFrame(() => {
       readoutFrameRef.current = 0;
-      setReadout({ percent: Math.round(camera.scale * 100), fitScale: fitScaleRef.current.get(key) ?? 1 });
+      setReadout({ percent: Math.round(camera.scale * 100), fitScale: fitScaleRef.current });
     });
   }
 
-  /** (Re)fits `key`'s camera to the stage's current free box. Always applied when `force` (the Fit action); otherwise only while that level is still `tracking`. */
-  function recompute(key: string, force = false) {
+  /** (Re)fits the camera to the stage's current free box. Always applied when `force` (the Fit action); otherwise only while still `tracking`. */
+  function recompute(force = false) {
     const stage = stageRef.current;
-    const size = boardSizes[key];
-    if (!stage || !size) return;
-    const [nativeW, nativeH] = size;
+    if (!stage) return;
+    const [nativeW, nativeH] = boardSize;
     const freeW = stage.clientWidth;
     const freeH = stage.clientHeight;
     if (freeW <= 0 || freeH <= 0) return;
     const fitScale = computeFitScale(freeW, freeH, nativeW, nativeH);
-    fitScaleRef.current.set(key, fitScale);
+    fitScaleRef.current = fitScale;
 
-    const tracking = trackingRef.current.get(key) ?? true;
-    if (force || tracking) {
-      trackingRef.current.set(key, true);
-      applyCamera(key, fitCamera(freeW, freeH, nativeW, nativeH));
+    if (force || trackingRef.current) {
+      trackingRef.current = true;
+      applyCamera(fitCamera(freeW, freeH, nativeW, nativeH));
       return;
     }
     // Not tracking: keep the user's own camera, just re-clamp its scale in
     // case the fit (and so the zoom floor) shifted under a resize.
-    const current = cameraRef.current.get(key);
+    const current = cameraRef.current;
     if (!current) return;
     const { min, max } = zoomRange(fitScale);
     const scale = Math.min(max, Math.max(min, current.scale));
-    if (scale !== current.scale) applyCamera(key, { ...current, scale });
+    if (scale !== current.scale) applyCamera({ ...current, scale });
   }
 
   function fitActive() {
-    recompute(activeKeyRef.current, true);
+    recompute(true);
   }
 
-  function beginPhase(el: HTMLElement): number {
-    const gen = (levelGenerationRef.current.get(el) ?? 0) + 1;
-    levelGenerationRef.current.set(el, gen);
-    return gen;
-  }
-  function isCurrentPhase(el: HTMLElement, gen: number): boolean {
-    return levelGenerationRef.current.get(el) === gen;
-  }
-
-  useEffect(() => {
-    const stage = stageRef.current;
-    const prevDrill = prevDrillRef.current;
-    prevDrillRef.current = drill;
-    const prevKey = drillKey(prevDrill);
-    if (!stage || prevKey === activeKey) return;
-    // Descending (entered deeper) auto-focuses the new level itself.
-    // Ascending (Escape / a breadcrumb) focuses the specific trigger element
-    // recorded for the subsystem just left, when one was recorded.
-    const descending = drill.length > prevDrill.length;
-    const pendingFocusId = pendingFocusIdRef.current;
-    pendingFocusIdRef.current = undefined;
-
-    const levels = Array.from(stage.querySelectorAll<HTMLElement>('[data-drill-key]'));
-    const nextEl = levels.find((el) => el.dataset.drillKey === activeKey);
-    const prevEl = levels.find((el) => el.dataset.drillKey === prevKey);
-
-    if (nextEl) {
-      const gen = beginPhase(nextEl);
-      nextEl.hidden = false;
-      nextEl.classList.add('is-entering');
-      const clear = () => {
-        if (!isCurrentPhase(nextEl, gen)) return;
-        nextEl.classList.remove('is-entering');
-      };
-      nextEl.addEventListener('animationend', clear, { once: true });
-      window.setTimeout(clear, EXIT_FALLBACK_MS);
-      if (descending) {
-        nextEl.focus();
-      } else {
-        ((pendingFocusId && triggerRef.current.get(pendingFocusId)) || nextEl).focus();
-      }
-    }
-    if (prevEl && prevEl !== nextEl) {
-      const gen = beginPhase(prevEl);
-      prevEl.classList.add('is-leaving');
-      const settle = () => {
-        if (!isCurrentPhase(prevEl, gen)) return;
-        prevEl.classList.remove('is-leaving');
-        prevEl.hidden = true;
-      };
-      prevEl.addEventListener('animationend', settle, { once: true });
-      window.setTimeout(settle, EXIT_FALLBACK_MS);
-    }
-
-    if (liveRef.current) {
-      const label = drill.length === 0 ? rootLabel : (labelsById[drill[drill.length - 1]] ?? drill[drill.length - 1]);
-      liveRef.current.textContent = drill.length === 0 ? `Back to ${label}` : descending ? `Entered ${label}` : `At ${label}`;
-    }
-    // The newly-active level starts at its own remembered camera (or a fresh fit, first visit).
-    recompute(activeKey);
-    // `drill`/`rootLabel`/`labelsById` are read for the announcement only; the
-    // effect's real trigger is `activeKey` (derived from `drill`).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeKey]);
-
-  // Board fit (T3.16, extended by BG part 2b): re-fits the active level on
-  // every resize of the stage's own box — window resize, the rail
-  // collapsing, the inspector opening/closing, the phone sheet's snap
-  // height changing the canvas area's reserved bottom padding — for as long
-  // as that level is still `tracking` (the user hasn't panned/zoomed it).
+  // Board fit (T3.16, extended by BG part 2b): re-fits the board on every
+  // resize of the stage's own box — window resize, the rail collapsing, the
+  // inspector opening/closing, the phone sheet's snap height changing the
+  // canvas area's reserved bottom padding — for as long as it's still
+  // `tracking` (the user hasn't panned/zoomed it).
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
-    recompute(activeKeyRef.current);
-    const ro = new ResizeObserver(() => recompute(activeKeyRef.current));
+    recompute();
+    const ro = new ResizeObserver(() => recompute());
     ro.observe(stage);
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boardSizes]);
+  }, [boardSize[0], boardSize[1]]);
 
   // Pointer/wheel pan+zoom (BG part 2b). Native listeners (not JSX handlers):
   // panning needs `setPointerCapture` and a capture-phase click swallow that
@@ -297,11 +179,10 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
       return [clientX - rect.left, clientY - rect.top];
     }
 
-    function currentCamera(): { key: string; camera: Camera; fitScale: number } | null {
-      const key = activeKeyRef.current;
-      const camera = cameraRef.current.get(key);
+    function currentCamera(): { camera: Camera; fitScale: number } | null {
+      const camera = cameraRef.current;
       if (!camera) return null;
-      return { key, camera, fitScale: fitScaleRef.current.get(key) ?? 1 };
+      return { camera, fitScale: fitScaleRef.current };
     }
 
     /** Defensive: a synthetic pointer id (tests dispatching their own `PointerEvent`s), or a browser quirk on an already-released id, throws here — real capture is a nicety (keeps receiving move events once the pointer leaves the stage's box mid-drag), not something the gesture logic depends on to function. */
@@ -319,8 +200,8 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
       pointers.set(e.pointerId, [e.clientX, e.clientY]);
       if (pointers.size === 1) {
         // Capture is deliberately *not* taken here: a plain click (no
-        // movement) must keep hitting its real target (a node, a subsystem
-        // tab) for selection/drill-in to work — `setPointerCapture`
+        // movement) must keep hitting its real target (a node or a link)
+        // for selection to work — `setPointerCapture`
         // retargets the mouse-event chain (`mouseup`/`click` included) onto
         // the capturing element, which would break exactly that. It's taken
         // lazily in `onPointerMove`, once a drag is confirmed.
@@ -352,8 +233,8 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
         const stagePoint = stageXY(mid[0], mid[1]);
         const nextScale = pinch.startCamera.scale * (dist / pinch.startDist);
         const next = zoomAtPoint(pinch.startCamera, stagePoint[0], stagePoint[1], nextScale, pinch.fitScale);
-        trackingRef.current.set(cur.key, false);
-        applyCamera(cur.key, next);
+        trackingRef.current = false;
+        applyCamera(next);
         return;
       }
 
@@ -369,8 +250,8 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
         }
         drag.lastX = e.clientX;
         drag.lastY = e.clientY;
-        trackingRef.current.set(cur.key, false);
-        applyCamera(cur.key, panBy(cur.camera, dx, dy));
+        trackingRef.current = false;
+        applyCamera(panBy(cur.camera, dx, dy));
       }
     }
 
@@ -403,7 +284,7 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
       if (!cur) return;
       e.preventDefault();
       const [cx, cy] = stageXY(e.clientX, e.clientY);
-      trackingRef.current.set(cur.key, false);
+      trackingRef.current = false;
       // GEOM: every wheel gesture zooms about the cursor — plain mouse
       // wheel, a bare trackpad two-finger scroll, and ctrl+wheel/a
       // synthesized trackpad pinch alike (a real pinch reports as
@@ -411,7 +292,7 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
       // once both zoom the same way). Panning is drag/arrow-keys only now.
       const deltaY = normalizeWheelDeltaY(e.deltaY, e.deltaMode, stage!.clientHeight || undefined);
       const factor = Math.exp(-deltaY * WHEEL_ZOOM_K);
-      applyCamera(cur.key, zoomAtPoint(cur.camera, cx, cy, cur.camera.scale * factor, cur.fitScale));
+      applyCamera(zoomAtPoint(cur.camera, cx, cy, cur.camera.scale * factor, cur.fitScale));
     }
 
     stage.addEventListener('pointerdown', onPointerDown);
@@ -429,7 +310,7 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
       stage.removeEventListener('wheel', onWheel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boardSizes, interactive]);
+  }, [boardSize[0], boardSize[1], interactive]);
 
   // `+`/`-`/`0` (BG part 2b): live whenever focus is anywhere in the player
   // (registered in the 'player' scope PlayerShell already pushes), per the
@@ -437,12 +318,11 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
   // actually inside the canvas stage.
   useShortcutScope('player', interactive);
   function zoomStep(factor: number) {
-    const cur = { key: activeKeyRef.current, camera: cameraRef.current.get(activeKeyRef.current) };
+    const camera = cameraRef.current;
     const stage = stageRef.current;
-    if (!stage || !cur.camera) return;
-    const fitScale = fitScaleRef.current.get(cur.key) ?? 1;
-    trackingRef.current.set(cur.key, false);
-    applyCamera(cur.key, zoomAtPoint(cur.camera, stage.clientWidth / 2, stage.clientHeight / 2, cur.camera.scale * factor, fitScale));
+    if (!stage || !camera) return;
+    trackingRef.current = false;
+    applyCamera(zoomAtPoint(camera, stage.clientWidth / 2, stage.clientHeight / 2, camera.scale * factor, fitScaleRef.current));
   }
   useShortcut({ id: 'player:zoom-in', keys: '+', label: 'Zoom in', group: 'Player', when: 'player' }, (e) => {
     e.preventDefault();
@@ -461,59 +341,21 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
     fitActive();
   });
 
-  function enter(id: string, trigger: HTMLElement) {
-    triggerRef.current.set(id, trigger);
-    store.setState((s) => enterSubsystem(s, id));
-  }
-
-  function isSubsystemId(id: string | undefined): id is string {
-    return !!id && id in labelsById;
-  }
-
-  function activateFromTarget(target: EventTarget | null): boolean {
-    if (!(target instanceof Element)) return false;
-    const tab = target.closest<HTMLElement>('[data-subsystem-tab-id]');
-    if (tab?.dataset.subsystemTabId) {
-      enter(tab.dataset.subsystemTabId, tab);
-      return true;
-    }
-    const node = target.closest<HTMLElement>('[data-node-id]');
-    if (isSubsystemId(node?.dataset.nodeId)) {
-      enter(node!.dataset.nodeId!, node!);
-      return true;
-    }
-    return false;
-  }
-
-  function handleClick(event: MouseEvent<HTMLDivElement>) {
-    activateFromTarget(event.target);
-  }
-
   const PAN_STEP_PX = 40;
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape') {
-      if (drill.length === 0) return;
-      event.preventDefault();
-      pendingFocusIdRef.current = drill[drill.length - 1];
-      store.setState((s) => exitSubsystem(s));
-      return;
-    }
     // Arrow-key pan (BG part 2b): only while focus is inside this stage
     // (this handler only ever fires for a bubbling keydown from a focused
     // descendant) — deliberately not a global 'player'-scope shortcut like
     // `+`/`-`/`0` above, which would fight a node's own roving focus/typing.
-    const cur = cameraRef.current.get(activeKeyRef.current);
+    const cur = cameraRef.current;
     if (cur && (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
       event.preventDefault();
-      trackingRef.current.set(activeKeyRef.current, false);
+      trackingRef.current = false;
       const dx = event.key === 'ArrowLeft' ? PAN_STEP_PX : event.key === 'ArrowRight' ? -PAN_STEP_PX : 0;
       const dy = event.key === 'ArrowUp' ? PAN_STEP_PX : event.key === 'ArrowDown' ? -PAN_STEP_PX : 0;
-      applyCamera(activeKeyRef.current, panBy(cur, dx, dy));
-      return;
+      applyCamera(panBy(cur, dx, dy));
     }
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    if (activateFromTarget(event.target)) event.preventDefault();
   }
 
   const canZoomIn = readout.percent < Math.round(4 * 100) - 1;
@@ -533,21 +375,15 @@ export function DrillStage({ rootLabel, labelsById, boardSizes, className, inter
   );
 
   return (
-    <div className={['player-drill-root', className].filter(Boolean).join(' ')}>
+    <div className={['player-board-root', className].filter(Boolean).join(' ')}>
       <div
         ref={stageRef}
-        className={interactive ? 'player-drill-stage' : 'player-drill-stage is-static'}
-        onClick={interactive ? handleClick : undefined}
+        className={interactive ? 'player-board-stage' : 'player-board-stage is-static'}
         onKeyDown={interactive ? handleKeyDown : undefined}
       >
         {children}
       </div>
-      {interactive && (
-        <>
-          <div ref={liveRef} aria-live="polite" role="status" className="sr-only" />
-          {zoomSlot === null ? zoomControls('overlay') : zoomSlot.host ? createPortal(zoomControls('strip'), zoomSlot.host) : null}
-        </>
-      )}
+      {interactive && (zoomSlot === null ? zoomControls('overlay') : zoomSlot.host ? createPortal(zoomControls('strip'), zoomSlot.host) : null)}
     </div>
   );
 }

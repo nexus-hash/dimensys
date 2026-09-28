@@ -1,8 +1,8 @@
 export { Board } from './Board';
-export { Node, MeterRow } from './Node';
+export { Node } from './Node';
 export type { LeafNodeType } from './Node';
 export { Link, LinkLabel } from './Link';
-export { SubsystemCollapsed, SubsystemFrame } from './Subsystem';
+export { SubsystemFrame } from './Subsystem';
 export { HealthGlyph } from './HealthGlyph';
 export { DsaCell } from './DsaCell';
 export { PointerMarker } from './PointerMarker';

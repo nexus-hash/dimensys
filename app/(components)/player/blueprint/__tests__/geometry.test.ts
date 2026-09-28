@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { routeToPath, routeMidpoint, translate } from '../geometry';
+import { routeToPath, routeMidpoint } from '../geometry';
 
 describe('routeToPath', () => {
   it('returns an empty string for an empty route', () => {
@@ -39,16 +39,6 @@ describe('routeMidpoint', () => {
 
   it('handles a zero-length route without dividing by zero', () => {
     expect(routeMidpoint([[3, 3], [3, 3]])).toEqual([3, 3]);
-  });
-});
-
-describe('translate', () => {
-  it('offsets a point by a delta', () => {
-    expect(translate([1, 2], [10, 20])).toEqual([11, 22]);
-  });
-
-  it('is a no-op with a zero delta', () => {
-    expect(translate([7, 9], [0, 0])).toEqual([7, 9]);
   });
 });
 

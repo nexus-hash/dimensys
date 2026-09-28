@@ -7,21 +7,18 @@ const board: Board = {
   size: [400, 200],
   blocks: [
     { id: 'api', form: 'server', text: 'API', flavor: 'node' },
-    {
-      id: 'sub',
-      form: 'subSystem',
-      text: 'KGS',
-      inner: { size: [100, 100], blocks: [{ id: 'inner-a', form: 'db', text: 'Inner DB' }], wires: [] },
-    },
+    { id: 'inner-a', form: 'db', text: 'Inner DB' },
   ],
-  wires: [{ id: 'l1', a: 'api', b: 'sub', line: 'async' }],
+  wires: [{ id: 'l1', a: 'api', b: 'inner-a', line: 'async' }],
+  frames: [{ id: 'sub', text: 'KGS', look: 'cluster', box: [200, 100, 200, 100], holds: ['inner-a'] }],
 };
 
 describe('buildElementIndex / selectionTitle / selectionKindLabel', () => {
   const index = buildElementIndex(board);
 
-  it('indexes nested subsystem nodes too', () => {
+  it('indexes a framed group\'s nodes like any other, and never the frame itself', () => {
     expect(index.nodes.get('inner-a')?.text).toBe('Inner DB');
+    expect(index.nodes.has('sub')).toBe(false);
   });
 
   it('returns null for no selection', () => {
@@ -35,7 +32,7 @@ describe('buildElementIndex / selectionTitle / selectionKindLabel', () => {
   });
 
   it('titles a link selection as "A → B"', () => {
-    expect(selectionTitle(index, { kind: 'link', id: 'l1' })).toBe('API → KGS');
+    expect(selectionTitle(index, { kind: 'link', id: 'l1' })).toBe('API → Inner DB');
     expect(selectionKindLabel(index, { kind: 'link', id: 'l1' })).toBe('link · async');
   });
 

@@ -21,7 +21,7 @@ export interface ElementHealth {
   label?: string;
 }
 
-/** Per-element static health, keyed by node/subsystem id. An id with no entry is `ok`. */
+/** Per-element static health, keyed by node id. An id with no entry is `ok`. */
 export type HealthLookup = Readonly<Record<string, ElementHealth>>;
 
 export function resolveHealth(lookup: HealthLookup | undefined, id: string): ElementHealth {

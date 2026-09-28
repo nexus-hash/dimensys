@@ -30,7 +30,7 @@
  */
 
 /** Version of the view-data / manifest format this app was built against. */
-export const RUNTIME_FORMAT = 2;
+export const RUNTIME_FORMAT = 3;
 
 // ---------------------------------------------------------------------------
 // Shared small shapes
@@ -76,7 +76,7 @@ export interface ClassBody {
 /** A drawn node. */
 export interface NodeView {
   id: string;
-  /** Node shape family, e.g. `server`, `db`, `subSystem`, `cell`, `class`. Picks the base glyph. */
+  /** Node shape family, e.g. `server`, `db`, `cell`, `class`. Picks the base glyph. */
   form: string;
   /** Icon sub-style, e.g. `sql`, `mobile`. Unknown values fall back to `form`'s glyph. */
   flavor?: string;
@@ -100,20 +100,14 @@ export interface NodeView {
   uml?: ClassBody;
   /** Detail panel. */
   sheet?: Sheet;
-  /** Nested board (subsystem). */
-  inner?: Board;
-  /** Subsystem boundary style: `region` | `zone` | `vpc` | `cluster` | `group`. */
-  frame?: string;
-  /** Subsystem starts closed. */
-  folded?: boolean;
 }
 
 /** A drawn link. */
 export interface LinkView {
   id: string;
-  /** Start node id. */
+  /** Start node id (always a drawn node). */
   a: string;
-  /** End node id. */
+  /** End node id (always a drawn node). */
   b: string;
   /** Arrowheads at both ends. */
   two?: true;
@@ -152,11 +146,30 @@ export interface LinkView {
 }
 
 /** One graph level. */
+/**
+ * A labelled frame drawn round a group of nodes. Decoration only: no state,
+ * metrics, detail panel or focus stop of its own.
+ */
+export interface FrameView {
+  id: string;
+  /** Tab label. */
+  text: string;
+  /** Border style: `region` | `zone` | `vpc` | `cluster` | `group`. */
+  look: string;
+  /** The border's box. Every node in `holds` sits inside it with padding; the tab sits just above it. */
+  box: Box;
+  /** Ids of every node inside the frame (at any depth). */
+  holds: string[];
+}
+
+/** The drawn diagram: one flat graph, every node at the same scale. */
 export interface Board {
   /** `[w, h]`. */
   size: XY;
   blocks: NodeView[];
   wires: LinkView[];
+  /** Frames, outer before inner (draw order). Absent when there are none. */
+  frames?: FrameView[];
 }
 
 // ---------------------------------------------------------------------------
@@ -258,7 +271,7 @@ export interface Frame {
   /** 1-based code lines to highlight. */
   lines: number[];
   arrow?: { a: string; b: string; text?: string };
-  /** Node or subsystem to zoom to. */
+  /** Node or frame to zoom to. */
   aim?: string;
   /** Node ids to animate particles through, in order. */
   trail?: string[];

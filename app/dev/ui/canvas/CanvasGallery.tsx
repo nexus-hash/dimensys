@@ -6,7 +6,6 @@ import {
   Board,
   Node,
   Link,
-  SubsystemCollapsed,
   SubsystemFrame,
   DsaCell,
   PointerMarker,
@@ -178,35 +177,13 @@ function LinksSection() {
   );
 }
 
-function SubsystemSection() {
+function FrameSection() {
   return (
-    <Board id="gallery-subsystem" label="Subsystem" viewBox="0 0 900 340" className="canvas-surface w-full" style={{ minHeight: 340 }}>
-      <SubsystemCollapsed boardId="gallery-subsystem" id="sub-ok" label="Key Gen Service" nodeCount={5} x={130} y={80} />
-      <SubsystemCollapsed
-        boardId="gallery-subsystem"
-        id="sub-warn"
-        label="Cassandra Ring"
-        nodeCount={6}
-        health="warn"
-        healthLabel="p99 900 ms"
-        x={380}
-        y={80}
-      />
-      <SubsystemCollapsed
-        boardId="gallery-subsystem"
-        id="sub-crit"
-        label="Kafka Cluster"
-        nodeCount={3}
-        health="critical"
-        healthLabel="err 61%"
-        x={630}
-        y={80}
-      />
-
-      <SubsystemFrame boardId="gallery-subsystem" id="frame-cluster" label="cluster" x={60} y={190} width={780} height={130} />
-      <Node boardId="gallery-subsystem" id="sub-inner-1" type="server" label="Node A" x={200} y={255} />
-      <Node boardId="gallery-subsystem" id="sub-inner-2" type="server" label="Node B" x={420} y={255} />
-      <Node boardId="gallery-subsystem" id="sub-inner-3" type="db" label="Node C" x={640} y={255} />
+    <Board id="gallery-frame" label="Group frame" viewBox="0 0 900 200" className="canvas-surface w-full" style={{ minHeight: 200 }}>
+      <SubsystemFrame boardId="gallery-frame" id="frame-cluster" label="Key Generation Service" x={60} y={50} width={780} height={130} />
+      <Node boardId="gallery-frame" id="frame-inner-1" type="worker" label="KGS Worker" x={200} y={115} />
+      <Node boardId="gallery-frame" id="frame-inner-2" type="server" label="Node B" x={420} y={115} />
+      <Node boardId="gallery-frame" id="frame-inner-3" type="db" label="Key Pool" x={640} y={115} />
     </Board>
   );
 }
@@ -269,7 +246,7 @@ export function CanvasGallery() {
       <DevUiHeader
         current="/dev/ui/canvas"
         title="DS5 — Canvas visual kit gallery"
-        description="Development only (404s in production). Every node type × health state, link styles, subsystems, DSA
+        description="Development only (404s in production). Every node type × health state, link styles, group frames, DSA
             cells, markers and an LLD card, in both themes."
       />
 
@@ -285,8 +262,8 @@ export function CanvasGallery() {
         <LinksSection />
       </Section>
 
-      <Section title="Subsystems">
-        <SubsystemSection />
+      <Section title="Group frames">
+        <FrameSection />
       </Section>
 
       <Section title="DSA cells and pointer markers">

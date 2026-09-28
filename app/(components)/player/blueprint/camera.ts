@@ -1,12 +1,12 @@
 /**
  * Pan/zoom camera math (BG part 2b). Pure, DOM-free: one `Camera` is the CSS
- * transform DrillStage applies to a drill level's board element —
+ * transform BoardStage applies to the board element —
  * `translate(x, y) scale(scale)`, origin `0 0`, in the stage's own CSS-pixel
  * coordinate space (the board's native pixel size is fixed; `scale` is the
  * absolute native-px → screen-px multiplier, not a multiplier on top of a
  * separate "fit" factor).
  *
- * Kept free of any element lookup or event handling on purpose — `DrillStage`
+ * Kept free of any element lookup or event handling on purpose — `BoardStage`
  * owns the DOM side (measuring the stage box, applying the transform,
  * wiring pointer/wheel/touch/keyboard) and calls into these functions with
  * plain numbers, which is what makes the zoom-about-a-point and fit math
