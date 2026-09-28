@@ -1,0 +1,154 @@
+import { test, expect, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+/**
+ * Group frames: a group's nodes are drawn inline on the one board, inside a
+ * labelled dashed frame. There is no collapsed card, no way into or out of a
+ * group, and the breadcrumb is just Explore › the diagram title.
+ */
+
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface Geometry {
+  frames: Array<{ id: string; body: Rect; tab: Rect | null }>;
+  nodes: Array<{ id: string; body: Rect }>;
+}
+
+async function settle(page: Page) {
+  await page.waitForTimeout(1500);
+}
+
+/** Every frame's and node's box in the board's own units (screen px divided by the camera scale). */
+async function boardGeometry(page: Page): Promise<Geometry> {
+  return page.evaluate(() => {
+    const svg = document.querySelector<SVGSVGElement>('[data-board-level] svg')!;
+    const svgRect = svg.getBoundingClientRect();
+    const scale = svgRect.width / svg.viewBox.baseVal.width;
+    const toBoard = (el: Element | null) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: (r.x - svgRect.x) / scale, y: (r.y - svgRect.y) / scale, w: r.width / scale, h: r.height / scale };
+    };
+    return {
+      frames: [...svg.querySelectorAll('[data-frame-id]')].map((f) => ({
+        id: f.getAttribute('data-frame-id')!,
+        body: toBoard(f.querySelector('.cv-body'))!,
+        tab: toBoard(f.querySelector('.cv-tab')),
+      })),
+      nodes: [...svg.querySelectorAll('[data-node-id]')].map((n) => ({
+        id: n.getAttribute('data-node-id')!,
+        body: toBoard(n.querySelector('.cv-inner .cv-body') ?? n.querySelector('.cv-body'))!,
+      })),
+    };
+  });
+}
+
+function overlaps(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+/** The view data's own frames (`holds`) and drawn blocks, from the page's static JSON route. */
+async function viewBoard(page: Page) {
+  const res = await page.request.get('/solutions/url-shortener/diagram.json');
+  expect(res.ok()).toBe(true);
+  const view = await res.json();
+  return view.board as { blocks: Array<{ id: string; box?: number[] }>; frames?: Array<{ id: string; holds: string[] }> };
+}
+
+test.describe('player group frames (url-shortener)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/solutions/url-shortener');
+    await expect(page.locator('[data-board-level] svg').first()).toBeVisible();
+    await settle(page);
+  });
+
+  test('every node, a group’s children included, is rendered in the one main view', async ({ page }) => {
+    const board = await viewBoard(page);
+    expect(board.frames?.length ?? 0).toBeGreaterThan(0);
+    await expect(page.locator('[data-board-level]')).toHaveCount(1);
+    for (const block of board.blocks.filter((b) => b.box)) {
+      await expect(page.locator(`[data-board-level] [data-node-id="${block.id}"]`)).toBeVisible();
+    }
+    for (const frame of board.frames!) {
+      await expect(page.locator(`[data-frame-id="${frame.id}"]`)).toBeVisible();
+      for (const id of frame.holds) await expect(page.locator(`[data-board-level] [data-node-id="${id}"]`)).toBeVisible();
+    }
+  });
+
+  test('each frame’s box contains all its children with at least 12px padding', async ({ page }) => {
+    const board = await viewBoard(page);
+    const geo = await boardGeometry(page);
+    for (const frame of board.frames!) {
+      const f = geo.frames.find((g) => g.id === frame.id)!.body;
+      for (const id of frame.holds) {
+        const n = geo.nodes.find((g) => g.id === id)!.body;
+        const pad = Math.min(n.x - f.x, n.y - f.y, f.x + f.w - (n.x + n.w), f.y + f.h - (n.y + n.h));
+        expect(pad, `${id} inside ${frame.id}`).toBeGreaterThanOrEqual(12 - 0.5);
+      }
+    }
+  });
+
+  test('no node overlaps a frame (or its tab) it isn’t inside', async ({ page }) => {
+    const board = await viewBoard(page);
+    const geo = await boardGeometry(page);
+    for (const frame of board.frames!) {
+      const g = geo.frames.find((x) => x.id === frame.id)!;
+      for (const node of geo.nodes) {
+        if (frame.holds.includes(node.id)) continue;
+        expect(overlaps(node.body, g.body), `${node.id} vs frame ${frame.id}`).toBe(false);
+        if (g.tab) expect(overlaps(node.body, g.tab), `${node.id} vs tab of ${frame.id}`).toBe(false);
+      }
+    }
+  });
+
+  test('the breadcrumb has exactly 2 items: Explore › the diagram title', async ({ page }) => {
+    const items = page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('listitem');
+    await expect(items).toHaveCount(2);
+    await expect(items.nth(1)).toHaveText('URL Shortener System Design');
+  });
+
+  test('no drill or expand control exists, and the frame is not interactive', async ({ page }) => {
+    await expect(page.locator('[data-subsystem-tab-id], [data-child-ids], .cv-expand, .cv-subsystem-card, [data-drill-key]')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /enter .* subsystem|expand|drill/i })).toHaveCount(0);
+    const frame = page.locator('[data-frame-id]').first();
+    await expect(frame.locator('[tabindex], [role="button"]')).toHaveCount(0);
+    expect(await frame.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
+  });
+
+  test('a framed child is an ordinary node: clicking it selects it on the same board', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'selection opens the phone sheet on mobile; covered by the inspector spec');
+    const board = await viewBoard(page);
+    const child = board.frames![0].holds[0];
+    await page.locator(`[data-node-id="${child}"]`).click();
+    await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeVisible();
+    await expect(page.locator('[data-board-level]')).toHaveCount(1);
+  });
+});
+
+test.describe('player group frames — axe', () => {
+  for (const theme of ['dark', 'light'] as const) {
+    for (const [name, viewport] of [
+      ['1440', { width: 1440, height: 900 }],
+      ['834', { width: 834, height: 1112 }],
+      ['390', { width: 390, height: 844 }],
+    ] as const) {
+      test(`zero axe violations at ${name}, ${theme}`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: theme });
+        await page.setViewportSize(viewport);
+        await page.goto('/solutions/url-shortener');
+        await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+        await settle(page);
+        const results = await new AxeBuilder({ page }).analyze();
+        if (results.violations.length > 0) console.log(JSON.stringify(results.violations, null, 2));
+        expect(results.violations).toEqual([]);
+      });
+    }
+  }
+});

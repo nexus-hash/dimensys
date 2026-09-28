@@ -9,7 +9,7 @@ import AxeBuilder from '@axe-core/playwright';
  * inspector closed, the phone sheet dragged to a taller snap point). Also
  * proves the particle overlay canvas tracks the board's own rect after
  * every one of those refits — `InteractiveLayer`'s `ResizeObserver` used to
- * watch a box that didn't change size when `DrillStage`'s fit effect wrote
+ * watch a box that didn't change size when `BoardStage`'s fit effect wrote
  * a new size onto the board element, leaving the canvas (and its particles)
  * stuck at the pre-refit rect.
  *
@@ -39,7 +39,7 @@ function insetBox(box: FreeBox, inset: number): FreeBox {
 }
 
 async function measureFit(page: Page) {
-  const svg = page.locator('[data-drill-key=""] svg').first();
+  const svg = page.locator('[data-board-level] svg').first();
   const viewBox = await svg.getAttribute('viewBox');
   if (!viewBox) throw new Error('root level svg has no viewBox');
   const [, , wStr, hStr] = viewBox.split(' ');
@@ -50,7 +50,7 @@ async function measureFit(page: Page) {
   if (!wrapOuterBox) throw new Error('.player-board-wrap has no box (not visible?)');
   const wrapBox = insetBox(wrapOuterBox, WRAP_PADDING_PX);
 
-  const boardBox = await page.locator('[data-drill-key=""] > div').first().boundingBox();
+  const boardBox = await page.locator('[data-board-level] > div').first().boundingBox();
   if (!boardBox) throw new Error('board element has no box');
 
   const canvasBox = await page.locator('.player-overlay-canvas').boundingBox();
@@ -109,7 +109,7 @@ function expectFit({ nativeW, nativeH, wrapBox, boardBox, canvasBox }: Awaited<R
  */
 async function expectNodesInsideFreeArea(page: Page, wrapBox: FreeBox) {
   const nodeTolerance = 4;
-  const nodes = page.locator('[data-drill-key=""] [data-node-id]');
+  const nodes = page.locator('[data-board-level] [data-node-id]');
   const count = await nodes.count();
   expect(count).toBeGreaterThan(0);
   for (let i = 0; i < count; i++) {
@@ -275,7 +275,7 @@ test.describe('player board fit — phone (390x844)', () => {
  * Pan/zoom camera (BG part 2b). Runs on both Playwright projects (desktop
  * `chromium` here — real `page.mouse`/`page.keyboard` drag and ctrl+wheel —
  * and `Mobile Chrome` below, via synthetic `PointerEvent`s dispatched
- * in-page with `pointerType: 'touch'`: `DrillStage`'s pan/pinch handlers are
+ * in-page with `pointerType: 'touch'`: `BoardStage`'s pan/pinch handlers are
  * plain Pointer Event listeners, so a dispatched touch-typed pointer event
  * exercises the exact same code path a real touchscreen would, without
  * needing hardware-level multi-touch injection).
@@ -284,7 +284,7 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   /**
-   * An empty point inside the actual pan/zoom surface (`.player-drill-stage`,
+   * An empty point inside the actual pan/zoom surface (`.player-board-stage`,
    * `.player-board-wrap` *inset by its own 24px padding* — landing in that
    * padding hits the wrap's own background, not the stage, and nothing
    * happens), away from the top-left corner.
@@ -297,7 +297,7 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
   test('drag on empty canvas pans the board rect by the drag delta', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await settle(page);
-    const before = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const before = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     const start = await emptyCanvasPoint(page);
     const dx = -120;
     const dy = 60;
@@ -305,7 +305,7 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
     await page.mouse.down();
     await page.mouse.move(start.x + dx, start.y + dy, { steps: 10 });
     await page.mouse.up();
-    const after = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const after = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     expect(after.x - before.x).toBeGreaterThanOrEqual(dx - TOLERANCE_PX);
     expect(after.x - before.x).toBeLessThanOrEqual(dx + TOLERANCE_PX);
     expect(after.y - before.y).toBeGreaterThanOrEqual(dy - TOLERANCE_PX);
@@ -362,7 +362,7 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
     // area — it may be *smaller* than the board's own rect once the board
     // outgrows the wrap (see the dedicated clip test below), but never sits
     // off from where the board and the wrap actually overlap.
-    const boardBox = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const boardBox = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     const wrapBox = (await page.locator('.player-board-wrap').boundingBox())!;
     const canvasBox = (await page.locator('.player-overlay-canvas').boundingBox())!;
     const expectedLeft = Math.max(boardBox.x, wrapBox.x);
@@ -382,7 +382,7 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
     await page.keyboard.up('Control');
     await settle(page);
 
-    const boardBox = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const boardBox = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     const canvasBox = (await page.locator('.player-overlay-canvas').boundingBox())!;
     // The board itself now overflows the wrap...
     expect(boardBox.width).toBeGreaterThan(wrapBox.width);
@@ -452,7 +452,7 @@ test.describe('player camera — pan/zoom (chromium, 1440x900)', () => {
       await page.mouse.up();
     }
     await settle(page);
-    const boardBox = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const boardBox = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     // At least a sliver of the board must still overlap the wrap on both axes.
     const overlapX = Math.min(boardBox.x + boardBox.width, wrapBox.x + wrapBox.width) - Math.max(boardBox.x, wrapBox.x);
     const overlapY = Math.min(boardBox.y + boardBox.height, wrapBox.y + wrapBox.height) - Math.max(boardBox.y, wrapBox.y);
@@ -472,7 +472,7 @@ test.describe('player camera — touch pan/pinch (Mobile Chrome emulation, 390x8
   async function touchDrag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
     await page.evaluate(
       ([fx, fy, tx, ty]) => {
-        const el = document.querySelector('.player-drill-stage')!;
+        const el = document.querySelector('.player-board-stage')!;
         const fire = (type: string, x: number, y: number, id: number) =>
           el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, cancelable: true }));
         fire('pointerdown', fx, fy, 1);
@@ -490,7 +490,7 @@ test.describe('player camera — touch pan/pinch (Mobile Chrome emulation, 390x8
   async function touchPinch(page: Page, mid: { x: number; y: number }, startHalfSpan: number, endHalfSpan: number) {
     await page.evaluate(
       ([mx, my, startSpan, endSpan]) => {
-        const el = document.querySelector('.player-drill-stage')!;
+        const el = document.querySelector('.player-board-stage')!;
         const fire = (type: string, x: number, y: number, id: number) =>
           el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, cancelable: true }));
         fire('pointerdown', mx - startSpan, my, 1);
@@ -512,11 +512,11 @@ test.describe('player camera — touch pan/pinch (Mobile Chrome emulation, 390x8
     await page.goto('/solutions/url-shortener');
     await settle(page);
     const wrap = (await page.locator('.player-board-wrap').boundingBox())!;
-    const before = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const before = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     const from = { x: wrap.x + wrap.width - 20, y: wrap.y + wrap.height - 20 };
     await touchDrag(page, from, { x: from.x - 50, y: from.y - 30 });
     await settle(page);
-    const after = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const after = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     expect(after.x).not.toBeCloseTo(before.x, 0);
   });
 
@@ -525,15 +525,15 @@ test.describe('player camera — touch pan/pinch (Mobile Chrome emulation, 390x8
     await settle(page);
     const wrap = (await page.locator('.player-board-wrap').boundingBox())!;
     const mid = { x: wrap.x + wrap.width / 2, y: wrap.y + wrap.height / 2 };
-    const before = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const before = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     await touchPinch(page, mid, 40, 140);
     await settle(page);
-    const after = (await page.locator('[data-drill-key=""] > div').first().boundingBox())!;
+    const after = (await page.locator('[data-board-level] > div').first().boundingBox())!;
     expect(after.width).toBeGreaterThan(before.width * 1.2);
   });
 });
 
-/** Standalone axe pass (BG owner review) at the three reference viewports, on the real full player (not just the dev fixture `player-drilldown.spec.ts` already covers). */
+/** Standalone axe pass (BG owner review) at the three reference viewports, on the real full player. */
 test.describe('player camera — axe', () => {
   for (const [name, viewport] of [
     ['1440', { width: 1440, height: 900 }],

@@ -10,7 +10,7 @@
 # Scope: only specs that work against the production routes. `/dev/ui` and
 # `/dev/player` are dev-only (404 in production by design, same as
 # `/dev/worker` — see `e2e/production-runtime-assets.spec.ts`), so
-# `e2e/dev-ui-*.spec.ts`, `e2e/player-drilldown.spec.ts` and
+# `e2e/dev-ui-*.spec.ts` and
 # `e2e/player-static-blueprint.spec.ts` aren't run here; they need the dev
 # server (`npm run dev:next` + the default Playwright config).
 #
@@ -73,6 +73,7 @@ npx playwright test \
   e2e/player-inspector.spec.ts \
   e2e/player-label-geometry.spec.ts \
   e2e/player-hud-timeline.spec.ts \
+  e2e/player-frames.spec.ts \
   --project=chromium --project="Mobile Chrome" --workers=4 \
   2>&1 | tee "$LOGDIR/playwright.log"
 

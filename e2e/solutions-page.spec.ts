@@ -19,7 +19,7 @@ test.describe('/solutions/[id]', () => {
     // Not `locator('svg').first()`: the player shell (T3.16) renders a few
     // small UI icons (the rail toggle, etc.) before the board itself in DOM
     // order — this targets the actual diagram SVG specifically.
-    await expect(page.locator('[data-player-root] [data-drill-key=""] svg[aria-label]').first()).toBeVisible();
+    await expect(page.locator('[data-player-root] [data-board-level] svg[aria-label]').first()).toBeVisible();
     expect(await page.locator('[data-node-id]').count()).toBeGreaterThan(0);
   });
 

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * T3.2: the static blueprint (nodes, links, subsystems) must be readable
+ * T3.2: the static blueprint (nodes, links, group frames) must be readable
  * with no client JS at all — it's server-rendered SVG, not hydrated. This
  * disables JS entirely (stronger than just not waiting for hydration) and
  * checks the synced url-shortener and netflix documents plus the
@@ -23,23 +23,20 @@ test.describe('static blueprint renders with JavaScript disabled', () => {
     expect(linkCount).toBeGreaterThan(10);
   });
 
-  test('draws the expanded subsystem, its inner nodes, and every link style', async ({ page }) => {
+  test('draws a group as a frame round its nodes, inline, and every link style', async ({ page }) => {
     await page.goto('/dev/player');
     const fixtureBoard = page.locator('svg[aria-label="Static blueprint fixture"]');
 
-    // The hand-built fixture: a folded subsystem stays collapsed (no inner nodes drawn)...
-    await expect(fixtureBoard.locator('[data-node-id="kgs-service"]')).toBeVisible();
-    await expect(fixtureBoard.locator('[data-node-id="kgs-worker"]')).toHaveCount(0);
-
-    // ...an expanded one draws its frame tab and inner nodes/link in the parent's space.
-    await expect(fixtureBoard.getByText('ANALYTICS PIPELINE · 2 NODES')).toBeVisible();
-    await expect(fixtureBoard.locator('[data-node-id="ana-worker"]')).toBeVisible();
-    // A perfectly horizontal link's SVG path has a zero-height bounding box (nothing to do with
-    // this being a subsystem-nested link), so it's checked by attachment + its drawn path, not
-    // pixel visibility.
-    const innerLink = fixtureBoard.locator('[data-link-id="ana-link"] path.cv-link');
+    // The group is a frame with its name as a tab; its nodes are ordinary nodes on the one board.
+    await expect(fixtureBoard.getByText('KEY GENERATION SERVICE')).toBeVisible();
+    await expect(fixtureBoard.locator('[data-node-id="kgs-service"]')).toHaveCount(0);
+    await expect(fixtureBoard.locator('[data-node-id="kgs-worker"]')).toBeVisible();
+    await expect(fixtureBoard.locator('[data-node-id="kgs-db"]')).toBeVisible();
+    // A perfectly horizontal link's SVG path has a zero-height bounding box, so it's checked by
+    // attachment + its drawn path, not pixel visibility.
+    const innerLink = fixtureBoard.locator('[data-link-id="kgs-link"] path.cv-link');
     await expect(innerLink).toBeAttached();
-    await expect(innerLink).toHaveAttribute('d', 'M872,340 L918,340');
+    await expect(innerLink).toHaveAttribute('d', 'M258,340 L314,340');
   });
 
   test('drives node rings from the color-by health lookup', async ({ page }) => {

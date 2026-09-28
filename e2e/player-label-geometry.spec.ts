@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
  * GEOM: two acceptance checks on the real, rendered player.
  *
  * 1. No label pill overlaps a node's own rect (including its replica stack
- *    cards) or a subsystem frame — the engine now inflates its placement
+ *    cards), a frame's tab or a frame's border — the engine now inflates its placement
  *    obstacles by each node's decoration extent and emits the pill's own
  *    real size (`cap.sz`) instead of the player re-estimating it, so the
  *    two numbers can no longer drift apart.
@@ -25,7 +25,7 @@ function disjoint(a: { x: number; y: number; width: number; height: number }, b:
 }
 
 async function checkLabelsClearOfNodesAndFrames(page: Page) {
-  const root = page.locator('[data-drill-key=""]');
+  const root = page.locator('[data-board-level]');
   const pills = root.locator('.cv-link-label rect');
   const pillCount = await pills.count();
   expect(pillCount).toBeGreaterThan(0);
@@ -36,17 +36,25 @@ async function checkLabelsClearOfNodesAndFrames(page: Page) {
     const box = await nodes.nth(i).boundingBox();
     if (box) nodeBoxes.push(box);
   }
-  const frames = root.locator('[data-subsystem-id]');
+  // A frame's tab is an obstacle like a node; its border may hold a pill fully inside or fully outside, never across it.
+  const frameBoxes: Array<{ x: number; y: number; width: number; height: number }> = [];
+  const frames = root.locator('[data-frame-id]');
   for (let i = 0; i < (await frames.count()); i++) {
-    const box = await frames.nth(i).boundingBox();
-    if (box) nodeBoxes.push(box);
+    const body = await frames.nth(i).locator('.cv-body').boundingBox();
+    if (body) frameBoxes.push(body);
+    const tab = await frames.nth(i).locator('.cv-tab').boundingBox();
+    if (tab) nodeBoxes.push(tab);
   }
 
   for (let i = 0; i < pillCount; i++) {
     const pillBox = await pills.nth(i).boundingBox();
     if (!pillBox) continue;
     for (const nodeBox of nodeBoxes) {
-      expect(disjoint(pillBox, nodeBox), `pill ${i} vs a node/frame rect`).toBe(true);
+      expect(disjoint(pillBox, nodeBox), `pill ${i} vs a node rect or frame tab`).toBe(true);
+    }
+    for (const f of frameBoxes) {
+      const inside = pillBox.x >= f.x && pillBox.y >= f.y && pillBox.x + pillBox.width <= f.x + f.width && pillBox.y + pillBox.height <= f.y + f.height;
+      expect(disjoint(pillBox, f) || inside, `pill ${i} straddles a frame border`).toBe(true);
     }
   }
 }
@@ -54,7 +62,7 @@ async function checkLabelsClearOfNodesAndFrames(page: Page) {
 test.describe('player label geometry (GEOM)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('every label pill is disjoint from every node rect (incl. stack cards) and subsystem frame, at default fit', async ({ page }) => {
+  test('every label pill is disjoint from every node rect (incl. stack cards) frame tab and frame border, at default fit', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await settle(page);
     await checkLabelsClearOfNodesAndFrames(page);
@@ -76,8 +84,8 @@ test.describe('player label geometry (GEOM)', () => {
   test('the board wrapper and its svg no longer clip on their own (GEOM part 1)', async ({ page }) => {
     await page.goto('/solutions/url-shortener');
     await settle(page);
-    const wrapperOverflow = await page.locator('[data-drill-key=""] > div').first().evaluate((el) => getComputedStyle(el).overflow);
-    const svgOverflow = await page.locator('[data-drill-key=""] svg').first().evaluate((el) => getComputedStyle(el).overflow);
+    const wrapperOverflow = await page.locator('[data-board-level] > div').first().evaluate((el) => getComputedStyle(el).overflow);
+    const svgOverflow = await page.locator('[data-board-level] svg').first().evaluate((el) => getComputedStyle(el).overflow);
     expect(wrapperOverflow).toBe('visible');
     expect(svgOverflow).toBe('visible');
     // The region itself is still the only clip.
@@ -132,7 +140,7 @@ test.describe('player label geometry (GEOM)', () => {
     test(`${id}: no node title or sub-label truncates at default fit`, async ({ page }) => {
       await page.goto(`/solutions/${id}`);
       await settle(page);
-      const texts = await page.locator('[data-drill-key=""] [data-node-id] :is(.cv-label, .cv-sub)').allTextContents();
+      const texts = await page.locator('[data-board-level] [data-node-id] :is(.cv-label, .cv-sub)').allTextContents();
       expect(texts.length).toBeGreaterThan(0);
       expect(texts.filter((t) => t.includes('…'))).toEqual([]);
     });
@@ -151,7 +159,7 @@ test.describe('player label geometry (GEOM)', () => {
         }
         const problems = await page.evaluate(() => {
           const out: string[] = [];
-          const level = document.querySelector('[data-drill-key=""]')!;
+          const level = document.querySelector('[data-board-level]')!;
           for (const g of level.querySelectorAll<SVGGElement>('[data-node-id]')) {
             const body = g.querySelector<SVGRectElement>('.cv-body');
             if (!body) continue;
@@ -184,7 +192,7 @@ test.describe('player label geometry (GEOM)', () => {
       await page.goto(`/solutions/${id}`);
       await settle(page);
       const late = await page.evaluate(() => {
-        const svg = document.querySelector('[data-drill-key=""] svg')!;
+        const svg = document.querySelector('[data-board-level] svg')!;
         const all = [...svg.querySelectorAll('[data-link-id], [data-link-label-for]')];
         const lastLink = Math.max(...all.map((el, i) => (el.hasAttribute('data-link-id') ? i : -1)));
         const firstPill = all.findIndex((el) => el.hasAttribute('data-link-label-for'));

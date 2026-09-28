@@ -58,7 +58,7 @@ for (const theme of ['light', 'dark'] as const) {
 
 /**
  * DS5: the canvas kit gallery (every node type × health state, links,
- * subsystems, DSA cells/markers, an LLD card) is the a11y test surface for
+ * group frames, DSA cells/markers, an LLD card) is the a11y test surface for
  * the canvas layer. Same zero serious/critical bar, both themes.
  */
 for (const theme of ['light', 'dark'] as const) {
