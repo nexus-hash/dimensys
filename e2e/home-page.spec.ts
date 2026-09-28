@@ -66,7 +66,7 @@ test.describe('Home', () => {
 
   test('the walkthrough section lists real story titles from the catalog', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Write Path (URL Creation)')).toBeVisible();
+    await expect(page.getByText('Write path: creating a short link')).toBeVisible();
   });
 
   for (const viewport of [

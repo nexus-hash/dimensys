@@ -9,9 +9,8 @@ import AxeBuilder from '@axe-core/playwright';
  * `?v=<walkthrough>&st=<step>` reflects and restores the step, and leaving
  * puts the whole board and the camera back.
  *
- * The walkthrough under test is `wt-write` when the synced data has it, and
- * otherwise the diagram's longest one; checks that need several steps skip
- * themselves when it's shorter than that.
+ * The walkthrough under test is url-shortener's write path (several steps,
+ * one of them aimed at a group frame).
  */
 
 const DIAGRAM = 'url-shortener';
@@ -31,7 +30,9 @@ test.beforeAll(async ({ request }) => {
   const view = (await res.json()) as { stories: Story[] };
   const playable = view.stories.filter((s) => s.frames.length > 0);
   expect(playable.length).toBeGreaterThan(0);
-  wt = playable.find((s) => s.id === 'wt-write') ?? [...playable].sort((a, b) => b.frames.length - a.frames.length)[0];
+  wt = playable.find((s) => s.id === 'write-path')!;
+  expect(wt).toBeTruthy();
+  expect(wt.frames.length).toBeGreaterThanOrEqual(3);
 });
 
 const narration = (page: Page) => page.locator('.player-canvas-area [data-walkthrough-narration]');
@@ -95,7 +96,6 @@ test.describe('walkthrough player (desktop)', () => {
   });
 
   test('← / → move between steps', async ({ page }) => {
-    test.skip(wt.frames.length < 2, 'needs a walkthrough with 2+ steps in the synced data');
     await open(page, `?v=${wt.id}`);
     await expectStep(page, 1);
     await page.keyboard.press('ArrowRight');
@@ -107,7 +107,6 @@ test.describe('walkthrough player (desktop)', () => {
   });
 
   test('a deep link to step 3 opens straight on step 3', async ({ page }) => {
-    test.skip(wt.frames.length < 3, 'needs a walkthrough with 3+ steps in the synced data');
     await open(page, `?v=${wt.id}&st=${wt.frames[2].id}`);
     await expect(root(page)).toHaveAttribute('data-player-mode', 'walkthrough');
     await expectStep(page, 3);
@@ -181,6 +180,27 @@ test.describe('walkthrough player (desktop)', () => {
     await expect(page.locator('[data-board-level] .is-dimmed, [data-wt-badge], .is-wt-focus, [data-wt-flow], [data-wt-tone]')).toHaveCount(0);
     await expect.poll(() => boardTransform(page)).toBe(before);
   });
+});
+
+test('a step aimed at a group frame frames and badges that frame', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, `?v=${wt.id}&st=2`);
+  await expectStep(page, 2);
+  await expect(page.locator('[data-frame-id].is-wt-focus')).toHaveCount(1);
+  await page.waitForTimeout(800);
+  const inside = await page.evaluate(() => {
+    const wrap = document.querySelector('.player-board-wrap')!.getBoundingClientRect();
+    const r = document.querySelector('[data-frame-id].is-wt-focus .cv-body')!.getBoundingClientRect();
+    return r.left >= wrap.left - 1 && r.right <= wrap.right + 1 && r.top >= wrap.top - 1 && r.bottom <= wrap.bottom + 1;
+  });
+  expect(inside).toBe(true);
+});
+
+test('netflix: a deep link opens a transcoding step', async ({ page }) => {
+  await page.goto('/solutions/netflix?v=transcode-pipeline&st=3');
+  await expect(root(page)).toHaveAttribute('data-player-mode', 'walkthrough', { timeout: READY_TIMEOUT });
+  await expect(narration(page)).toHaveAttribute('data-step', '3');
+  await expect(page).toHaveURL(/[?&]v=transcode-pipeline&st=tp-queue(&|$)/);
 });
 
 test.describe('walkthrough player (phone)', () => {
