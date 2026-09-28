@@ -61,8 +61,8 @@ for (const id of DIAGRAMS) {
           const hub = (await page.locator(`[data-node-id="${id === 'netflix' ? 'api-gateway' : 'api-service'}"]`).first().boundingBox())!;
           await page.mouse.move(hub.x + hub.width, hub.y + hub.height / 2);
           await page.keyboard.down('Control');
-          // ~3x: each wheel notch of this size zooms ×~1.4 (see BoardStage).
-          for (let i = 0; i < 3; i++) await page.mouse.wheel(0, -110);
+          // ~3x: a mouse-wheel notch zooms about 10% (see BoardStage), so a dozen notches.
+          for (let i = 0; i < 12; i++) await page.mouse.wheel(0, -110);
           await page.keyboard.up('Control');
         }
         await page.waitForTimeout(2000);
