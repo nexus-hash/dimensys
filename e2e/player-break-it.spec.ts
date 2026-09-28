@@ -136,7 +136,12 @@ test.describe('Break it', () => {
 
     // The panel opens itself on the first failing requirement; the wrench also opens it.
     const panel = page.locator('.player-inspector .break-fixit');
-    if (!(await panel.isVisible())) await tool(page, 'Fix it').click();
+    // Fix it may open itself when a requirement first fails; toggle until it
+    // is open rather than racing that.
+    await expect(async () => {
+      if (!(await panel.isVisible())) await tool(page, 'Fix it').click();
+      await expect(panel).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
     await expect(panel).toBeVisible();
     await panel.getByRole('button', { name: 'Apply: In-process L1 cache in the API' }).click();
 
@@ -160,7 +165,12 @@ test.describe('Break it', () => {
     await page.locator('.player-canvas-area .break-try-card', { hasText: /15x traffic/ }).click();
     await expect(badge(page, /play p99/)).toHaveAttribute('aria-label', 'failing', { timeout: EFFECT_TIMEOUT });
     const panel = page.locator('.player-inspector .break-fixit');
-    if (!(await panel.isVisible())) await tool(page, 'Fix it').click();
+    // Fix it may open itself when a requirement first fails; toggle until it
+    // is open rather than racing that.
+    await expect(async () => {
+      if (!(await panel.isVisible())) await tool(page, 'Fix it').click();
+      await expect(panel).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
     await panel.getByRole('button', { name: 'Apply: Add origin read capacity' }).click();
     await expect(badge(page, /play p99/)).toHaveAttribute('aria-label', 'passing', { timeout: 45000 });
   });
@@ -267,10 +277,13 @@ test.describe('Break it', () => {
         await page.setViewportSize(viewport);
         await openBreak(page, 'url-shortener');
         if (viewport.width >= 640) {
+          // Open Fix it first: it also opens itself when a requirement first
+          // fails, so toggling it after the kill can race that and close it.
+          await tool(page, 'Fix it').click();
+          await expect(page.locator('.player-inspector .break-fixit')).toBeVisible();
           await tool(page, 'Kill').click();
           await expect(page.locator('.break-armed')).toBeVisible();
           await node(page, 'cache-redis').click();
-          await tool(page, 'Fix it').click();
           await expect(page.locator('.player-inspector .break-fixit')).toBeVisible();
           await page.locator('.player-inspector').getByRole('button', { name: /^Apply: / }).first().click();
         } else {
