@@ -31,8 +31,10 @@ async function openFixIt(page: Page) {
 
 /** Kills a node without a card (the "Try this" cards give way to the action log after the first move). */
 async function killNode(page: Page, id: string) {
+  // Arm the tool first: an armed click applies it rather than selecting the node (which would show the inspector).
+  await tool(page, 'Kill').click();
+  await expect(page.locator('.break-armed')).toBeVisible();
   await page.locator(`[data-node-id="${id}"]`).first().click();
-  await page.keyboard.press('k');
 }
 
 async function tryCard(page: Page, text: string | RegExp) {
