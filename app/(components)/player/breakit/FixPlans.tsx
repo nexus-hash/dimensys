@@ -91,8 +91,8 @@ export function FixPlans() {
     return (
       <p className="break-fixit-lede" data-plans-state="unfixable">
         {verb === 'kill'
-          ? `Checked in the simulator: no change in the list brings this back while ${name} is down. It needs ${name} restored (Undo), or redundancy in place before it fails.`
-          : 'Checked in the simulator: no combination of up to three changes brings this back while it lasts. Undo it, or try your own changes in Fix it myself.'}
+          ? `Checked in the simulator: no change in the list brings this back while ${name} is down. It needs ${name} restored (Restore, above), or redundancy in place before it fails.`
+          : 'Checked in the simulator: no combination of up to three changes brings this back while it lasts. Restore it (above), or try your own changes in Fix it myself.'}
       </p>
     );
   }

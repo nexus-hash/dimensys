@@ -6,7 +6,7 @@
  * browser never needs the board's geometry or the full view data to play a
  * walkthrough.
  */
-import type { Board, Box, Frame, Sheet, StoryView, ViewData } from '../types';
+import type { Board, BreakChip, Box, Frame, Sheet, StoryView, ViewData } from '../types';
 
 /** One step, ready to apply to the drawn board. */
 export interface WalkthroughStep {
@@ -43,6 +43,8 @@ export interface WalkthroughView {
   id: string;
   title: string;
   tip?: string;
+  /** The failure it explains, applied when "Now break it" hands over to Break it. */
+  brk?: BreakChip;
   steps: WalkthroughStep[];
 }
 
@@ -223,6 +225,7 @@ export function buildWalkthroughs(diagram: Pick<ViewData, 'stories' | 'board' | 
       id: story.id,
       title: story.text,
       ...(story.tip ? { tip: story.tip } : {}),
+      ...(story.brk ? { brk: story.brk } : {}),
       steps: story.frames.map((frame, i) => buildStep(frame, i, board, markerText)),
     }));
 }

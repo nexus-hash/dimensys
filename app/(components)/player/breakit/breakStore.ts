@@ -14,7 +14,7 @@
 import { useSyncExternalStore } from 'react';
 import type { PlayerStore } from '../store/playerStore';
 import { usePlayerStoreApi } from '../store/PlayerStoreProvider';
-import type { BreakTool } from './tools';
+import type { BreakTool, TryCard } from './tools';
 
 /** The global readings a fix is judged by: p99, error rate, throughput, cost. */
 export interface MetricSnapshot {
@@ -51,6 +51,8 @@ export interface BreakUiState {
   fixMode: 'myself' | 'plans';
   /** The plan applied from the plans list: which failure, which plan, and when (its steps sit in the log at that time). */
   plan: { cause: string; index: number; t: number } | null;
+  /** A move to make as soon as Break it is running on the free-play run (the failure a walkthrough hands over). */
+  pending: TryCard | null;
 }
 
 export interface BreakUiStore {
@@ -60,7 +62,7 @@ export interface BreakUiStore {
 }
 
 export function initialBreakUi(): BreakUiState {
-  return { armed: null, drawer: false, tab: 'fix', spikeOpen: false, cacheOpen: false, cacheTarget: null, marks: {}, autoOpened: false, fixMode: 'myself', plan: null };
+  return { armed: null, drawer: false, tab: 'fix', spikeOpen: false, cacheOpen: false, cacheTarget: null, marks: {}, autoOpened: false, fixMode: 'myself', plan: null, pending: null };
 }
 
 export function createBreakUiStore(initial: BreakUiState = initialBreakUi()): BreakUiStore {

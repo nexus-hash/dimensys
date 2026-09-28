@@ -6,6 +6,7 @@ import { InspectorTabs } from './InspectorTabs';
 import { SectionRenderer, isSimpleShape } from './sections';
 import { paneLabel } from './paneLabel';
 import { ScaleControl } from './ScaleControl';
+import { RestoreNode } from '../breakit/InEffect';
 
 /** Groups a sheet's parts by `pane`, preserving first-appearance order — the order tabs are shown in, per the brief ("one tab per pane, in first-appearance order"), before the "Coming soon"-only reordering below. */
 function groupByPane(parts: Part[]): Map<string, Part[]> {
@@ -60,8 +61,13 @@ export function NodeInspectorBody({ node, data = NO_INSPECTOR_DATA }: { node: { 
   const parts = node.sheet?.parts ?? [];
   const ctx: SectionContext = { ...data, elementId: node.id };
   const knob = data.knobs?.find((k) => k.el === node.id);
-  const scale = knob ? <ScaleControl knob={knob} label={node.text} /> : null;
-  if (parts.length === 0) return scale ? <>{scale}<EmptyInspectorBody /></> : <EmptyInspectorBody />;
+  const scale = (
+    <>
+      <RestoreNode id={node.id} />
+      {knob ? <ScaleControl knob={knob} label={node.text} /> : null}
+    </>
+  );
+  if (parts.length === 0) return <>{scale}<EmptyInspectorBody /></>;
 
   const panes = groupByPane(parts);
   const orderedIds = orderPaneIds(panes);

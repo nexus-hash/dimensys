@@ -27,6 +27,7 @@ import { FixNatureIcon, UndoIcon, WrenchIcon } from './icons';
 import { currentCause, deriveFaults, hasActiveFault } from './tools';
 import { activeBreaks } from './pack';
 import { CacheFailureCard, nodeRowLabel } from './CacheFailures';
+import { BrokenNow } from './InEffect';
 import { useMetricSeriesFeed } from '../metrics/useMetricSeriesFeed';
 import type { RemedyView } from '../types';
 
@@ -84,6 +85,7 @@ export function FixItPanel({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) {
           <RequirementBadges needs={watched} />
         </div>
       ) : null}
+      <BrokenNow />
       <CacheFailureCard />
       {mode === 'plans' ? <FixPlans /> : <FixItMyself remedies={remedies} order={kit?.remedies ?? []} />}
     </section>

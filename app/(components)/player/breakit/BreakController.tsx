@@ -26,6 +26,7 @@ import { XML_NS } from '../overlay/xmlNs';
 import { useBreakData } from './BreakContext';
 import { breakUiFor, useBreakUi } from './breakStore';
 import { useBreakCommands } from './useBreakCommands';
+import { getBridge } from '../worker/bridgeRegistry';
 import { CACHE_TOOL, packFor, packTargets } from './pack';
 import {
   DEFAULT_SPIKE,
@@ -74,6 +75,19 @@ export function BreakController() {
   useEffect(() => {
     if (!breaking) breakUiFor(store).set({ armed: null, spikeOpen: false, cacheOpen: false, drawer: false });
   }, [breaking, store]);
+
+  // ---- a move handed over (a walkthrough's failure): made once the free-play run is up ----
+  // Entering Break it from a scenario restarts the run first, so this waits until the
+  // scenario is gone and the new run is ready. It starts from healthy: any earlier moves go.
+  const pending = useBreakUi((s) => s.pending);
+  const status = usePlayerStore((s) => s.sim.status);
+  const scenario = usePlayerStore((s) => s.story.scenarioId);
+  useEffect(() => {
+    if (!pending || !breaking || status !== 'ready' || scenario) return;
+    breakUiFor(store).set({ pending: null, marks: {}, plan: null });
+    if (store.getState().actions.length > 0) getBridge(store)?.reset();
+    commands.apply(pending.tool, pending.target, pending.value);
+  }, [pending, breaking, status, scenario, store, commands]);
 
   // ---- targeting: mark targets, intercept clicks/Enter/Esc while armed ----
   useEffect(() => {

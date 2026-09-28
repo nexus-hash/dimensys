@@ -10,7 +10,7 @@
  * the share link's action log carries), so an action is sent exactly as
  * it's described, never translated.
  */
-import type { KitView, RemedyView, SwitchView, UserAction } from '../types';
+import type { BreakChip, KitView, RemedyView, SwitchView, UserAction } from '../types';
 import { findBreak } from './pack';
 
 /** The five faults the toolbox offers, in the design's order. */
@@ -328,6 +328,30 @@ export function undoPlan(actions: readonly UserAction[], index: number): UndoPla
   }
 }
 
+const FAILURE_TOOLS = new Set(['kill', 'partition', 'slow', 'spike', 'fault']);
+
+/**
+ * The failures still in effect that don't end by themselves (a dead node, a
+ * cut link, a slow-down, a spike, a cache failure), as log indices, oldest
+ * first. Each one is taken back with `undoPlan`. A flush isn't one: the
+ * cache refills on its own.
+ */
+export function failuresInEffect(actions: readonly UserAction[]): number[] {
+  const out: number[] = [];
+  actions.forEach((a, i) => {
+    if (FAILURE_TOOLS.has(a[1]) && undoPlan(actions, i)) out.push(i);
+  });
+  return out;
+}
+
+/** The log entry that killed this node, while it's still down, or -1. */
+export function killEntryIndex(actions: readonly UserAction[], nodeId: string): number {
+  for (let i = actions.length - 1; i >= 0; i--) {
+    if (actions[i][1] === 'kill' && actions[i][2] === nodeId) return undoPlan(actions, i) ? i : -1;
+  }
+  return -1;
+}
+
 /** The log without one entry: what a fix's revert replays. */
 export function withoutEntry(actions: readonly UserAction[], index: number): UserAction[] {
   return actions.filter((_, i) => i !== index);
@@ -363,12 +387,8 @@ export function tryCards(kit: KitView | undefined, catalog: TargetCatalog): TryC
   const offered = new Set(offeredTools(kit).map((t) => t.id));
   const out: TryCard[] = [];
   for (const chip of kit.chips) {
-    if (!offered.has(chip.verb as BreakTool)) continue;
-    const tool = chip.verb as BreakTool;
-    const target = chip.el ?? null;
-    if (toolDef(tool).needs && (!target || !canTarget(tool, targetKind(target, catalog), catalog, kit))) continue;
-    const value = tool === 'spike' ? (chip.amt ?? DEFAULT_SPIKE) : tool === 'slow' ? (chip.amt ?? SLOW_FACTOR) : null;
-    out.push({ key: `${tool}:${target ?? ''}`, text: chip.text, tool, target, value });
+    const move = chipMove(chip, kit, catalog);
+    if (move) out.push(move);
   }
   if (offered.has('flush')) {
     for (const n of catalog.nodes) {
@@ -378,6 +398,16 @@ export function tryCards(kit: KitView | undefined, catalog: TargetCatalog): TryC
     }
   }
   return out.slice(0, MAX_TRY_CARDS);
+}
+
+/** A chip-shaped move (a "Try this" chip, or a walkthrough's failure) as a Break it move, or `null` when this kit can't make it. */
+export function chipMove(chip: BreakChip, kit: KitView, catalog: TargetCatalog): TryCard | null {
+  if (!offeredTools(kit).some((t) => t.id === chip.verb)) return null;
+  const tool = chip.verb as BreakTool;
+  const target = chip.el ?? null;
+  if (toolDef(tool).needs && (!target || !canTarget(tool, targetKind(target, catalog), catalog, kit))) return null;
+  const value = tool === 'spike' ? (chip.amt ?? DEFAULT_SPIKE) : tool === 'slow' ? (chip.amt ?? SLOW_FACTOR) : null;
+  return { key: `${tool}:${target ?? ''}`, text: chip.text, tool, target, value };
 }
 
 function targetKind(id: string, catalog: TargetCatalog): BoardTarget {

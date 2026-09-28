@@ -303,12 +303,22 @@ export interface Frame {
   trail?: string[];
 }
 
+/** One Break it move: a "Try this" chip, or the failure a walkthrough explains. */
+export interface BreakChip {
+  text: string;
+  verb: string;
+  el?: string;
+  amt?: number;
+}
+
 export interface StoryView {
   id: string;
   text: string;
   tip?: string;
   /** Stage id this trace belongs to. */
   phase?: string;
+  /** The failure this walkthrough explains: its last step opens Break it with it applied. */
+  brk?: BreakChip;
   frames: Frame[];
 }
 
@@ -373,7 +383,7 @@ export interface KitView {
   verbs: string[];
   /** Spike slider maximum. */
   cap?: number;
-  chips: Array<{ text: string; verb: string; el?: string; amt?: number }>;
+  chips: BreakChip[];
   /** Remedy ids offered in the Fix It panel. */
   remedies: string[];
   /** Per element: the tools it accepts (absent = every fitting tool; `[]` = unbreakable). */

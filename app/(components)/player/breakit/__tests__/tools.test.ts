@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
   canTarget,
+  chipMove,
   deriveFaults,
+  failuresInEffect,
   describeAction,
   fixEntryIndex,
   hasActiveFault,
+  killEntryIndex,
   offeredTools,
   targetsFor,
   tryCards,
@@ -141,6 +144,43 @@ describe('describeAction', () => {
     const switches = [{ id: 'wc', text: 'Write consistency', opts: [{ id: 'one', text: 'ONE' }, { id: 'quorum', text: 'QUORUM' }] }];
     expect(describeAction([1, 'toggle', 'wc', 'one'], catalog, remedies, switches)).toBe('Write consistency: ONE');
     expect(undoPlan([[1, 'toggle', 'wc', 'one']], 0)).toBeNull();
+  });
+});
+
+describe('failuresInEffect', () => {
+  it('lists every failure that lasts until undone, oldest first, and no fix or flush', () => {
+    const log: UserAction[] = [
+      [1, 'kill', 'redis', null],
+      [2, 'spike', null, 10],
+      [3, 'intervention', 'fix-a', null],
+      [4, 'partition', 'l-api-db', null],
+      [5, 'flush', 'cdn', null],
+      [6, 'fault', 'redis--avalanche', null],
+    ];
+    expect(failuresInEffect(log)).toEqual([0, 1, 3, 5]);
+  });
+  it('drops one once it’s taken back', () => {
+    const log: UserAction[] = [
+      [1, 'kill', 'redis', null],
+      [2, 'kill', 'api', null],
+      [3, 'restore', 'redis', null],
+    ];
+    expect(failuresInEffect(log)).toEqual([1]);
+    expect(killEntryIndex(log, 'api')).toBe(1);
+    expect(killEntryIndex(log, 'redis')).toBe(-1);
+    expect(killEntryIndex(log, 'db')).toBe(-1);
+  });
+});
+
+describe('chipMove', () => {
+  it('turns a walkthrough’s failure into the same move as its chip', () => {
+    expect(chipMove({ text: 'Kill the Redis cache', verb: 'kill', el: 'redis' }, kit, catalog)).toEqual(tryCards(kit, catalog)[0]);
+    expect(chipMove({ text: 'Spike', verb: 'spike' }, kit, catalog)).toMatchObject({ tool: 'spike', target: null, value: 10 });
+  });
+  it('refuses a move this kit can’t make', () => {
+    expect(chipMove({ text: 'Kill a client', verb: 'kill', el: 'web' }, kit, catalog)).toBeNull();
+    expect(chipMove({ text: 'Kill the DB', verb: 'kill', el: 'db' }, kit, catalog)).toBeNull();
+    expect(chipMove({ text: 'Kill it', verb: 'kill', el: 'redis' }, { ...kit, verbs: ['spike'] }, catalog)).toBeNull();
   });
 });
 

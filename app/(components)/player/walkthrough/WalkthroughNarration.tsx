@@ -7,6 +7,9 @@ import { useActiveWalkthrough, useWalkthroughData } from './WalkthroughContext';
 import { exitWalkthrough, stepBy } from './actions';
 import { stepKey } from './model';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
+import { useBreakData } from '../breakit/BreakContext';
+import { breakUiFor } from '../breakit/breakStore';
+import { chipMove } from '../breakit/tools';
 
 /**
  * The narration card in the dock under the board, while a walkthrough plays:
@@ -18,9 +21,16 @@ export function WalkthroughNarration() {
   const store = usePlayerStoreApi();
   const { walkthroughs, narration, breakAvailable } = useWalkthroughData();
   const active = useActiveWalkthrough();
+  const { kit, catalog } = useBreakData();
   if (!active) return null;
 
   const { walkthrough, stepIndex, step } = active;
+  // A walkthrough about a failure hands it over: Break it opens with that failure already in effect.
+  const move = walkthrough.brk && kit ? chipMove(walkthrough.brk, kit, catalog) : null;
+  const breakNow = () => {
+    if (move) breakUiFor(store).set({ pending: move });
+    store.setState({ mode: 'break' });
+  };
   const total = walkthrough.steps.length;
   const first = stepIndex === 0;
   const last = stepIndex === total - 1;
@@ -63,8 +73,14 @@ export function WalkthroughNarration() {
             <ChevronRightIcon />
           </IconButton>
           {last && breakAvailable && (
-            <Button variant="glass" size="sm" onClick={() => store.setState({ mode: 'break' })}>
-              Now break it <Kbd className="wt-kbd ml-1">2</Kbd>
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={breakNow}
+              data-break-move={move?.key}
+              title={move ? `Open Break it with this applied: ${move.text}` : 'Open Break it'}
+            >
+              {move ? `Now break it: ${move.text}` : 'Now break it'} <Kbd className="wt-kbd ml-1">2</Kbd>
             </Button>
           )}
           <IconButton size="sm" aria-label="Exit walkthrough" title="Exit walkthrough" onClick={() => exitWalkthrough(store)}>
