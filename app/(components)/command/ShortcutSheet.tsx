@@ -15,7 +15,7 @@ export interface ShortcutSheetProps {
 /**
  * `?` opens this: every shortcut currently registered anywhere in the app
  * (the global bindings plus whatever the active screen contributed),
- * grouped, two columns on wide viewports (prototype `.keys`).
+ * grouped, two columns on wide viewports.
  */
 export function ShortcutSheet({ open, onOpenChange }: ShortcutSheetProps) {
   const groups = useRegisteredShortcuts();

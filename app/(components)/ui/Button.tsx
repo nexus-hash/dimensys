@@ -69,11 +69,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
 
 export type IconButtonProps = Omit<ButtonProps, 'variant' | 'iconOnly'> & {
   variant?: 'ghost' | 'glass';
-  /** Toggle-style pressed state (renders `aria-pressed`), per the prototype's `.icon-btn`. */
+  /** Toggle-style pressed state (renders `aria-pressed`). */
   pressed?: boolean;
 };
 
-/** IconButton (prototype `.icon-btn`): a bare square icon control, 32/36/44px. */
+/** IconButton: a bare square icon control, 32/36/44px. */
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
   { variant = 'ghost', size = 'md', pressed, className, ...props },
   ref,

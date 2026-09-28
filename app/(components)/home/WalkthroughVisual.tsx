@@ -2,7 +2,7 @@ import { loadPlayerDiagram } from '@/app/(server)/engine/publicData';
 import { DiagramCard } from './DiagramCard';
 
 /**
- * "03" showcase visual (S4.6a). The prototype's pitch for this slot is a
+ * "03" showcase visual (S4.6a). The design's pitch for this slot is a
  * subsystem drill-down (a box zooming open into its ring/cluster) — no
  * shipped diagram declares a drillable subsystem yet, so that specific demo
  * would be fake. What's real today is the walkthrough itself: the featured

@@ -9,7 +9,7 @@ interface ShowcaseLink {
 }
 
 export interface ShowcaseSectionProps {
-  /** Two-digit showcase number, e.g. "01" (prototype `.show-n`). */
+  /** Two-digit showcase number, e.g. "01". */
   index: string;
   eyebrow: string;
   headingId: string;
@@ -20,7 +20,7 @@ export interface ShowcaseSectionProps {
   /** Shown instead of `link` when the capability isn't built yet — never a fake link. */
   comingSoon?: boolean;
   visual: ReactNode;
-  /** Alternates text/visual sides on wide viewports (prototype `.show.flip`). */
+  /** Alternates text/visual sides on wide viewports. */
   flip?: boolean;
 }
 

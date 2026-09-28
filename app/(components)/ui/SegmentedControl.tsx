@@ -23,7 +23,7 @@ export interface SegmentedControlProps {
 }
 
 /**
- * SegmentedControl (prototype `.seg`): a sliding-indicator radiogroup.
+ * SegmentedControl: a sliding-indicator radiogroup.
  * Built on Radix `RadioGroup` for the WAI-ARIA radiogroup keyboard pattern
  * (arrow keys move the selection, Home/End jump to the ends) for free.
  */

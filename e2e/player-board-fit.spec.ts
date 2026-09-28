@@ -171,8 +171,7 @@ test.describe('player board fit — desktop (1440x900)', () => {
     await page.keyboard.press('b');
     await page.keyboard.up('Meta');
     // The rail toggle *button* is only rendered visible at tablet/phone
-    // widths (desktop collapses via the shortcut only, matching the
-    // prototype) — check the state via the shell's own data attribute instead.
+    // widths (desktop collapses via the shortcut only, by design) — check the state via the shell's own data attribute instead.
     await expect(page.locator('.player-body')).toHaveAttribute('data-rail-open', 'false');
     await settle(page);
     expectFit(await measureFit(page));

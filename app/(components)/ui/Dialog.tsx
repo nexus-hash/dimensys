@@ -20,7 +20,7 @@ export interface DialogProps {
 }
 
 /**
- * Dialog / Modal (prototype `.modal` / `.modal-card`). Radix Dialog supplies
+ * Dialog / Modal. Radix Dialog supplies
  * the focus trap (focus enters on open, is contained, and returns to the
  * trigger on close) and closes on Escape and scrim click.
  */
