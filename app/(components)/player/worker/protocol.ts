@@ -92,6 +92,8 @@ export interface SeekCmd extends Cmd<'seek'> {
 export interface CalcCmd extends Cmd<'calc'> {
   id: string;
   values: { [inputId: string]: number };
+  /** Preview only: answer `calcResult` without applying any bind. */
+  dry?: true;
 }
 /** Answers `headline` with the share headline rendered from live metrics, or `null` when none is authored. */
 export type RenderHeadlineCmd = Cmd<'renderHeadline'>;

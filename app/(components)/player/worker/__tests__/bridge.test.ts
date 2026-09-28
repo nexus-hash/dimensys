@@ -3,6 +3,7 @@ import { createPlayerStore, initialPlayerState } from '../../store/playerStore';
 import type { PlayerStore } from '../../store/playerStore';
 import { WorkerBridge, type WorkerLike } from '../bridge';
 import { getBridge } from '../bridgeRegistry';
+import { onCalcReply, type CalcReply } from '../calcResults';
 import { PROTOCOL_VERSION, type WorkerCommand, type WorkerMessage } from '../protocol';
 
 /** A fake `Worker`: records every posted command and lets the test dispatch messages/errors back. */
@@ -302,5 +303,32 @@ describe('WorkerBridge', () => {
     expect(getBridge(store)).toBe(bridge);
     bridge.dispose();
     expect(getBridge(store)).toBeUndefined();
+  });
+
+  it('calc returns its seq, sends dry only for a preview, and routes the reply (or a rejection) to calculator listeners', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'sha256:' + '0'.repeat(64), mode: 'free', store, createWorker, visibility: makeVisibility().api });
+    const worker = workers[0];
+    const replies: CalcReply[] = [];
+    const off = onCalcReply(store, (r) => replies.push(r));
+
+    const previewSeq = bridge.calc('c1', { a: 1 }, true);
+    const applySeq = bridge.calc('c1', { a: 2 });
+    expect(applySeq).toBe(previewSeq + 1);
+    const [preview, apply] = worker.posted.slice(-2);
+    expect(preview).toEqual({ type: 'calc', seq: previewSeq, id: 'c1', values: { a: 1 }, dry: true });
+    expect(apply).toEqual({ type: 'calc', seq: applySeq, id: 'c1', values: { a: 2 } });
+
+    worker.emit({ type: 'calcResult', seq: previewSeq, id: 'c1', outputs: { out: 3 } });
+    worker.emit({ type: 'error', seq: applySeq, code: 'EXPR_UNBOUND', message: 'x', fatal: false });
+    expect(replies).toEqual([
+      { seq: previewSeq, id: 'c1', outputs: { out: 3 } },
+      { seq: applySeq, error: 'EXPR_UNBOUND' },
+    ]);
+
+    off();
+    worker.emit({ type: 'calcResult', seq: 99, id: 'c1', outputs: {} });
+    expect(replies).toHaveLength(2);
+    bridge.dispose();
   });
 });

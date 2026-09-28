@@ -24,6 +24,7 @@ import {
   type WorkerMessage,
 } from './protocol';
 import { registerBridge, unregisterBridge } from './bridgeRegistry';
+import { publishCalcReply } from './calcResults';
 
 /** The subset of the real `Worker` API the bridge needs — small enough for tests to fake without a real Worker thread. */
 export interface WorkerLike {
@@ -131,8 +132,15 @@ export class WorkerBridge {
     this.send({ type: 'seek', seq: this.nextSeq(), t });
   }
 
-  calc(id: string, values: CalcCmd['values']): void {
-    this.send({ type: 'calc', seq: this.nextSeq(), id, values });
+  /**
+   * Evaluates a calculator. `dry` only previews the outputs; without it the
+   * worker also applies the calculator's binds to the live run. Returns the
+   * command's `seq`: the reply (`calcResults.ts`) carries the same one.
+   */
+  calc(id: string, values: CalcCmd['values'], dry = false): number {
+    const seq = this.nextSeq();
+    this.send({ type: 'calc', seq, id, values, ...(dry ? { dry: true as const } : {}) });
+    return seq;
   }
 
   renderHeadline(): void {
@@ -241,12 +249,17 @@ export class WorkerBridge {
         this.opts.store.setState((s) => ({ actions: [...s.actions, msg.action] }));
         return;
       case 'calcResult':
+        publishCalcReply(this.opts.store, { seq: msg.seq, id: msg.id, outputs: msg.outputs });
+        return;
       case 'headline':
       case 'ack':
         return;
       case 'error':
         if (msg.fatal) this.onFatal();
-        else this.opts.store.setState((s) => ({ sim: { ...s.sim, errorCode: msg.code } }));
+        else {
+          this.opts.store.setState((s) => ({ sim: { ...s.sim, errorCode: msg.code } }));
+          if (msg.seq !== null) publishCalcReply(this.opts.store, { seq: msg.seq, error: msg.code });
+        }
         return;
     }
   }
