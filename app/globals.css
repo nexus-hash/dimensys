@@ -1307,5 +1307,6 @@
   .wt-narr-title { font-size: 14px; }
   .wt-narr-md { max-height: 4.8em; font-size: 14px; }
   .wt-narr-md p, .wt-narr-md li { font-size: 14px; }
+  .wt-kbd { display: none; }
   .wt-narr-acts { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
 }

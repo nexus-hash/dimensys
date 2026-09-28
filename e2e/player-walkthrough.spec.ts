@@ -82,7 +82,9 @@ test.describe('walkthrough player (desktop)', () => {
       await expect(rail.locator('.wt-steps li[aria-current="step"]')).toHaveAttribute('data-n', String(n));
     }
     await expect(next).toBeDisabled();
-    await expect(narration(page).getByRole('progressbar')).toHaveAttribute('aria-valuenow', String(wt.frames.length));
+    // Progress dots show once there's more than one step.
+    if (wt.frames.length > 1) await expect(narration(page).getByRole('progressbar')).toHaveAttribute('aria-valuenow', String(wt.frames.length));
+    else await expect(narration(page).getByRole('progressbar')).toHaveCount(0);
   });
 
   test('key 3 enters Walkthrough mode on the first walkthrough', async ({ page }) => {

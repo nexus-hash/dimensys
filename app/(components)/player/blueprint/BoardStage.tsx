@@ -111,7 +111,14 @@ export function BoardStage({ boardSize, className, interactive = true, children 
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / CAMERA_MOVE_MS);
-      applyCamera(interpolateCamera(from, target, easeInOut(t)));
+      // While tracking, aim at the tracked view as it is *now*: the free
+      // area can change mid-move (the dock's narration card appearing).
+      const stage = stageRef.current;
+      const to =
+        trackingRef.current && stage && stage.clientWidth > 0 && stage.clientHeight > 0
+          ? trackedCamera(stage.clientWidth, stage.clientHeight, computeFitScale(stage.clientWidth, stage.clientHeight, boardSize[0], boardSize[1]))
+          : target;
+      applyCamera(interpolateCamera(from, to, easeInOut(t)));
       tweenRef.current = t < 1 ? requestAnimationFrame(tick) : 0;
     };
     tweenRef.current = requestAnimationFrame(tick);

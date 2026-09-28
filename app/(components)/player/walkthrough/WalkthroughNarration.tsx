@@ -64,7 +64,7 @@ export function WalkthroughNarration() {
           </IconButton>
           {last && breakAvailable && (
             <Button variant="glass" size="sm" onClick={() => store.setState({ mode: 'break' })}>
-              Now break it <Kbd className="ml-1">2</Kbd>
+              Now break it <Kbd className="wt-kbd ml-1">2</Kbd>
             </Button>
           )}
           <IconButton size="sm" aria-label="Exit walkthrough" title="Exit walkthrough" onClick={() => exitWalkthrough(store)}>
