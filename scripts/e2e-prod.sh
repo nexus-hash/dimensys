@@ -21,6 +21,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 LOGDIR="${E2E_PROD_LOGDIR:-/tmp/e2e-prod}"
+# Its own port, so a running `npm run dev` on 3000 is never hit or killed.
+PORT="${E2E_PROD_PORT:-3100}"
 mkdir -p "$LOGDIR"
 
 echo "== build (webpack) =="
@@ -31,7 +33,7 @@ echo "== start =="
 # actually chains npx -> `npm exec` -> `sh -c "next" start` -> the real
 # `next-server` process, none of which is a child job control kills; `setsid`
 # puts the whole chain in a fresh process group so it can be torn down as one.
-setsid npx next start -p 3000 > "$LOGDIR/start.log" 2>&1 &
+setsid npx next start -p "$PORT" > "$LOGDIR/start.log" 2>&1 &
 SERVER_PID=$!
 
 cleanup() {
@@ -43,18 +45,19 @@ cleanup() {
   # reparented outside the group the kill above targets) gets torn down by
   # port instead. `lsof -t -i` came back empty in this environment even with
   # a live listener on the port, so `fuser` — which did see it — goes first.
-  fuser -k 3000/tcp 2>/dev/null || true
-  leftover="$(lsof -t -i:3000 2>/dev/null || true)"
+  fuser -k "$PORT"/tcp 2>/dev/null || true
+  leftover="$(lsof -t -i:"$PORT" 2>/dev/null || true)"
   if [ -n "$leftover" ]; then kill -9 $leftover 2>/dev/null || true; fi
 }
 trap cleanup EXIT
 
 # Let Playwright reuse this server: its default probe is a dev-only page.
-export PW_READY_URL=http://localhost:3000/
+export PW_BASE_URL="http://localhost:$PORT"
+export PW_READY_URL="$PW_BASE_URL/"
 
 echo "== wait for server =="
 for i in $(seq 1 60); do
-  if curl -sf http://localhost:3000/ > /dev/null; then
+  if curl -sf "http://localhost:$PORT/" > /dev/null; then
     echo "server up after ${i}s"
     break
   fi
