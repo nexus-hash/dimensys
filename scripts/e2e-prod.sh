@@ -103,6 +103,7 @@ DEFAULT_SPECS=(
   e2e/player-frames.spec.ts
   e2e/player-break-it.spec.ts
   e2e/player-walkthrough.spec.ts
+  e2e/player-cache-pack.spec.ts
 )
 if [ "$#" -gt 0 ]; then ARGS=("$@"); else ARGS=("${DEFAULT_SPECS[@]}"); fi
 
