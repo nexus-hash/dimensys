@@ -13,7 +13,7 @@ import { usePlayerStore } from '../store/PlayerStoreProvider';
 import { useBreakData } from './BreakContext';
 import { useBreakUi } from './breakStore';
 import { useBreakCommands } from './useBreakCommands';
-import { currentCause, deriveFaults, targetName, type TargetCatalog } from './tools';
+import { currentCause, deriveFaults, hasActiveFault, targetName, type TargetCatalog } from './tools';
 import type { KnobView, RemedyView } from '../types';
 
 type Act = readonly [string, string, number | null];
@@ -55,6 +55,13 @@ export function FixPlans() {
   const cause = currentCause(actions);
   const set = cause ? kit?.plans?.find((p) => p.cause === cause) : undefined;
 
+  if (!cause && hasActiveFault(deriveFaults(actions))) {
+    return (
+      <p className="break-fixit-lede" data-plans-state="unknown">
+        Plans are worked out for one failure at a time: the “Try this” ideas and the cache failures. For this mix, use Fix it myself.
+      </p>
+    );
+  }
   if (!cause) {
     return (
       <p className="break-fixit-lede" data-plans-state="none">
