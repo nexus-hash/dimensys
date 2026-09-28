@@ -6,12 +6,13 @@ import { usePlayerStore } from '../store/PlayerStoreProvider';
 import type { PlayerMode } from '../store/playerStore';
 import { TopBar } from './TopBar';
 import { LeftRail } from './LeftRail';
-import { Inspector } from './Inspector';
 import { HudTimelineFrame } from './HudTimelineFrame';
 import { PhoneSheet, SNAP_PERCENTS } from './PhoneSheet';
 import type { ElementIndex } from './selection';
 import type { ModeAvailability } from './modes';
-import type { GaugeView, NeedView } from '../types';
+import type { GaugeView, KitView, NeedView, RemedyView } from '../types';
+import { BreakController, BreakDataProvider, RightColumn, useBreakUi } from '../breakit';
+import type { TargetCatalog } from '../breakit/tools';
 
 export interface PlayerShellProps {
   title: string;
@@ -23,6 +24,10 @@ export interface PlayerShellProps {
   gauges?: readonly GaugeView[];
   /** Requirement badges source (T3.8); defaults to `[]`. */
   needs?: readonly NeedView[];
+  /** Break it: the toolkit (absent = the diagram can't be broken), the fixes it offers and the board's breakable elements. */
+  kit?: KitView;
+  remedies?: readonly RemedyView[];
+  catalog?: TargetCatalog;
   children: React.ReactNode;
 }
 
@@ -74,10 +79,14 @@ export function PlayerShell({
   panels = {},
   gauges = [],
   needs = [],
+  kit,
+  remedies = EMPTY_REMEDIES,
+  catalog = EMPTY_CATALOG,
   children,
 }: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
   const selection = usePlayerStore((s) => s.selection);
+  const fixOpen = useBreakUi((s) => s.drawer) && mode === 'break';
   const [railOpen, setRailOpen] = React.useState(true);
   const [railDrawerOpen, setRailDrawerOpen] = React.useState(false);
   const [snapIndex, setSnapIndex] = React.useState(0);
@@ -99,6 +108,7 @@ export function PlayerShell({
   const sheetPeek = { '--player-sheet-peek': `${SNAP_PERCENTS[snapIndex]}dvh` } as React.CSSProperties;
 
   return (
+    <BreakDataProvider kit={kit} remedies={remedies} needs={needs} catalog={catalog}>
     <div className="player-shell" data-player-mode={mode} style={sheetPeek}>
       <TopBar
         title={title}
@@ -111,11 +121,11 @@ export function PlayerShell({
         aria-label={title}
         data-rail-open={railOpen}
         data-rail-drawer-open={railDrawerOpen}
-        data-inspector-open={selection !== null}
+        data-inspector-open={selection !== null || fixOpen}
       >
         <LeftRail open={railDrawerOpen} onClose={toggleRail} needs={needs} />
         <HudTimelineFrame gauges={gauges}>{children}</HudTimelineFrame>
-        <Inspector elementIndex={elementIndex} panels={panels} />
+        <RightColumn elementIndex={elementIndex} panels={panels} />
       </main>
       <PhoneSheet
         elementIndex={elementIndex}
@@ -125,6 +135,11 @@ export function PlayerShell({
         snapIndex={snapIndex}
         onSnapIndexChange={setSnapIndex}
       />
+      <BreakController />
     </div>
+    </BreakDataProvider>
   );
 }
+
+const EMPTY_REMEDIES: readonly RemedyView[] = [];
+const EMPTY_CATALOG: TargetCatalog = { nodes: [], links: [] };

@@ -69,7 +69,13 @@ export function usePlaybackCommands(): PlaybackCommands {
   );
 
   const reset = useCallback(() => {
-    getBridge(store)?.reset();
+    const bridge = getBridge(store);
+    if (!bridge) return;
+    const wasPlaying = store.getState().sim.playing;
+    bridge.reset();
+    // The worker's reset leaves the run paused; a reset from a running
+    // simulation starts the healthy baseline running again.
+    if (wasPlaying) bridge.play();
   }, [store]);
 
   return { playing, speed, status, t, duration, togglePlay, cycleSpeed, seek, reset };

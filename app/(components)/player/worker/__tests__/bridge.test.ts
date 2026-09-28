@@ -331,4 +331,38 @@ describe('WorkerBridge', () => {
     expect(replies).toHaveLength(2);
     bridge.dispose();
   });
+
+  it('replay() swaps in a fresh worker restored from the given log at t, keeps it playing, and makes that the log', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({
+      runtimeUrl: 'x',
+      simUrl: 'y',
+      build: 'sha256:' + '0'.repeat(64),
+      mode: 'free',
+      store,
+      createWorker,
+      visibility: makeVisibility().api,
+    });
+    workers[0].emit({ type: 'actionApplied', seq: 2, action: [1, 'kill', 'cache', null] });
+    workers[0].emit({ type: 'actionApplied', seq: 3, action: [2, 'intervention', 'fix-a', null] });
+    workers[0].emit({ type: 'status', playing: true, speed: 1, t: 5 });
+
+    bridge.replay([[1, 'kill', 'cache', null]], 5);
+    expect(workers[0].terminated).toBe(true);
+    expect(workers).toHaveLength(2);
+    const init = workers[1].posted[0];
+    expect(init.type).toBe('init');
+    if (init.type === 'init') {
+      expect(init.restore).toEqual({ actions: [[1, 'kill', 'cache', null]], t: 5 });
+      expect(init.paused).toBe(false);
+    }
+    expect(store.getState().actions).toEqual([[1, 'kill', 'cache', null]]);
+
+    // A paused run stays paused.
+    workers[1].emit({ type: 'status', playing: false, speed: 1, t: 5 });
+    bridge.replay([], 5);
+    const init2 = workers[2].posted[0];
+    if (init2.type === 'init') expect(init2.paused).toBe(true);
+    bridge.dispose();
+  });
 });

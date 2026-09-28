@@ -25,6 +25,7 @@ import {
 } from './protocol';
 import { registerBridge, unregisterBridge } from './bridgeRegistry';
 import { publishCalcReply } from './calcResults';
+import type { UserAction } from '../types';
 
 /** The subset of the real `Worker` API the bridge needs — small enough for tests to fake without a real Worker thread. */
 export interface WorkerLike {
@@ -133,6 +134,24 @@ export class WorkerBridge {
   }
 
   /**
+   * Rebuilds the run in a fresh worker from `actions`, fast-forwarded to
+   * `t`, and makes that the action log. This is how one change is taken
+   * back out of the log (a reverted fix): the result is exactly the run
+   * that would have happened without it, and the share link stays the
+   * shorter log. Keeps playing if it was playing. Doesn't use up the one
+   * crash restart.
+   */
+  replay(actions: readonly UserAction[], t: number): void {
+    if (this.disposed) return;
+    const wasPlaying = this.opts.store.getState().sim.playing;
+    const old = this.worker;
+    this.worker = null;
+    old?.terminate();
+    this.opts.store.setState({ actions: [...actions] });
+    this.startWorker({ actions: [...actions], t }, !wasPlaying);
+  }
+
+  /**
    * Evaluates a calculator. `dry` only previews the outputs; without it the
    * worker also applies the calculator's binds to the live run. Returns the
    * command's `seq`: the reply (`calcResults.ts`) carries the same one.
@@ -175,7 +194,7 @@ export class WorkerBridge {
     this.worker.postMessage(cmd);
   }
 
-  private startWorker(restore?: InitCmd['restore']): void {
+  private startWorker(restore?: InitCmd['restore'], paused = false): void {
     const worker = this.createWorker(this.opts.runtimeUrl);
     this.worker = worker;
     worker.addEventListener('message', (ev) => this.onMessage(ev.data));
@@ -191,7 +210,7 @@ export class WorkerBridge {
       mode: this.opts.mode,
       ...(this.opts.scenarioId !== undefined ? { scenarioId: this.opts.scenarioId } : {}),
       ...(restore ? { restore } : {}),
-      paused: this.visibility.hidden(),
+      paused: paused || this.visibility.hidden(),
     };
     this.opts.store.setState((s) => ({ sim: { ...s.sim, status: 'loading' } }));
     worker.postMessage(init);

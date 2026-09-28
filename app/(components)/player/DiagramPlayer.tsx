@@ -2,6 +2,7 @@ import { PlayerIsland } from './PlayerIsland';
 import { PlayerBlueprint } from './blueprint';
 import { PlayerShell, buildElementIndex, modeAvailability } from './shell';
 import { buildInspectorPanels } from './inspector/InspectorPanels';
+import { buildTargetCatalog } from './breakit/catalog';
 import type { ReactNode } from 'react';
 import type { PlayerBootstrap, ViewData } from './types';
 
@@ -164,6 +165,9 @@ export function DiagramPlayer({ diagram, runtimeUrl = null, variant = 'full', he
           panels={panels}
           gauges={diagram.gauges}
           needs={diagram.needs}
+          kit={diagram.kit}
+          remedies={diagram.remedies}
+          catalog={buildTargetCatalog(board)}
         >
           {blueprint}
         </PlayerShell>

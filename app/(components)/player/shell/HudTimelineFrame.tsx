@@ -5,6 +5,7 @@ import { HudTable, HudSummary, HudTileRow, useHudReadings } from '../hud/HudTile
 import { PlaybackControls } from '../hud/PlaybackControls';
 import { ZoomSlotContext } from '../blueprint/zoomSlot';
 import type { GaugeView } from '../types';
+import { BreakDockRow, BreakToolbox } from '../breakit';
 
 export interface HudStripProps {
   gauges: readonly GaugeView[];
@@ -41,7 +42,9 @@ export function HudStrip({ gauges, zoomHostRef }: HudStripProps) {
         <HudSummary readings={readings} expanded={expanded} onToggle={() => setExpanded((v) => !v)} controls={tilesId} />
         <div ref={zoomHostRef} className="player-zoom-slot" data-zoom-slot />
       </div>
-      <div className="player-canvas-toolbar-slot" role="toolbar" aria-label="Break it tools" data-canvas-toolbar-slot />
+      <div className="player-canvas-toolbar-slot" data-canvas-toolbar-slot>
+        <BreakToolbox />
+      </div>
     </div>
   );
 }
@@ -62,6 +65,7 @@ export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {
   return (
     <div className="player-timeline-dock">
       <div className="player-narration-slot" aria-live="polite" data-narration-slot />
+      {registerShortcuts ? <BreakDockRow /> : null}
       <div className="player-timeline-slot" role="group" aria-label="Playback" data-timeline-slot>
         <PlaybackControls registerShortcuts={registerShortcuts} />
       </div>
