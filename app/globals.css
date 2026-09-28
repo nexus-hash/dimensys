@@ -1418,3 +1418,16 @@
 @media (max-width: 639px) {
   .scale-stepper button { width: 44px; height: 44px; }
 }
+
+/* ============================================================================
+ * HUD: money spent (one simulated minute = one month) and the auto-scale switch.
+ * Same box as a compact stat tile.
+ * ========================================================================== */
+.cost-meter { flex: 1.35 1 0; min-width: 0; max-width: 320px; display: grid; grid-template-rows: auto auto; row-gap: 1px; padding: 5px 10px; border-radius: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
+.cost-meter-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.cost-meter-label { font-size: 11px; font-weight: 500; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cost-meter-auto { display: inline-flex; align-items: center; gap: 6px; font: 500 11px var(--font-mono); color: var(--color-ink-secondary); white-space: nowrap; }
+.cost-meter-auto label { cursor: pointer; }
+.cost-meter-value { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.cost-meter-amount { font: 600 16px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); white-space: nowrap; }
+.cost-meter-period { font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

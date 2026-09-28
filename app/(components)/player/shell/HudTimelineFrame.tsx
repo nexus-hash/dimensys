@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { HudTable, HudSummary, HudTileRow, useHudReadings } from '../hud/HudTiles';
+import { CostMeter } from '../hud/CostMeter';
 import { PlaybackControls } from '../hud/PlaybackControls';
 import { ZoomSlotContext } from '../blueprint/zoomSlot';
 import { WalkthroughNarration } from '../walkthrough/WalkthroughNarration';
@@ -39,6 +40,7 @@ export function HudStrip({ gauges, zoomHostRef }: HudStripProps) {
       <div className="player-hud-strip-row">
         <div id={tilesId} className="player-hud-slot" role="group" aria-label="Live metrics, last 60 seconds" data-hud-slot>
           <HudTileRow readings={readings} />
+          <CostMeter />
           <HudTable readings={readings} />
         </div>
         <HudSummary readings={readings} expanded={expanded} onToggle={() => setExpanded((v) => !v)} controls={tilesId} />

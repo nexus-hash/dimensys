@@ -245,6 +245,8 @@ export function describeAction(
       return 'Applied a sizing estimate';
     case 'resize':
       return `Scaled ${name} to ×${String(value)}`;
+    case 'elastic':
+      return `Auto-scaling ${value === 1 ? 'on' : 'off'}${target ? ` for ${name}` : ''}`;
     default:
       return tool;
   }
@@ -284,6 +286,8 @@ export function undoPlan(actions: readonly UserAction[], index: number): UndoPla
     case 'calc':
     case 'resize':
       return { kind: 'replay', index };
+    case 'elastic':
+      return later.some((a) => a[1] === 'elastic' && a[2] === target) ? null : { kind: 'inverse', tool: 'elastic', target, value: value === 1 ? 0 : 1 };
     default:
       return null;
   }
