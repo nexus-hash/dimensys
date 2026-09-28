@@ -74,7 +74,7 @@ export function FixPlans() {
   if (!set) {
     // Every planned failure that breaks something has an entry; none means it recovers by itself (or wasn't planned).
     const flush = cause.startsWith('flush:');
-    const planned = cause.startsWith('kill:') || cause.startsWith('fault:') || kit?.chips.some((c) => cause === `${c.verb}:${c.el ?? c.amt}`);
+    const planned = flush || cause.startsWith('kill:') || cause.startsWith('fault:') || kit?.chips.some((c) => cause === `${c.verb}:${c.el ?? c.amt}`);
     return (
       <p className="break-fixit-lede" data-plans-state={planned ? 'heals' : 'unplanned'}>
         {flush
