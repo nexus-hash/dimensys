@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { buildGlobalMetricIndex, readGlobalMetric } from './globalMetrics';
+import { takeLeadUp } from './leadUp';
 
 export interface MetricSample {
   t: number;
@@ -115,6 +116,25 @@ export function useGlobalMetricsFeed(codes: readonly string[]): GlobalMetricsFee
         maxTRef.current = frame.t; // otherwise every frame until t climbs back past the old max would misread as another restart
       } else {
         maxTRef.current = Math.max(maxTRef.current, frame.t);
+      }
+
+      // A run rebuilt from a share link starts mid-way: its lead-up (from
+      // the worker) stands in for the readings this page never saw.
+      if (baselinesRef.current.size === 0) {
+        const lead = takeLeadUp(store);
+        if (lead) {
+          for (const code of list) {
+            const i = lead.keys.indexOf(`g.${code}`);
+            if (i < 0 || !Number.isFinite(lead.first[i])) continue;
+            baselinesRef.current.set(code, lead.first[i]);
+            const samples: MetricSample[] = [];
+            lead.t.forEach((t, j) => {
+              const v = lead.series[i][j];
+              if (t >= frame.t - HISTORY_WINDOW_SEC && t <= frame.t && Number.isFinite(v)) samples.push({ t, v });
+            });
+            historiesRef.current.set(code, samples);
+          }
+        }
       }
 
       const index = buildGlobalMetricIndex(state.sim.metricKeys);

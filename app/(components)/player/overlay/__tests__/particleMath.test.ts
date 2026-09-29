@@ -175,3 +175,20 @@ describe('samplePath / pointOnSamples (particles ride the drawn path)', () => {
     }
   });
 });
+
+describe('ParticlePool.releasePiling', () => {
+  it('frees only the piled-up particles of that link', () => {
+    const pool = new ParticlePool(8);
+    pool.spawn(0, 2, 1000, true);
+    pool.spawn(0, 2, 1000, true);
+    pool.spawn(0, 0, 1000, false);
+    pool.spawn(1, 2, 1000, true);
+    pool.releasePiling(0);
+    const left: Array<[number, boolean]> = [];
+    pool.forEachActive((_s, li, _p, _k, piling) => left.push([li, piling]));
+    expect(left.sort()).toEqual([
+      [0, false],
+      [1, true],
+    ]);
+  });
+});

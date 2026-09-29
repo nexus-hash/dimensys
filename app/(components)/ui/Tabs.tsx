@@ -21,7 +21,7 @@ export interface TabsProps {
 }
 
 /**
- * Tabs (prototype `.tabs` / `.tab-ind`): a bottom sliding indicator over a
+ * Tabs: a bottom sliding indicator over a
  * hairline-bordered tab strip. Built on Radix Tabs, which handles the
  * arrow-key / Home / End tablist keyboard pattern.
  */

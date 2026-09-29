@@ -56,8 +56,3 @@ export function routeMidpoint(route: readonly XY[]): XY {
   }
   return route[route.length - 1];
 }
-
-/** Offsets a point by a translation, for placing a nested (subsystem-local) route/box in the parent's coordinate space. */
-export function translate([x, y]: XY, [dx, dy]: XY): XY {
-  return [x + dx, y + dy];
-}

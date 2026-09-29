@@ -6,16 +6,22 @@ import { usePlayerStore } from '../store/PlayerStoreProvider';
 import type { PlayerMode } from '../store/playerStore';
 import { TopBar } from './TopBar';
 import { LeftRail } from './LeftRail';
-import { Inspector } from './Inspector';
 import { HudTimelineFrame } from './HudTimelineFrame';
 import { PhoneSheet, SNAP_PERCENTS } from './PhoneSheet';
 import type { ElementIndex } from './selection';
 import type { ModeAvailability } from './modes';
-import type { GaugeView, NeedView } from '../types';
+import type { GaugeView, KitView, NeedView, PlayView, RemedyView, SwitchView, KnobView } from '../types';
+import { BreakController, BreakDataProvider, RightColumn, useBreakUi } from '../breakit';
+import type { TargetCatalog } from '../breakit/tools';
+import { WalkthroughProvider, type WalkthroughData } from '../walkthrough/WalkthroughContext';
+import { WalkthroughController } from '../walkthrough/WalkthroughController';
+import { ShareController } from '../share/ShareController';
+import type { WalkthroughView } from '../walkthrough/model';
+import type { RailData } from '../rail/data';
+import { StoryController, StoryProvider, type StoryData } from '../story';
 
 export interface PlayerShellProps {
   title: string;
-  labelsById: Record<string, string>;
   elementIndex: ElementIndex;
   modeAvailability: Record<PlayerMode, ModeAvailability>;
   /** Every node's/link's pre-rendered inspector body (T3.6), handed to both `Inspector` and `PhoneSheet` — see `DiagramPlayer.tsx`. Defaults to `{}` for callers (and existing tests) that don't pass one. */
@@ -24,6 +30,21 @@ export interface PlayerShellProps {
   gauges?: readonly GaugeView[];
   /** Requirement badges source (T3.8); defaults to `[]`. */
   needs?: readonly NeedView[];
+  /** Break it: the toolkit (absent = the diagram can't be broken), the fixes it offers and the board's breakable elements. */
+  kit?: KitView;
+  remedies?: readonly RemedyView[];
+  catalog?: TargetCatalog;
+  switches?: readonly SwitchView[];
+  /** Scalable nodes, for plan steps that resize one. */
+  knobs?: readonly KnobView[];
+  /** Walkthroughs resolved against the board (`buildWalkthroughs`); defaults to none. */
+  walkthroughs?: readonly WalkthroughView[];
+  /** Their server-rendered narration (`buildWalkthroughNarration`). */
+  narration?: Readonly<Record<string, React.ReactNode>>;
+  /** The left rail's problem header, request paths and estimate (`buildRailData`). */
+  rail?: RailData;
+  /** Scenarios: free play and the authored, timed runs. Defaults to none. */
+  plays?: readonly PlayView[];
   children: React.ReactNode;
 }
 
@@ -31,10 +52,10 @@ export interface PlayerShellProps {
  * The player shell (T3.16): top bar, left rail, inspector frame, the HUD/
  * timeline frame around the board, and the phone bottom sheet — the frames
  * and slots the rest of the player fills in. `children` is the board itself
- * (`DrilldownBlueprint`, server-rendered) and mounts inside the HUD/timeline
+ * (`PlayerBlueprint`, server-rendered) and mounts inside the HUD/timeline
  * frame's board-wrap; `InteractiveLayer` (a sibling of this whole shell —
- * see `PlayerIsland.tsx`) keeps aligning its overlay canvas to the active
- * level's own rect inside `data-player-root` regardless of what chrome
+ * see `PlayerIsland.tsx`) keeps aligning its overlay canvas to the board's
+ * own rect inside `data-player-root` regardless of what chrome
  * surrounds it, so nothing here has to know about it.
  *
  * Rail collapse and inspector-open are the only two bits of state this
@@ -56,13 +77,13 @@ export interface PlayerShellProps {
  * tablet/phone overlay via `data-rail-drawer-open`, and one handler flips
  * both together since only one is ever visually relevant at a time.
  *
- * URL state (T3.12) hook: that task reads/writes `mode` (and `drill`,
- * `selection`) through the same store this shell reads — it doesn't need
- * anything from this file beyond the store already being there.
+ * URL state: `ShareController` reads a share link into the store on load
+ * and keeps the address bar on the current state; it needs nothing from
+ * this file beyond the store, the element index and the mode list.
  *
  * `snapIndex` (the phone sheet's current snap point) is owned here, not by
  * `PhoneSheet`, so it can also drive `--player-sheet-peek` on this root —
- * the board-fit effect (`DrillStage`) measures the canvas area's free space
+ * the board-fit effect (`BoardStage`) measures the canvas area's free space
  * via a plain `ResizeObserver`, and that free space only shrinks correctly
  * when the sheet is dragged up to 50%/92% if the canvas area's own reserved
  * bottom padding tracks the sheet's *actual* current height, not just its
@@ -70,19 +91,40 @@ export interface PlayerShellProps {
  */
 export function PlayerShell({
   title,
-  labelsById,
   elementIndex,
   modeAvailability,
   panels = {},
   gauges = [],
   needs = [],
+  kit,
+  remedies = EMPTY_REMEDIES,
+  catalog = EMPTY_CATALOG,
+  switches,
+  knobs,
+  walkthroughs = NO_WALKTHROUGHS,
+  narration = NO_NARRATION,
+  rail,
+  plays = NO_PLAYS,
   children,
 }: PlayerShellProps) {
   const mode = usePlayerStore((s) => s.mode);
   const selection = usePlayerStore((s) => s.selection);
+  const fixOpen = useBreakUi((s) => s.drawer) && mode === 'break';
   const [railOpen, setRailOpen] = React.useState(true);
   const [railDrawerOpen, setRailDrawerOpen] = React.useState(false);
   const [snapIndex, setSnapIndex] = React.useState(0);
+  const shellRef = React.useRef<HTMLDivElement>(null);
+  const breakAvailable = modeAvailability.break === 'available';
+  const walkthroughData = React.useMemo<WalkthroughData>(
+    () => ({ walkthroughs, narration, breakAvailable }),
+    [walkthroughs, narration, breakAvailable],
+  );
+  const storyData = React.useMemo<StoryData>(() => {
+    const names: Record<string, string> = {};
+    for (const [id, n] of elementIndex.nodes) names[id] = n.text;
+    for (const [id, f] of elementIndex.groups) names[id] = f.text;
+    return { plays, gauges, names };
+  }, [plays, gauges, elementIndex]);
 
   function toggleRail() {
     setRailOpen((open) => !open);
@@ -101,10 +143,12 @@ export function PlayerShell({
   const sheetPeek = { '--player-sheet-peek': `${SNAP_PERCENTS[snapIndex]}dvh` } as React.CSSProperties;
 
   return (
-    <div className="player-shell" data-player-mode={mode} style={sheetPeek}>
+    <WalkthroughProvider value={walkthroughData}>
+    <StoryProvider value={storyData}>
+    <BreakDataProvider kit={kit} remedies={remedies} needs={needs} catalog={catalog} switches={switches} knobs={knobs}>
+    <div ref={shellRef} className="player-shell" data-player-mode={mode} style={sheetPeek}>
       <TopBar
         title={title}
-        labelsById={labelsById}
         modeAvailability={modeAvailability}
         railOpen={railOpen}
         onToggleRail={toggleRail}
@@ -114,20 +158,34 @@ export function PlayerShell({
         aria-label={title}
         data-rail-open={railOpen}
         data-rail-drawer-open={railDrawerOpen}
-        data-inspector-open={selection !== null}
+        data-inspector-open={selection !== null || fixOpen}
       >
-        <LeftRail open={railDrawerOpen} onClose={toggleRail} needs={needs} />
+        <LeftRail open={railDrawerOpen} onClose={toggleRail} needs={needs} rail={rail} />
         <HudTimelineFrame gauges={gauges}>{children}</HudTimelineFrame>
-        <Inspector elementIndex={elementIndex} panels={panels} />
+        <RightColumn elementIndex={elementIndex} panels={panels} />
       </main>
       <PhoneSheet
         elementIndex={elementIndex}
         panels={panels}
         gauges={gauges}
         needs={needs}
+        rail={rail}
         snapIndex={snapIndex}
         onSnapIndexChange={setSnapIndex}
       />
+      <BreakController />
+      <WalkthroughController boardRootRef={shellRef} />
+      <StoryController boardRootRef={shellRef} />
+      <ShareController boardRootRef={shellRef} elements={elementIndex} modes={modeAvailability} />
     </div>
+    </BreakDataProvider>
+    </StoryProvider>
+    </WalkthroughProvider>
   );
 }
+
+const EMPTY_REMEDIES: readonly RemedyView[] = [];
+const EMPTY_CATALOG: TargetCatalog = { nodes: [], links: [] };
+const NO_WALKTHROUGHS: readonly WalkthroughView[] = [];
+const NO_NARRATION: Readonly<Record<string, React.ReactNode>> = {};
+const NO_PLAYS: readonly PlayView[] = [];

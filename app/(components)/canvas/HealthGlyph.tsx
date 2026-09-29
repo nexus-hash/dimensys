@@ -4,7 +4,7 @@ import type { HealthState } from './types';
  * The health glyph ("health is never shown by color
  * alone"). Every non-`ok` state pairs its ring/hatch with one of these
  * shapes, so the state reads under color-vision deficiency or forced-colors
- * mode without relying on hue. Matches the prototype's `GLYPH` map.
+ * mode without relying on hue. One glyph per health state.
  */
 export function HealthGlyph({
   state,

@@ -71,8 +71,8 @@ describe('metricCodeLabel / metricCodeUnit', () => {
   });
 
   it('falls back gracefully for an unknown code', () => {
-    expect(metricCodeLabel('z')).toBe('z');
-    expect(metricCodeUnit('z')).toBe('');
+    expect(metricCodeLabel('Q')).toBe('Q');
+    expect(metricCodeUnit('Q')).toBe('');
   });
 
   it('knows the lost-writes code (u)', () => {

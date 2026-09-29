@@ -1,12 +1,12 @@
 /**
  * Pan/zoom camera math (BG part 2b). Pure, DOM-free: one `Camera` is the CSS
- * transform DrillStage applies to a drill level's board element —
+ * transform BoardStage applies to the board element —
  * `translate(x, y) scale(scale)`, origin `0 0`, in the stage's own CSS-pixel
  * coordinate space (the board's native pixel size is fixed; `scale` is the
  * absolute native-px → screen-px multiplier, not a multiplier on top of a
  * separate "fit" factor).
  *
- * Kept free of any element lookup or event handling on purpose — `DrillStage`
+ * Kept free of any element lookup or event handling on purpose — `BoardStage`
  * owns the DOM side (measuring the stage box, applying the transform,
  * wiring pointer/wheel/touch/keyboard) and calls into these functions with
  * plain numbers, which is what makes the zoom-about-a-point and fit math
@@ -33,6 +33,27 @@ export function fitCamera(freeW: number, freeH: number, nativeW: number, nativeH
     x: (freeW - nativeW * scale) / 2,
     y: (freeH - nativeH * scale) / 2,
   };
+}
+
+/**
+ * The tall (phone) arrangement's fit: a board much taller than the free
+ * area is fitted to the free *width* and shown from its top — read by
+ * panning down, like a page — rather than shrunk until all of it fits and
+ * nothing is legible. A board that nearly fits both ways gets the plain
+ * `fitCamera`.
+ */
+export function readingFitCamera(freeW: number, freeH: number, nativeW: number, nativeH: number): Camera {
+  const scale = readingFitScale(freeW, freeH, nativeW, nativeH);
+  if (scale === computeFitScale(freeW, freeH, nativeW, nativeH)) return fitCamera(freeW, freeH, nativeW, nativeH);
+  return { scale, x: (freeW - nativeW * scale) / 2, y: 0 };
+}
+
+/** `readingFitCamera`'s scale: the width fit (capped at 1×) when that's clearly bigger than the contain fit, else the contain fit. */
+export function readingFitScale(freeW: number, freeH: number, nativeW: number, nativeH: number): number {
+  const contain = computeFitScale(freeW, freeH, nativeW, nativeH);
+  if (freeW <= 0 || nativeW <= 0) return contain;
+  const width = Math.min(1, freeW / nativeW);
+  return width > contain * 1.05 ? width : contain;
 }
 
 /** `[min, max]` zoom, relative to native (1×) pixels: down to whichever is smaller of the fit or 0.25×, up to 4×. */
@@ -122,7 +143,15 @@ export const DRAG_THRESHOLD_PX = 4;
  * so it feels smooth and speed-proportional rather than stepped. Panning is
  * drag (pointer) or arrow keys only; the wheel no longer pans.
  */
-export const WHEEL_ZOOM_K = 0.01;
+export const WHEEL_ZOOM_K = 0.001;
+/**
+ * A trackpad pinch arrives as wheel + ctrlKey with small deltas (a few px per
+ * event), so it keeps a faster rate than a mouse wheel, whose notch reports
+ * about 100px: ~10% per notch with `WHEEL_ZOOM_K`.
+ */
+export const PINCH_ZOOM_K = 0.01;
+/** Largest zoom change one wheel event may make (either way). */
+export const WHEEL_MAX_STEP = 1.25;
 
 /**
  * Normalizes a `WheelEvent`'s `deltaY` to pixel units regardless of
@@ -137,4 +166,70 @@ export function normalizeWheelDeltaY(deltaY: number, deltaMode: number, pageSize
   if (deltaMode === 1) return deltaY * 16;
   if (deltaMode === 2) return deltaY * pageSize;
   return deltaY;
+}
+
+/** Screen-px margin kept round a focused box (walkthrough steps, camera cues). */
+export const FOCUS_PAD_PX = 48;
+
+/**
+ * The camera that frames `box` (`[cx, cy, w, h]`, board units) centered in
+ * the free area, with `FOCUS_PAD_PX` of margin. It never zooms out past the
+ * fit (a box bigger than the free area just gets the fit's scale, centered
+ * on the box) and never zooms in so far that a single node fills the view:
+ * at most ~2.2× the fit, and never past native size (the fit's own rule).
+ */
+export function focusCamera(freeW: number, freeH: number, box: readonly [number, number, number, number], fitScale: number): Camera {
+  const [cx, cy, w, h] = box;
+  const availW = Math.max(1, freeW - 2 * FOCUS_PAD_PX);
+  const availH = Math.max(1, freeH - 2 * FOCUS_PAD_PX);
+  const raw = Math.min(availW / Math.max(1, w), availH / Math.max(1, h));
+  const cap = Math.max(fitScale, Math.min(1, fitScale * 2.2));
+  const scale = Math.max(fitScale, Math.min(cap, raw));
+  return { scale, x: freeW / 2 - cx * scale, y: freeH / 2 - cy * scale };
+}
+
+/** `a`→`b` at `t` in [0, 1]; the scale moves geometrically so a zoom feels even. */
+export function interpolateCamera(a: Camera, b: Camera, t: number): Camera {
+  if (t <= 0) return a;
+  if (t >= 1) return b;
+  return { scale: a.scale * Math.pow(b.scale / a.scale, t), x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+/** Standard ease-in-out (cubic). */
+export function easeInOut(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// ---------------------------------------------------------------------------
+// The view as a share link carries it
+// ---------------------------------------------------------------------------
+
+/**
+ * A camera in board terms, independent of the screen: the board point at
+ * the centre of the stage (`x`, `y`, native px) and the zoom (`z`).
+ */
+export interface BoardView {
+  x: number;
+  y: number;
+  z: number;
+  /** The view is of the board's tall (phone) arrangement, not the wide one. */
+  tall?: true;
+}
+
+/** Ask a board to show this view (`detail`: a `BoardView`), dispatched on its `.player-board-stage`. */
+export const CAMERA_VIEW_EVENT = 'playercameraview';
+
+/** `playercamerachange`'s detail: the user's own view, or `null` while the camera is fitted/framed for them. */
+export interface CameraChangeDetail {
+  view: BoardView | null;
+}
+
+export function viewOfCamera(camera: Camera, freeW: number, freeH: number): BoardView {
+  return { x: (freeW / 2 - camera.x) / camera.scale, y: (freeH / 2 - camera.y) / camera.scale, z: camera.scale };
+}
+
+/** The camera that shows `view` on a stage of this size (zoom clamped to the usual range). */
+export function cameraForView(view: BoardView, freeW: number, freeH: number, fitScale: number): Camera {
+  const scale = clampScale(view.z, fitScale);
+  return { scale, x: freeW / 2 - view.x * scale, y: freeH / 2 - view.y * scale };
 }

@@ -8,6 +8,8 @@ import { BreakFixVisual } from './(components)/home/BreakFixVisual';
 import { ReplaysVisual } from './(components)/home/ReplaysVisual';
 import { WalkthroughVisual } from './(components)/home/WalkthroughVisual';
 import { ShareVisual } from './(components)/home/ShareVisual';
+import { loadPlayerDiagram } from './(server)/engine/publicData';
+import { walkthroughHref } from './(components)/player/share/codec';
 
 /**
  * Home (S4.6a). Structure and copy follow the approved design intent: one
@@ -15,11 +17,15 @@ import { ShareVisual } from './(components)/home/ShareVisual';
  * below the fold — never a catalog grid, task list or row of cards. Two
  * showcase sections (Outage replays, Share) describe capabilities that
  * aren't built yet; they render honest static layouts with a "Coming soon"
- * marker instead of faking the feature. The third ("Drill down" in the
- * design intent) is repurposed to the walkthrough capability, which is
- * real and shipped today — see `WalkthroughVisual`'s own comment.
+ * marker instead of faking the feature. The third is the walkthrough
+ * capability, which is real and shipped today.
  */
-export default function Home() {
+export default async function Home() {
+  // "Take the walkthrough" opens the player straight on the first one.
+  const hero = await loadPlayerDiagram(HERO_DIAGRAM_ID);
+  const firstWalkthrough = hero?.stories.find((s) => s.frames.length > 0);
+  const walkthroughLink = firstWalkthrough ? walkthroughHref(HERO_DIAGRAM_ID, firstWalkthrough.id) : `/solutions/${HERO_DIAGRAM_ID}`;
+
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-light-primary font-sans dark:bg-dark-primary">
       <CircuitBackground />
@@ -54,7 +60,7 @@ export default function Home() {
           headingId="home-show-walkthrough"
           heading="Every step, explained in plain words."
           body="Guided walkthroughs follow one request, hop by hop, through the real diagram — no narration is invented, it's read straight from the same data the player runs on."
-          link={{ href: `/solutions/${HERO_DIAGRAM_ID}`, label: 'Take the walkthrough' }}
+          link={{ href: walkthroughLink, label: 'Take the walkthrough' }}
           visual={<WalkthroughVisual diagramId={HERO_DIAGRAM_ID} />}
         />
 

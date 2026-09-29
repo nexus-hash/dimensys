@@ -15,12 +15,14 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { WorkerBridge } from '../worker/bridge';
+import { takeBootRun } from '../share/shareSlot';
 import { HEALTH_CODES } from '../worker/protocol';
 import type { PlayerBootstrap, SimHealthToken } from '../types';
 import {
   metricCodeLabel,
   metricCodeUnit,
   UTILIZATION_CODE,
+  REPLICA_CODE,
   HIT_RATIO_CODE,
   QUEUE_DEPTH_CODE,
   NODE_UP_CODE,
@@ -36,14 +38,24 @@ import {
 import { buildMetricIndex, readMetric, type MetricIndex } from './metricIndex';
 import { classifyHealth, healthChipText, meterSeverity } from './health';
 import { applyNodeHealth, applyLinkHealth, setSelected, setStaticFlow } from './domHealth';
-import { findActiveLevel, findBoardSvg, linkLabelFor, linkPath as findLinkPath } from './readBoard';
+import { findBoardLevel, findBoardSvg, linkLabelFor, linkPath as findLinkPath } from './readBoard';
 import { MAX_PARTICLES, ParticlePool, particleSpawnHz, particleTravelMs, pickParticleKind, progressForPileup, pointOnSamples, samplePath } from './particleMath';
 import type { HealthState, NodeMeterKind } from '@/app/(components)/canvas';
 import { isMotionReduced } from '@/app/(components)/motion/reducedMotion';
+import { BOARD_SHAPE_EVENT } from '../blueprint/shape';
+
+/** A walkthrough step's path always carries at least this many particles/sec, so its flow reads even with no live traffic. */
+const WT_PATH_MIN_HZ = 2.5;
+/** …and at most this many, so the stream reads as dots on a path, never a solid bead string. */
+const WT_PATH_MAX_HZ = 4;
+/** …and they travel calmly and at an even speed (so a short hop isn't crowded), so the eye can follow them hop to hop. */
+function pathTravelMs(lengthPx: number): number {
+  return Math.min(2400, Math.max(700, lengthPx * 6));
+}
 
 export interface InteractiveLayerProps {
   bootstrap: PlayerBootstrap;
-  /** The player root element (`data-player-root`) — an ancestor of every drill level's SVG. */
+  /** The player root element (`data-player-root`) — an ancestor of the board's SVG. */
   containerRef: RefObject<HTMLDivElement | null>;
   /** False: health/meters and particles only — no hover tooltip, selection or keyboard input. Default true. */
   interactive?: boolean;
@@ -59,6 +71,8 @@ interface LinkEntry {
   /** The drawn path sampled by arc length (`samplePath`): particles ride exactly the curve the SVG draws. */
   samples: Float32Array;
   spawnAccMs: number;
+  /** Whether the link was cut (particles piling up) on the previous frame. */
+  wasCut?: boolean;
 }
 
 /**
@@ -100,26 +114,6 @@ function meterReading(
   return { kind: 'util', value: util, text: `${Math.round(util * 100)}%`, severity: meterSeverity(util) };
 }
 
-/**
- * A collapsed subsystem card's meter: the *highest* utilization among the
- * nodes inside it (not the mean — a subsystem is as close to saturation as
- * its hottest member, and a mean would hide one saturated node behind idle
- * ones). `undefined` when no child publishes utilization this epoch.
- */
-function aggregateUtilization(
-  childIds: readonly string[],
-  idx: MetricIndex,
-  frame: { metrics: Float64Array },
-): { kind: NodeMeterKind; value: number; text: string; severity: 'ok' | 'warn' | 'critical' } | undefined {
-  let max: number | undefined;
-  for (const child of childIds) {
-    const util = readMetric(idx.nodeCols, frame.metrics, child, UTILIZATION_CODE);
-    if (util !== undefined && (max === undefined || util > max)) max = util;
-  }
-  if (max === undefined) return undefined;
-  return { kind: 'util', value: max, text: `${Math.round(max * 100)}%`, severity: meterSeverity(max) };
-}
-
 export function InteractiveLayer({ bootstrap, containerRef, interactive = true }: InteractiveLayerProps) {
   const store = usePlayerStoreApi();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -133,13 +127,24 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
     const start = () => {
       if (cancelled) return;
+      // A share link's run (the full player reads the URL before this runs):
+      // rebuilt from its action log at its time, then playing or paused as shared.
+      const boot = interactive ? takeBootRun(store) : null;
       try {
         bridge = new WorkerBridge({
           runtimeUrl: bootstrap.runtimeUrl!,
           simUrl: bootstrap.simUrl!,
           build: bootstrap.hash,
-          mode: 'free',
+          mode: boot?.scenario ? 'scenario' : 'free',
+          ...(boot?.scenario ? { scenarioId: boot.scenario.id } : {}),
           store,
+          ...(boot
+            ? {
+                restore: { actions: boot.actions, t: boot.t, ...(boot.scenario ? { choices: boot.scenario.choices } : {}) },
+                startPaused: !boot.playing,
+                onRestored: (skipped: number) => boot.onReady(skipped),
+              }
+            : {}),
         });
       } catch {
         // Construction failed synchronously (unsupported browser, blocked module worker, ...):
@@ -147,12 +152,14 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         // bridge exists, so there's nothing further to flip here.
         return;
       }
-      // Healthy baseline autoplay: play as soon as the worker reports ready.
+      // Healthy baseline autoplay: play as soon as the worker reports ready
+      // (a shared run plays or stays paused as it was shared, at its speed).
       const unsub = store.subscribe(() => {
         const s = store.getState();
-        if (s.sim.status === 'ready' && !s.sim.playing) {
-          bridge?.play();
+        if (s.sim.status === 'ready') {
           unsub();
+          if (boot && boot.speed !== 1) bridge?.setSpeed(boot.speed);
+          if (!s.sim.playing && (!boot || boot.playing)) bridge?.play();
         } else if (s.sim.status === 'error') {
           unsub();
         }
@@ -184,6 +191,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
     const nodeEls = new Map<string, SVGGElement>();
     const linkEls = new Map<string, SVGGElement>();
+    const frameEls = new Map<string, SVGGElement>();
+    for (const el of container.querySelectorAll<SVGGElement>('[data-frame-id]')) {
+      const id = el.dataset.frameId;
+      if (id) frameEls.set(id, el);
+    }
     for (const el of container.querySelectorAll<SVGGElement>('[data-node-id]')) {
       const id = el.dataset.nodeId;
       if (id) nodeEls.set(id, el);
@@ -220,30 +232,32 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         });
 
         const meterKind = (el.dataset.meterKind as NodeMeterKind | undefined) ?? undefined;
-        const childIds = el.dataset.childIds;
-        const meter = childIds
-          ? aggregateUtilization(childIds.split(' '), idx, frame)
-          : meterKind
-            ? meterReading(meterKind, idx, frame, id, up === 0)
-            : undefined;
+        const meter = meterKind ? meterReading(meterKind, idx, frame, id, up === 0) : undefined;
 
         applyNodeHealth(el, {
           state,
           pulsing: state === 'critical',
           chipText,
           meter,
+          replicas: readMetric(idx.nodeCols, frame.metrics, id, REPLICA_CODE),
         });
       }
 
       for (const [id, el] of linkEls) {
         const errRatio = readMetric(idx.linkCols, frame.metrics, id, LINK_ERROR_RATE_CODE) ?? 0;
-        applyLinkHealth(el, { bad: errRatio >= 0.3 });
+        // Highlight and dim belong to other layers (a walkthrough step): carry them through.
+        applyLinkHealth(el, {
+          bad: errRatio >= 0.3,
+          highlighted: el.querySelector('path.cv-link')?.classList.contains('is-hl') ?? false,
+          dimmed: el.classList.contains('is-dimmed'),
+        });
       }
 
       if (interactive) {
         const sel = s.selection;
         for (const [id, el] of nodeEls) setSelected(el, sel?.kind === 'node' && sel.id === id);
         for (const [id, el] of linkEls) setSelected(el, sel?.kind === 'link' && sel.id === id);
+        for (const [id, el] of frameEls) setSelected(el, sel?.kind === 'group' && sel.id === id);
       }
     });
 
@@ -254,7 +268,6 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     let rafId = 0;
     let lastTs = 0;
     let ro: ResizeObserver | null = null;
-    let observedSvg: Element | null = null;
     let reduced = isMotionReduced();
 
     function rebuildLinks() {
@@ -262,7 +275,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
         pool.linkIndex[slot] = -1;
       });
       links = [];
-      const level = findActiveLevel(container);
+      const level = findBoardLevel(container);
       const svg = findBoardSvg(level);
       if (!svg) return;
       for (const [id, group] of linkEls) {
@@ -284,7 +297,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
     function sizeCanvas() {
       const canvas = canvasRef.current;
-      const level = findActiveLevel(container);
+      const level = findBoardLevel(container);
       const svg = findBoardSvg(level);
       if (!canvas || !svg) return;
       // The canvas is `position: absolute` in `data-player-root` (the closest positioned
@@ -297,7 +310,7 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
       // Clip to the canvas *region* (BG part 2b owner review), not the SVG's
       // own rect: the camera can pan/zoom the board past the region's own
-      // edges (that's the point — see `DrillStage`'s pan clamp, which still
+      // edges (that's the point — see `BoardStage`'s pan clamp, which still
       // allows most of the board to leave the region on purpose), and
       // without this the overlay canvas — sized to the full, now-larger-
       // than-the-region SVG rect — drew particles that visually spilled
@@ -362,31 +375,51 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
 
-      if (!frame || !metricIndex || links.length === 0) return;
-      const idx = metricIndex;
+      if (links.length === 0) return;
+      const live = frame && metricIndex ? { frame, idx: metricIndex } : null;
 
       for (let li = 0; li < links.length; li++) {
         const link = links[li];
-        const rps = readMetric(idx.linkCols, frame.metrics, link.id, LINK_RPS_CODE) ?? 0;
+        // Walkthrough flow (`data-wt-flow`, set by the walkthrough stage): the
+        // step's path always carries a calm, visible stream — even with no
+        // live traffic on it — and a link the step stops carries none.
+        const wtFlow = link.group.dataset.wtFlow;
+        if (wtFlow === 'still') continue;
+        if (!live) {
+          if (wtFlow !== 'path') continue;
+          link.spawnAccMs += dt;
+          while (link.spawnAccMs >= 1000 / WT_PATH_MIN_HZ) {
+            link.spawnAccMs -= 1000 / WT_PATH_MIN_HZ;
+            pool.spawn(li, 0, pathTravelMs(link.length), false);
+          }
+          continue;
+        }
+        const { frame: liveFrame, idx } = live;
+        const rps = readMetric(idx.linkCols, liveFrame.metrics, link.id, LINK_RPS_CODE) ?? 0;
         // A link has no latency of its own (see `metricKeys.ts`): particle speed
         // reads the *target node's* own latency instead, falling back to the
         // pool's own default only when that node doesn't publish it.
-        const latency = link.toNodeId !== undefined ? readMetric(idx.nodeCols, frame.metrics, link.toNodeId, NODE_LATENCY_CODE) : undefined;
+        const latency = link.toNodeId !== undefined ? readMetric(idx.nodeCols, liveFrame.metrics, link.toNodeId, NODE_LATENCY_CODE) : undefined;
         // `f` is already a ratio (0..1); `o` is a rps that needs dividing by the link's own rps to become one.
-        const errRatio = readMetric(idx.linkCols, frame.metrics, link.id, LINK_ERROR_RATE_CODE) ?? 0;
-        const retryRps = readMetric(idx.linkCols, frame.metrics, link.id, LINK_RETRY_RPS_CODE);
+        const errRatio = readMetric(idx.linkCols, liveFrame.metrics, link.id, LINK_ERROR_RATE_CODE) ?? 0;
+        const retryRps = readMetric(idx.linkCols, liveFrame.metrics, link.id, LINK_RETRY_RPS_CODE);
         const retryRatio = rps > 0 && retryRps !== undefined ? Math.min(1, retryRps / rps) : 0;
         const cut = errRatio >= 0.85;
+        // A healed cut releases its pile-up; otherwise those frozen red dots would stay.
+        if (link.wasCut && !cut) pool.releasePiling(li);
+        link.wasCut = cut;
 
-        const hz = particleSpawnHz(rps);
+        const onPath = wtFlow === 'path';
+        const hz = onPath ? Math.min(WT_PATH_MAX_HZ, Math.max(WT_PATH_MIN_HZ, particleSpawnHz(rps))) : particleSpawnHz(rps);
         if (hz > 0) {
           link.spawnAccMs += dt;
           const intervalMs = 1000 / hz;
+          const travelMs = onPath ? Math.max(pathTravelMs(link.length), particleTravelMs(latency ?? 0)) : particleTravelMs(latency ?? 0);
           while (link.spawnAccMs >= intervalMs) {
             link.spawnAccMs -= intervalMs;
             const kind = pickParticleKind(Math.random(), errRatio, retryRatio);
             const kindCode = kind === 'ok' ? 0 : kind === 'retry' ? 1 : 2;
-            pool.spawn(li, kindCode, particleTravelMs(latency ?? 0), cut);
+            pool.spawn(li, kindCode, travelMs, cut);
           }
         }
 
@@ -404,31 +437,40 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
           t = progressForPileup(1, queueCounter, queueCounter + 1);
         }
         const pt = pointOnSamples(link.samples, t, scratchPt);
-        drawParticle(ctx!, pt.x, pt.y, kindCode);
+        const wtFlow = link.group.dataset.wtFlow;
+        drawParticle(ctx!, pt.x, pt.y, kindCode, wtFlow === 'path' ? 'path' : wtFlow === 'dim' ? 'dim' : null);
       });
     }
 
-    function drawParticle(context: CanvasRenderingContext2D, x: number, y: number, kindCode: number) {
+    /** `emphasis`: `path` = the walkthrough step's own flow (bright ink, larger); `dim` = a link the step dims. */
+    function drawParticle(context: CanvasRenderingContext2D, x: number, y: number, kindCode: number, emphasis: 'path' | 'dim' | null = null) {
       // Radii are in the SVG's own viewBox units — `ctx`'s transform (set in `sizeCanvas`)
       // already maps those to device pixels, so no extra DPR/zoom scaling belongs here.
       const r = 2.4;
       context.save();
-      if (kindCode === 2) {
+      if (emphasis === 'dim') context.globalAlpha = 0.2;
+      if (emphasis === 'path' && kindCode === 0) {
+        context.fillStyle = resolveColor('--color-ink-primary');
+        context.globalAlpha = 0.85;
+        context.beginPath();
+        context.arc(x, y, 2.8, 0, Math.PI * 2);
+        context.fill();
+      } else if (kindCode === 2) {
         context.fillStyle = resolveColor('--color-signal-critical');
-        context.globalAlpha = 0.9;
+        context.globalAlpha *= 0.9;
         context.beginPath();
         context.arc(x, y, r, 0, Math.PI * 2);
         context.fill();
       } else if (kindCode === 1) {
         context.strokeStyle = resolveColor('--color-signal-retry');
-        context.globalAlpha = 0.85;
+        context.globalAlpha *= 0.85;
         context.lineWidth = 1.3;
         context.beginPath();
         context.arc(x, y, r + 1, 0, Math.PI * 2);
         context.stroke();
       } else {
         context.fillStyle = resolveColor('--color-signal-flow');
-        context.globalAlpha = 0.7;
+        context.globalAlpha *= 0.7;
         context.beginPath();
         context.arc(x, y, r, 0, Math.PI * 2);
         context.fill();
@@ -473,11 +515,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     startLoop();
 
     // Two things need watching, not one, for the canvas to always match the
-    // active level's board box (T3.16 board-fit follow-up): the free area
-    // itself (`.player-drill-stage`, stable across drill changes — its own
-    // size changes whenever the rail collapses, the inspector opens/closes,
-    // the phone sheet's snap changes, or the window resizes) *and* the
-    // active board element (`DrillStage`'s fit effect writes an explicit
+    // board's box (T3.16 board-fit follow-up): the free area itself
+    // (`.player-board-stage` — its own size changes whenever the rail
+    // collapses, the inspector opens/closes, the phone sheet's snap
+    // changes, or the window resizes) *and* the board element
+    // (`BoardStage`'s fit effect writes an explicit
     // pixel width/height straight onto it, which is its own resize — and,
     // separately, a board already capped at its native size can *recenter*
     // within a still-growing free area with no size change of its own at
@@ -486,29 +528,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     ro = new ResizeObserver(() => {
       sizeCanvas();
     });
-    const stageEl = container.querySelector<HTMLElement>('.player-drill-stage');
+    const stageEl = container.querySelector<HTMLElement>('.player-board-stage');
     if (stageEl) ro.observe(stageEl);
 
-    function observeActiveSvg() {
-      const level = findActiveLevel(container);
-      const svg = findBoardSvg(level);
-      if (svg === observedSvg) return;
-      if (observedSvg) ro?.unobserve(observedSvg);
-      observedSvg = svg;
-      if (svg) ro?.observe(svg);
-    }
-    observeActiveSvg();
-
-    let prevDrill = store.getState().drill;
-    const unsubDrill = store.subscribe(() => {
-      const d = store.getState().drill;
-      if (d !== prevDrill) {
-        prevDrill = d;
-        rebuildLinks();
-        sizeCanvas();
-        observeActiveSvg();
-      }
-    });
+    const boardSvg = findBoardSvg(findBoardLevel(container));
+    if (boardSvg) ro.observe(boardSvg);
 
     const onVisibility = () => {
       // The rAF loop itself checks `document.hidden` every tick; nothing else to do here,
@@ -517,16 +541,24 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     };
     document.addEventListener('visibilitychange', onVisibility);
 
-    // The pan/zoom camera (BG part 2b, `DrillStage`) moves/scales the active
-    // level's board via a CSS `transform` — a translate/scale never fires
+    // The pan/zoom camera (BG part 2b, `BoardStage`) moves/scales the
+    // board via a CSS `transform` — a translate/scale never fires
     // `ResizeObserver` (the content box itself doesn't change), so without
     // this the overlay canvas (and its particles) would drift out of step
-    // with the board on every pan or zoom. `DrillStage` dispatches this
+    // with the board on every pan or zoom. `BoardStage` dispatches this
     // event (bubbling) on every camera update; `sizeCanvas` just re-reads
     // the board SVG's current (post-transform) `getBoundingClientRect()`,
     // which already reflects the camera regardless of how it got there.
     const onCameraChange = () => sizeCanvas();
     container.addEventListener('playercamerachange', onCameraChange);
+
+    // The board swapped arrangement (`blueprint/shape.ts`): every link path
+    // moved, so the particles' sampled paths are re-read.
+    const onShapeChange = () => {
+      if (!reduced) rebuildLinks();
+      sizeCanvas();
+    };
+    container.addEventListener(BOARD_SHAPE_EVENT, onShapeChange);
 
     // ---- hover tooltip + click/keyboard selection ----
     function describeTarget(el: Element): { title: string; lines: string[] } | null {
@@ -613,6 +645,12 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
       hideTooltip();
     }
     function selectFromTarget(target: Element): void {
+      // A frame's tab selects its group; the rest of the frame takes no pointer events.
+      const tab = target.closest<HTMLElement>('[data-frame-tab]');
+      if (tab?.dataset.frameTab) {
+        store.setState({ selection: { kind: 'group', id: tab.dataset.frameTab } });
+        return;
+      }
       const nodeGroup = target.closest<HTMLElement>('[data-node-id]');
       if (nodeGroup?.dataset.nodeId) {
         store.setState({ selection: { kind: 'node', id: nodeGroup.dataset.nodeId } });
@@ -629,10 +667,11 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       if (!(e.target instanceof Element)) return;
-      const nodeGroup = e.target.closest('[data-node-id]');
-      // Subsystem entry (handled by `DrillStage`) already calls `preventDefault`; a plain
-      // leaf node has no such handler, so this is a no-op for anything `DrillStage` claimed.
-      if (nodeGroup && !e.defaultPrevented) selectFromTarget(nodeGroup);
+      const control = e.target.closest('[data-node-id], [data-frame-tab]');
+      if (!control || e.defaultPrevented) return;
+      // Space would otherwise scroll the page; Enter does nothing else here.
+      e.preventDefault();
+      selectFromTarget(control);
     }
 
     // A static preview (`interactive: false`) keeps the live health/meters and
@@ -657,12 +696,12 @@ export function InteractiveLayer({ bootstrap, containerRef, interactive = true }
 
     return () => {
       unsubscribeHealth();
-      unsubDrill();
       cleanupReduced?.();
       stopLoop();
       ro?.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       container.removeEventListener('playercamerachange', onCameraChange);
+      container.removeEventListener(BOARD_SHAPE_EVENT, onShapeChange);
       reducedMql?.removeEventListener?.('change', onReducedChange);
       container.removeEventListener('pointerover', onPointerOver);
       container.removeEventListener('pointerout', onPointerOut);

@@ -1,0 +1,233 @@
+/* Break it: toolbox, phone chips, armed hint, spike slider, try cards,
+   action log, Fix it panel, and the board's armed/fault states. Tokens
+   only (globals.css defines them). */
+
+/* ── Toolbox: one row in the chrome strip ─────────────────────────────── */
+.break-bar { flex: 1 1 100%; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.break-toolbox { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; min-width: 0; }
+.break-tb-h {
+  font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--color-ink-muted); padding: 0 6px 0 2px;
+}
+.break-tool {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 8px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; color: var(--color-ink-secondary); white-space: nowrap;
+  border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised);
+  transition: background var(--transition-duration-micro), color var(--transition-duration-micro);
+}
+.break-tool:hover { background: var(--color-surface-glass); color: var(--color-ink-primary); }
+.break-tool:focus-visible, .break-chip:focus-visible, .break-try-card:focus-visible, .break-log-undo:focus-visible, .break-armed-cancel:focus-visible {
+  outline: 2px solid var(--color-brand); outline-offset: 2px;
+}
+.break-tool:disabled, .break-chip:disabled, .break-try-card:disabled, .break-log-undo:disabled { opacity: .45; pointer-events: none; }
+.break-tool svg { width: 16px; height: 16px; flex: none; }
+.break-tool .break-kbd { margin-left: 2px; height: 18px; min-width: 18px; font-size: 11px; border-bottom-width: 1px; }
+.break-tool[aria-pressed="true"] { background: var(--color-ink-primary); color: var(--color-surface-page); border-color: var(--color-ink-primary); }
+.break-tool[aria-pressed="true"] .break-kbd { background: transparent; color: inherit; border-color: currentColor; }
+.break-tool-val { font: 600 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.break-tool[aria-pressed="true"] .break-tool-val { color: inherit; }
+.break-tool-reset { margin-left: 8px; }
+.break-tool-fix { margin-left: auto; }
+
+/* A narrow strip (tablet with the inspector open): drop the keycaps and the
+   label so the tools keep to one row where they can. */
+@container (max-width: 880px) {
+  .break-tool .break-kbd, .break-tb-h { display: none; }
+  .break-tool-reset { margin-left: 0; }
+}
+
+/* ── Phone chips (the toolbox's phone form) ───────────────────────────── */
+.break-chips { display: none; }
+
+/* ── Armed hint: what to pick, the keyboard target list, Esc ──────────── */
+.break-armed {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0;
+  font-size: 13px; color: var(--color-ink-secondary);
+}
+.break-armed-text b { color: var(--color-ink-primary); font-weight: 600; }
+.break-armed-select { height: 30px; font-size: 13px; min-width: 180px; max-width: 100%; white-space: nowrap; }
+.break-armed-select > span { overflow: hidden; text-overflow: ellipsis; }
+.break-armed-cancel {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 8px; border-radius: 8px;
+  font-size: 13px; color: var(--color-ink-secondary);
+}
+.break-armed-cancel:hover { color: var(--color-ink-primary); background: var(--color-surface-glass); }
+.break-armed .break-kbd { height: 18px; min-width: 18px; font-size: 11px; border-bottom-width: 1px; }
+
+/* ── Spike slider popover ─────────────────────────────────────────────── */
+.break-spike { width: 260px; max-width: calc(100vw - 24px); }
+.break-spike-read { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-size: 12px; color: var(--color-ink-secondary); }
+.break-spike-read b { font: 600 22px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.break-spike-ticks { position: relative; height: 16px; margin: 2px 8px 0; font: 500 11px var(--font-mono); color: var(--color-ink-muted); }
+.break-spike-ticks span { position: absolute; top: 0; transform: translateX(-50%); }
+.break-spike-note { margin-top: 8px; font-size: 12px; color: var(--color-ink-muted); }
+.break-spike-acts { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+
+/* The toolbox's popovers belong to the strip above the board: they sit over
+   a side drawer (the tablet inspector / Fix it column), never under it. */
+[data-radix-popper-content-wrapper]:has(.break-cache, .break-spike) { z-index: var(--z-index-dialog) !important; }
+
+/* ── Cache failures popover ───────────────────────────────────────────── */
+.break-cache { width: 340px; max-width: calc(100vw - 24px); }
+.break-cache-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; min-width: 0; }
+.break-cache-title { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--color-ink-muted); white-space: nowrap; }
+.break-cache-on { font-size: 12px; color: var(--color-ink-secondary); min-width: 0; overflow-wrap: anywhere; text-align: right; }
+.break-cache-select { height: 28px; font-size: 12px; min-width: 0; max-width: 200px; }
+.break-cache-select > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.break-cache-list { display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 0 -6px; padding: 0; max-height: min(70vh, 600px); overflow-y: auto; }
+.break-cache-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 7px 8px; border-radius: 8px;
+  text-align: left; border: 1px solid transparent;
+  transition: background var(--transition-duration-micro), border-color var(--transition-duration-micro);
+}
+.break-cache-item:hover { background: var(--color-surface-glass); border-color: var(--color-line-hairline); }
+.break-cache-item:focus-visible { outline: 2px solid var(--color-brand); outline-offset: -2px; }
+.break-cache-item:disabled { opacity: .45; pointer-events: none; }
+.break-cache-name { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--color-ink-primary); }
+.break-cache-now {
+  font: 500 11px var(--font-mono); color: var(--color-ink-secondary); padding: 0 6px; border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+}
+.break-cache-why { font-size: 12px; line-height: 1.45; color: var(--color-ink-secondary); overflow-wrap: anywhere; }
+
+/* ── Dock row: "Try this" cards, then the action log ──────────────────── */
+.break-try, .break-log { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; min-width: 0; }
+.break-try-k { font: 500 12px var(--font-mono); color: var(--color-ink-muted); align-self: center; white-space: nowrap; }
+.break-try-card {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 32px; max-width: 100%; padding: 4px 12px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; color: var(--color-ink-primary); text-align: left;
+  border: 1px solid var(--color-line-strong); background: var(--color-surface-glass);
+  transition: border-color var(--transition-duration-micro), background var(--transition-duration-micro);
+}
+.break-try-card:hover { border-color: var(--color-ink-muted); background: var(--color-surface-raised); }
+.break-try-card svg { width: 16px; height: 16px; flex: none; color: var(--color-ink-secondary); }
+.break-try-card span { min-width: 0; overflow-wrap: anywhere; }
+.break-log { justify-content: flex-start; }
+.break-log-list { display: flex; gap: 6px; flex-wrap: wrap; min-width: 0; list-style: none; margin: 0; padding: 0; }
+.break-log-item {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 28px; max-width: 100%; padding: 2px 4px 2px 8px; border-radius: 8px;
+  font-size: 12px; color: var(--color-ink-primary); border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised);
+}
+.break-log-t { font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-muted); }
+.break-log-ic { width: 14px; height: 14px; flex: none; color: var(--color-ink-secondary); }
+.break-log-text { min-width: 0; overflow-wrap: anywhere; }
+.break-log-undo {
+  display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 6px; border-radius: 6px;
+  font-size: 12px; font-weight: 500; color: var(--color-ink-secondary);
+}
+.break-log-undo:hover { color: var(--color-ink-primary); background: var(--color-surface-glass); }
+.break-log-undo svg { width: 14px; height: 14px; }
+
+/* ── Right column while Fix it is open: Inspect / Fix it switch on top ── */
+.break-rp-seg { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--color-line-hairline); }
+.break-rp-seg > [role="radiogroup"] { flex: 1; }
+.break-rp-seg > [role="radiogroup"] button { flex: 1; justify-content: center; }
+.break-right-body { flex: 1; min-height: 0; overflow: auto; }
+
+/* ── Fix it panel ─────────────────────────────────────────────────────── */
+.break-fixit { display: flex; flex-direction: column; min-width: 0; }
+.break-fixit-h { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px 14px; }
+.break-fixit-ic { width: 16px; height: 16px; flex: none; color: var(--color-ink-secondary); }
+.break-fixit-title { font-size: 14px; font-weight: 600; flex: 1; color: var(--color-ink-primary); }
+.break-fixit-reqs { margin: 0 12px 8px 14px; padding: 10px; border-radius: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
+.break-fixit-k { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--color-ink-muted); margin-bottom: 8px; }
+.break-fixit-lede { margin: 0 12px 8px 14px; font-size: 12px; line-height: 1.45; color: var(--color-ink-secondary); }
+.break-now { margin: 0 12px 8px 14px; padding: 10px; border-radius: 10px; border: 1px solid color-mix(in oklab, var(--color-signal-critical) 45%, var(--color-line-hairline)); background: var(--color-surface-raised); }
+.break-now-list { display: flex; flex-direction: column; gap: 4px; }
+.break-now-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.break-now-text { min-width: 0; font-size: 12px; line-height: 1.35; color: var(--color-ink-primary); overflow-wrap: anywhere; }
+.break-down { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 16px 16px 0; padding: 12px; border-radius: 12px; border: 1px solid color-mix(in oklab, var(--color-signal-critical) 45%, var(--color-line-hairline)); background: var(--color-surface-raised); }
+.break-down-t { font-size: 12px; line-height: 1.45; color: var(--color-ink-secondary); }
+.break-down-t b { color: var(--color-signal-critical); font-weight: 600; }
+.break-fixit-list { display: flex; flex-direction: column; gap: 4px; padding: 0 8px 12px; margin: 0; list-style: none; }
+.break-fx { border-radius: 10px; padding: 10px; border: 1px solid transparent; transition: background var(--transition-duration-micro), border-color var(--transition-duration-micro); }
+.break-fx:hover { background: var(--color-surface-glass); }
+.break-fx[data-applied="true"] { border-color: var(--color-line-strong); background: var(--color-surface-glass); }
+.break-fx-top { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: start; }
+.break-fx-ic { width: 18px; height: 18px; color: var(--color-ink-secondary); margin-top: 1px; }
+.break-fx-main { min-width: 0; }
+.break-fx-t { font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--color-ink-primary); overflow-wrap: anywhere; }
+.break-fx-why { font-size: 12px; color: var(--color-ink-secondary); line-height: 1.45; margin-top: 2px; overflow-wrap: anywhere; }
+.break-fx-cost { font: 600 12px var(--font-mono); color: var(--color-ink-primary); text-align: right; max-width: 110px; }
+.break-fx-act { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding-left: 30px; }
+.break-fx-nature { margin-left: auto; font: 500 11px var(--font-mono); color: var(--color-ink-muted); }
+.break-fx-more {
+  margin: 10px 0 0 30px; padding: 8px 10px; border-radius: 8px; background: var(--color-surface-sunken);
+  border: 1px solid var(--color-line-hairline); font-size: 12px; color: var(--color-ink-secondary);
+}
+.break-cmp { width: 100%; border-collapse: collapse; font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; }
+.break-cmp th, .break-cmp td { padding: 3px 0; text-align: right; font-weight: 500; }
+.break-cmp thead th { color: var(--color-ink-muted); font-size: 11px; }
+.break-cmp tbody th { text-align: left; color: var(--color-ink-secondary); font-family: var(--font-sans, inherit); }
+.break-cmp td { color: var(--color-ink-primary); padding-left: 10px; white-space: nowrap; }
+.break-cmp tr[data-trend="better"] td:last-child { font-weight: 700; }
+.break-cmp tr[data-trend="better"] td:last-child::before { content: "↓ "; color: var(--color-ink-muted); }
+.break-cmp tr[data-trend="worse"] td:last-child::before { content: "↑ "; color: var(--color-ink-muted); }
+
+/* ── Fix it: the current cache failure, live ──────────────────────────── */
+.break-cf { margin: 0 12px 8px 14px; padding: 10px; border-radius: 10px; border: 1px solid var(--color-line-strong); background: var(--color-surface-raised); min-width: 0; }
+.break-cf-t { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--color-ink-primary); overflow-wrap: anywhere; }
+.break-cf-ic { width: 16px; height: 16px; flex: none; margin-top: 1px; color: var(--color-ink-secondary); }
+.break-cf-on { font-weight: 400; color: var(--color-ink-secondary); }
+.break-cf-why { margin-top: 4px; font-size: 12px; line-height: 1.45; color: var(--color-ink-secondary); overflow-wrap: anywhere; }
+.break-cf-read { margin-top: 8px; }
+.break-cf-read th { white-space: nowrap; padding-right: 8px; }
+.break-cf-spark { width: 100%; min-width: 64px; padding-left: 0; }
+.break-cf-more { margin-top: 6px; font-size: 12px; color: var(--color-ink-muted); }
+
+/* ── Phone sheet's Fix it tab ─────────────────────────────────────────── */
+.break-phone-fix { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.break-phone-fix > .break-try, .break-phone-fix > .break-log { justify-content: flex-start; padding: 0 12px; }
+
+/* ── Board while a tool is armed ──────────────────────────────────────── */
+[data-break-armed] .player-board-wrap,
+[data-break-armed] .cv-node[data-break-ok="true"],
+[data-break-armed] .cv-linkgroup[data-break-ok="true"] .cv-link-hit { cursor: crosshair; }
+[data-break-armed] .cv-node[data-break-ok="false"],
+[data-break-armed] .cv-linkgroup[data-break-ok="false"] .cv-link-hit { cursor: not-allowed; }
+[data-break-armed] .cv-node[data-break-ok="true"]:hover .cv-halo,
+[data-break-armed] .cv-node[data-break-ok="true"]:focus-visible .cv-halo { stroke: var(--color-ink-primary); stroke-opacity: .35; stroke-width: 6; }
+[data-break-armed] .cv-node[data-break-ok="false"] { opacity: .55; }
+[data-break-armed] .cv-linkgroup[data-break-ok="true"]:hover .cv-link { stroke: var(--color-ink-primary); stroke-width: 2.5; }
+
+/* ── Faults on the board: a cut link ──────────────────────────────────── */
+.cv-link.is-cut { stroke: var(--color-signal-critical); stroke-dasharray: 10 8; }
+.break-cut-mark { pointer-events: none; }
+.break-cut-mark circle { fill: var(--color-surface-canvas); stroke: var(--color-signal-critical); stroke-width: 1.5; }
+.break-cut-mark path { fill: none; stroke: var(--color-signal-critical); stroke-width: 2; stroke-linecap: round; }
+
+/* ── Phone: chips instead of the toolbox; the dock row moves to the sheet ── */
+@media (max-width: 639px) {
+  .break-toolbox { display: none; }
+  .break-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+  .break-chips::-webkit-scrollbar { display: none; }
+  .break-chip {
+    flex: none; height: 36px; padding: 0 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 500; color: var(--color-ink-primary); position: relative;
+    border: 1px solid var(--color-line-strong); background: var(--color-surface-glass);
+  }
+  .break-chip::after { content: ""; position: absolute; inset: -4px 0; }
+  .break-chip svg { width: 15px; height: 15px; }
+  .break-chip[aria-pressed="true"] { background: var(--color-ink-primary); color: var(--color-surface-page); border-color: var(--color-ink-primary); }
+  .break-armed { font-size: 12px; gap: 4px 6px; }
+  .break-armed-text { flex: 1 1 100%; }
+  .break-armed-select { min-width: 0; flex: 1; }
+  .player-timeline-dock > .break-try, .player-timeline-dock > .break-log { display: none; }
+}
+
+/* Fix it modes: try it yourself, or the verified plans (cheapest first). */
+.break-fixit-mode { margin: 0 12px 10px 14px; }
+.break-fixit-verdict { margin: 0 12px 6px 14px; font: 600 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.break-plans-yours { margin: 0 12px 8px 14px; padding: 8px 10px; border-radius: 8px; font-size: 12px; line-height: 1.45; color: var(--color-ink-primary); background: var(--color-surface-sunken); border: 1px solid var(--color-line-hairline); }
+.break-plans-list { display: flex; flex-direction: column; gap: 6px; padding: 0 8px 12px; margin: 0; list-style: none; }
+.break-plan { border-radius: 10px; padding: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
+.break-plan[data-applied='true'] { border-color: var(--color-brand-ink); }
+.break-plan-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.break-plan-t { font-size: 13px; font-weight: 600; color: var(--color-ink-primary); }
+.break-plan-cost { font: 600 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.break-plan-back { margin-left: auto; font: 500 11px var(--font-mono); color: var(--color-ink-muted); }
+.break-plan-steps { margin: 6px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.5; color: var(--color-ink-secondary); overflow-wrap: anywhere; }
+.break-plan-trades { margin-top: 8px; }
+.break-plan-trades .break-fixit-k { margin-bottom: 4px; }
+.break-plan-trades ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.45; color: var(--color-ink-secondary); }
+.break-plan .break-fx-act { margin-top: 8px; }

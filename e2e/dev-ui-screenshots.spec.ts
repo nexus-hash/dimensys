@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * Visual regression baselines for every /dev/ui gallery page, in both
  * themes. These are the pages the DG design-system gate reviews against the
- * prototype and the UI/UX spec, so a baseline here is a frozen "this is what
+ * design, so a baseline here is a frozen "this is what
  * shipped" reference for each kit.
  *
  * Determinism:

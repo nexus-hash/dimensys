@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.PW_BASE_URL ?? 'http://localhost:3000';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -8,7 +10,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL,
   },
 
   webServer: {
@@ -16,7 +18,7 @@ export default defineConfig({
     // Readiness probe: a page that needs no synced engine data, so jobs
     // that only exercise the dev-only UI gallery (no engine build) can start.
     // `/dev/ui` 404s in production builds, so e2e-prod.sh points this at `/`.
-    url: process.env.PW_READY_URL ?? 'http://localhost:3000/dev/ui',
+    url: process.env.PW_READY_URL ?? `${baseURL}/dev/ui`,
     reuseExistingServer: !process.env.CI,
   },
 

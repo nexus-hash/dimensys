@@ -23,7 +23,7 @@ export interface SegmentedControlProps {
 }
 
 /**
- * SegmentedControl (prototype `.seg`): a sliding-indicator radiogroup.
+ * SegmentedControl: a sliding-indicator radiogroup.
  * Built on Radix `RadioGroup` for the WAI-ARIA radiogroup keyboard pattern
  * (arrow keys move the selection, Home/End jump to the ends) for free.
  */
@@ -53,11 +53,16 @@ export function SegmentedControl({
     measure();
   }, [measure]);
 
+  // Re-measure whenever the root or an item changes size (window resize, and
+  // the web font swapping in after a refresh, which changes label widths).
   React.useEffect(() => {
-    const onResize = () => measure();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [measure]);
+    const root = rootRef.current;
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(root);
+    itemRefs.current.forEach((el) => ro.observe(el));
+    return () => ro.disconnect();
+  }, [measure, options]);
 
   return (
     <RadioGroup.Root
@@ -66,7 +71,7 @@ export function SegmentedControl({
       onValueChange={onValueChange}
       aria-label={aria['aria-label']}
       className={cn(
-        'relative inline-flex gap-0.5 rounded-lg border border-line-hairline bg-surface-sunken p-[3px]',
+        'relative inline-flex gap-0.5 rounded-lg border border-line-hairline bg-surface-sunken p-0.75',
         className,
       )}
     >
@@ -74,8 +79,8 @@ export function SegmentedControl({
         <span
           aria-hidden
           className={cn(
-            'pointer-events-none absolute top-[3px] bottom-[3px] left-0 rounded-md border border-line-strong bg-surface-overlay shadow-elevation-1',
-            reducedMotion ? '' : 'transition-[transform,width] duration-[260ms] ease-standard',
+            'pointer-events-none absolute top-0.75 bottom-0.75 left-0 rounded-md border border-brand bg-brand-subtle shadow-elevation-1',
+            reducedMotion ? '' : 'transition-[transform,width] duration-260 ease-standard',
           )}
           style={{ width: indicator.width, transform: `translateX(${indicator.x}px)` }}
         />
@@ -96,10 +101,11 @@ export function SegmentedControl({
           // and the mouse-click path (Radix focuses the item on click too).
           onFocus={() => !opt.disabled && onValueChange(opt.value)}
           className={cn(
-            'relative z-[1] inline-flex items-center gap-1.5 whitespace-nowrap rounded-md font-medium text-ink-secondary',
-            'transition-colors duration-micro hover:text-ink-primary data-[state=checked]:text-ink-primary',
+            'relative z-1 inline-flex items-center gap-1.5 whitespace-nowrap rounded-md font-medium text-ink-secondary',
+            'transition-colors duration-micro hover:text-brand-ink data-[state=checked]:text-brand-ink',
             'disabled:pointer-events-none disabled:opacity-45',
-            'focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand focus-visible:outline-offset-2',
+            'hover:[&_kbd]:border-brand hover:[&_kbd]:text-brand-ink data-[state=checked]:[&_kbd]:border-brand data-[state=checked]:[&_kbd]:text-brand-ink',
+            'focus-visible:outline-2 focus-visible:outline-brand focus:text-brand-ink focus-visible:outline-offset-2',
             size === 'sm' ? 'h-6 px-2 text-xs' : 'h-7 px-2.5 text-[13px]',
           )}
         >

@@ -1,12 +1,8 @@
 export { StaticBlueprint } from './StaticBlueprint';
 export type { StaticBlueprintProps, ColorByMode, HealthLookup, ElementHealth } from './StaticBlueprint';
-export { routeToPath, routeMidpoint, translate } from './geometry';
+export { routeToPath, routeMidpoint } from './geometry';
 export { resolveHealth } from './colorBy';
-export { DrilldownBlueprint } from './DrilldownBlueprint';
-export type { DrilldownBlueprintProps } from './DrilldownBlueprint';
-export { DrillStage } from './DrillStage';
-export type { DrillStageProps } from './DrillStage';
-export { Breadcrumbs } from './Breadcrumbs';
-export type { BreadcrumbsProps } from './Breadcrumbs';
-export { collectDrillLevels, resolveDrillChain, drillKey, subsystemLabelsById, boardSizesByDrillKey } from './drill';
-export type { DrillLevel } from './drill';
+export { PlayerBlueprint } from './PlayerBlueprint';
+export type { PlayerBlueprintProps } from './PlayerBlueprint';
+export { BoardStage } from './BoardStage';
+export type { BoardStageProps } from './BoardStage';

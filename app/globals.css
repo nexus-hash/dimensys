@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @source "./solutions/**/*.tsx";
-@source "./(components)/diagram-assets/**/*.tsx";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
@@ -179,7 +178,7 @@
     --brand-subtle: rgba(255, 102, 0, 0.1);
     --brand-glow: 0 0 30px rgba(255, 102, 0, 0.4);
     --on-brand: #1a0800;
-    --brand-ink: #c24100;
+    --brand-ink: #b23b00; /* ≥4.5:1 on white and on --brand-subtle over the light page (a checked segment) */
 
     /* Signal — validated against #121212 and #ffffff. The design spec lists a single
        flat value per signal, but --signal-warn (#fab219) only clears ~1.8:1
@@ -607,45 +606,44 @@
 .cv-node.cv-health-critical .cv-chip rect { stroke: var(--color-signal-critical); }
 .cv-node .cv-chip text { font: 600 12px var(--font-mono); fill: var(--color-ink-primary); }
 
-.cv-node.cv-subsystem-card .cv-body { stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
-.cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-dasharray: 4 3; }
-.cv-node .cv-tab, .cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
-/* The expanded frame's tab is a drill-down entry point (T3.4) — the rest of
-   `.cv-subsystem` stays decorative/non-interactive. */
-.cv-tab-hit { cursor: pointer; outline: none; }
-.cv-tab-hit:hover .cv-tab { fill: var(--color-ink-primary); }
-.cv-tab-hit:focus-visible { outline: 2px solid var(--color-ink-primary); outline-offset: 2px; }
+/* A group's frame: a dashed hairline border, a subtle fill and a mono tab
+   label above its top-left edge. Only the tab takes pointer events (it's a
+   button that selects the group); a click on the frame's empty area falls
+   through to the canvas. Selected, the border takes the selection color,
+   like a selected node's ring. */
+.cv-subsystem { pointer-events: none; }
+.cv-subsystem .cv-body { fill: color-mix(in srgb, var(--color-ink-primary) 3%, transparent); stroke: var(--color-line-strong); stroke-width: 1; stroke-dasharray: 4 3; transition: stroke var(--transition-duration-small); }
+.cv-subsystem .cv-tab { font: 600 11px var(--font-mono); letter-spacing: .06em; fill: var(--color-ink-muted); }
+.cv-subsystem .cv-tab-btn { pointer-events: auto; cursor: pointer; outline: none; }
+.cv-subsystem .cv-tab-hit { fill: transparent; }
+.cv-subsystem .cv-tab-btn:hover .cv-tab { fill: var(--color-ink-primary); }
+.cv-subsystem .cv-tab-btn:focus-visible .cv-tab-hit { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-subsystem.is-selected .cv-body { stroke: var(--color-ink-primary); stroke-width: 2; }
+.cv-subsystem.is-selected .cv-tab { fill: var(--color-ink-primary); }
 
 /* ============================================================================
- * Player — subsystem drill-down (T3.4).
- *
- * Every level (the top board and each subsystem's own board, any depth) is
- * pre-rendered server-side; only the active one is un-hidden. Both stack in
- * the same grid cell so entering/leaving can briefly overlap for the
- * crossfade instead of the page jumping height. The blanket reduced-motion
- * rule above already collapses both animations to a near-instant cut under
- * `prefers-reduced-motion`/`data-motion="off"`.
+ * Player — the board stage (pan/zoom camera).
  *
  * `min-width: 0` on both: grid items default to `min-width: auto`, which —
  * same flex/grid "automatic minimum size" trap `StaticBlueprint.tsx` guards
- * against on its own box — would otherwise let a level's content set an
+ * against on its own box — would otherwise let the board's content set an
  * unshrinkable floor on this grid cell's column, wide enough to overflow a
  * narrow viewport.
  * ========================================================================= */
-/* `DrillStage`'s own outer wrapper (T3.16): without an explicit size here,
+/* `BoardStage`'s own outer wrapper (T3.16): without an explicit size here,
    this div sizes to its content (its only non-decorative descendant is the
    grid below), which breaks the `width/height: 100%` chain those rules rely
    on — a percentage height only resolves against a *definite* parent
    height, and "auto" (content-based) doesn't count as definite. */
-.player-drill-root { display: contents; }
+.player-board-root { display: contents; }
 /* `grid-template-columns/rows: 1fr` (T3.16): with no explicit track sizing, a
    grid's implicit single track sizes to its *content* even when the grid
-   container itself has a definite 100% size — so without this, every level
+   container itself has a definite 100% size — so without this, the board
    sat in a cell shrunk to whatever size the pre-JS-fit CSS fallback gave it,
    not the stage's true full box, and the board-fit effect below measured
    that shrunk cell instead of the real free area. */
-.player-drill-stage { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; width: 100%; height: 100%; min-width: 0; min-height: 0; position: relative; touch-action: none; }
-/* No flex-centering here (BG part 2b): once hydrated, `DrillStage`'s camera
+.player-board-stage { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; width: 100%; height: 100%; min-width: 0; min-height: 0; position: relative; touch-action: none; }
+/* No flex-centering here (BG part 2b): once hydrated, `BoardStage`'s camera
    effect takes over positioning its one child (the board) entirely —
    `position: absolute; left/top: 0` plus a `translate()/scale()` transform
    (see `camera.ts`) — since a camera needs to place the board anywhere in
@@ -655,14 +653,10 @@
    `margin-inline: auto`) center it exactly as before, because plain block
    layout (unlike a flex/grid parent) honors `margin: auto` centering on its
    own — see `StaticBlueprint`'s own comment for that box's sizing. */
-.player-drill-level {
+.player-board-level {
   grid-area: 1 / 1; outline: none; width: 100%; height: 100%; min-width: 0; min-height: 0;
   position: relative;
 }
-.player-drill-level.is-entering { animation: player-drill-in var(--transition-duration-scene) var(--ease-emphasized) both; }
-.player-drill-level.is-leaving { animation: player-drill-out var(--transition-duration-small) var(--ease-exit) both; }
-@keyframes player-drill-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
-@keyframes player-drill-out { from { opacity: 1; } to { opacity: 0; } }
 
 @keyframes cv-ringpulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
 @keyframes cv-dashrot { to { stroke-dashoffset: -24; } }
@@ -691,7 +685,7 @@
 .cv-link.is-flow-static { stroke-dasharray: 2 6; }
 
 /* Interactive layer overlay (T3.3): the particle canvas sits over the active
-   drill level's SVG (positioned/sized imperatively in `InteractiveLayer.tsx`
+   board's SVG (positioned/sized imperatively in `InteractiveLayer.tsx`
    to match that SVG's own box within `data-player-root`) and never captures
    pointer events itself — hover/click targets stay the static SVG's own
    nodes/links underneath it. */
@@ -730,12 +724,12 @@
 
 /* The home hero's board (`<DiagramPlayer variant="hero">`): a fixed wide box
    inside the hero card, framed by the card itself (no border or radius of
-   its own). `DrillStage` fits the board inside the padded content box with
+   its own). `BoardStage` fits the board inside the padded content box with
    the same camera fit the full player uses. The stage takes no pointer
    input at all (`.is-static`): no hover or selection styling, no drag, and
    a wheel or touch scroll over it scrolls the page. */
 .player-hero { position: relative; aspect-ratio: 960 / 440; padding: 12px; overflow: hidden; }
-.player-drill-stage.is-static { pointer-events: none; touch-action: auto; }
+.player-board-stage.is-static { pointer-events: none; touch-action: auto; }
 
 /* The hero card's live indicator: a brand dot with a soft expanding ring. */
 .live-dot { width: 8px; height: 8px; flex: none; border-radius: 9999px; background: var(--color-brand); animation: live-dot 2s ease-out infinite; }
@@ -766,6 +760,10 @@
 .player-shell {
   display: grid;
   grid-template-rows: 48px minmax(0, 1fr);
+  /* The page opts into the whole screen (`viewportFit: cover`): keep the
+     chrome clear of a notch or rounded corners. The bottom inset belongs to
+     the phone sheet, which sits over the bottom edge. */
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
   background: var(--color-surface-page);
   height: 100%;
   min-height: 0;
@@ -774,6 +772,7 @@
 .player-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 0 12px;
   border-bottom: 1px solid var(--color-line-hairline);
@@ -784,6 +783,56 @@
 }
 .player-topbar .player-rail-toggle { display: none; }
 .player-topbar .player-phone-only { display: none; }
+/* Three groups: only the start one (brand, rail toggle, breadcrumb) shrinks
+   — its title truncates — so the modes and the end group never overlap it.
+   Start and end share the spare width equally, which keeps the modes
+   centred while there's room. */
+.player-topbar-start { display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; }
+.player-topbar-modes { display: flex; align-items: center; flex: none; min-width: 0; }
+.player-topbar-end { display: flex; align-items: center; justify-content: flex-end; gap: 4px; flex: 1 1 0; min-width: max-content; }
+.player-mode-menu { display: none; }
+.player-mode-menu {
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  max-width: 150px;
+  padding: 0 8px 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-raised);
+  font: 500 14px var(--font-sans);
+  color: var(--color-ink-primary);
+}
+.player-mode-menu:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.player-mode-menu-chev { width: 16px; height: 16px; flex: none; color: var(--color-ink-muted); }
+.player-mode-menu-list {
+  z-index: var(--z-index-chrome);
+  min-width: 220px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-overlay);
+  box-shadow: var(--shadow-elevation-2);
+}
+.player-mode-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font: 500 15px var(--font-sans);
+  color: var(--color-ink-primary);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+.player-mode-menu-item[data-highlighted] { background: var(--color-surface-glass); }
+.player-mode-menu-item[data-state="checked"] { font-weight: 600; }
+.player-mode-menu-item[data-disabled] { color: var(--color-ink-muted); cursor: default; }
+.player-mode-menu-soon { font: 500 12px var(--font-mono); color: var(--color-ink-muted); }
+.player-mode-menu-check { width: 16px; height: 16px; color: var(--color-brand-ink, var(--color-ink-primary)); }
 
 .player-body {
   display: grid;
@@ -862,30 +911,26 @@
 /* Phone summary button (hidden above the phone breakpoint, see below). */
 .player-hud-summary { display: none; }
 
-/* The zoom cluster: a bordered row of 30px icon buttons at the end of the
-   strip row. Its host keeps the cluster's width reserved before the board's
-   client code fills it, so the tiles don't shift when it arrives. */
-.player-zoom-slot { flex: none; display: flex; min-width: 100px; justify-content: flex-end; }
+/* The zoom island: a small raised row of 30px icon buttons floating in the
+   board's bottom-left corner. `.player-board-root` is `display: contents`,
+   so it positions against the board's wrapper. */
 .player-zoom-controls {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: var(--z-index-chrome);
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 2px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--color-line-hairline);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-elevation-2, var(--elevation-2));
 }
-/* The kit's icon-only `sm` size sets a width but no height; the cluster's
+/* The kit's icon-only `sm` size sets a width but no height; the island's
    buttons are 30px squares. */
 .player-zoom-controls button { width: 30px; height: 30px; }
-/* A bare embed/hero board has no strip: the cluster sits in the board's own
-   bottom-right corner there. `.player-drill-root` is `display: contents`,
-   so this positions against the board's wrapper. */
-.player-zoom-controls.is-overlay {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: var(--z-index-chrome);
-}
 
 /* Phone Metrics tab: the same tiles, 2×2. */
 .player-sheet-hud { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 8px; }
@@ -897,9 +942,9 @@
 
 /* 24px inner padding (T3.16 board-fit follow-up): without it the board sits
    flush against the rail's border and the far viewport edge whenever it's
-   wide enough to be width-bound — `.player-drill-stage`'s `width/height:
+   wide enough to be width-bound — `.player-board-stage`'s `width/height:
    100%` resolves against this box's *content* box, so the padding shrinks
-   the free area the fit effect (`DrillStage`) measures for free, no JS
+   the free area the fit effect (`BoardStage`) measures for free, no JS
    change needed. */
 .player-board-wrap {
   position: relative;
@@ -993,6 +1038,11 @@
   .player-body { grid-template-columns: minmax(0, 1fr); }
   .player-topbar .player-rail-toggle { display: inline-flex; }
   .player-topbar .mode-kbd-hint { display: none; }
+  /* Tablet: the labelled Share and the palette shortcut give way to the
+     icon-only Share, and the breadcrumb drops its parent, so the bar fits
+     beside the full mode switcher at 834px and below. */
+  .player-topbar .player-desktop-only { display: none; }
+  .player-topbar .player-phone-only { display: inline-flex; }
   .player-rail {
     position: absolute; inset: 0 auto 0 0; width: 300px; z-index: var(--z-index-sheet);
     box-shadow: var(--shadow-elevation-2); transform: translateX(-102%);
@@ -1010,7 +1060,7 @@
   /* An overlay doesn't push layout on its own — reserve its width from the
      canvas area's own box (not just visually slide over it) so the board
      re-fits to stay clear of it too, matching "nothing overlaps the
-     diagram" everywhere else. The board-fit effect (`DrillStage`) picks
+     diagram" everywhere else. The board-fit effect (`BoardStage`) picks
      this up for free via its `ResizeObserver` on `.player-board-wrap`. */
   .player-canvas-area {
     padding-right: 0;
@@ -1027,10 +1077,16 @@
 @media (max-width: 639px) {
   .player-shell { grid-template-rows: 44px minmax(0, 1fr); }
   .player-topbar { padding: 0 6px; gap: 4px; }
+  .player-topbar-start { gap: 4px; }
+  .player-topbar-end { gap: 0; }
   .player-topbar .player-mode-switcher,
   .player-topbar .player-rail-toggle,
+  .player-topbar .player-settings,
   .player-topbar .player-desktop-only { display: none; }
   .player-topbar .player-phone-only { display: inline-flex; }
+  .player-topbar .player-mode-menu { display: inline-flex; }
+  .player-topbar :is(button, a[href]) { min-width: 44px; min-height: 44px; justify-content: center; }
+  .player-topbar .player-mode-menu { justify-content: flex-start; border-color: transparent; }
   .player-rail, .player-inspector { display: none; }
   /* `padding-right` reset (T3.6 fix): the tablet rule above reserves
      340px of `.player-canvas-area`'s own width for the inspector *overlay*
@@ -1046,6 +1102,9 @@
      `padding-right` to clear. */
   .player-body[data-inspector-open="true"] .player-canvas-area { padding-right: 0; }
   .player-canvas-area { padding-bottom: var(--player-sheet-peek, 12dvh); }
+  /* Every pixel of a phone's width goes to the board (the tall arrangement
+     is fitted to it), so the canvas keeps only a 12px margin. */
+  .player-board-wrap { padding: 12px; }
   /* Phone strip: the tiles collapse behind one summary button (the first
      two values); expanded, they drop into a 2×2 grid on their own line
      inside the strip and the board re-fits to what's left. Only Fit shows
@@ -1075,15 +1134,34 @@
   .player-hud-summary:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
   .player-hud-summary-chev { width: 16px; height: 16px; flex: none; margin-left: auto; color: var(--color-ink-muted); transition: transform var(--transition-duration-small); }
   .player-hud-summary[aria-expanded="true"] .player-hud-summary-chev { transform: rotate(180deg); }
-  .player-zoom-slot { min-width: 36px; }
-  .player-zoom-slot .player-zoom-controls { padding: 0; border: 0; }
-  .player-zoom-slot .player-zoom-step { display: none; }
-  .player-zoom-slot .player-zoom-fit { width: 36px; height: 36px; border: 1px solid var(--color-line-hairline); border-radius: 10px; }
-  .player-zoom-controls.is-overlay { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
+  .player-zoom-controls { bottom: calc(12px + var(--player-sheet-peek, 12dvh)); }
   .player-timeline-dock { padding: 6px 8px; gap: 6px; }
   .player-timeline-dock .player-narration-slot { display: none; }
   .player-tl-speed, .player-tl-note, .player-tl-reset { display: none; }
+
+  /* Touch targets: every control in the player and its sheet is at least
+     44px on each side (inline prose links excepted). */
+  .player-hud-summary { height: 44px; }
+  .player-zoom-controls button { width: 44px; height: 44px; }
+  .player-timeline-slot { height: 44px; }
+  .player-shell :is(button, [role="tab"], [role="checkbox"], [role="switch"]),
+  .player-sheet :is(button, [role="tab"], [role="checkbox"], [role="switch"]) { min-height: 44px; min-width: 44px; }
+  .player-sheet [role="tablist"] [role="tab"] { height: 44px; }
+  .player-shell .player-tl-btn { width: 44px; height: 44px; }
+  /* Slider thumbs: a 16px disc inside a 44px transparent hit box. */
+  .player-shell [role="slider"],
+  .player-sheet [role="slider"]:not([aria-label="Resize sheet"]) {
+    width: 44px; height: 44px; border: 14px solid transparent; background-clip: padding-box; box-shadow: none;
+  }
+  /* The sheet: a 44px grab handle, and room for the home indicator. */
+  .player-sheet > [aria-label="Resize sheet"] { height: 44px; }
+  .player-sheet > :last-child { padding-top: 0; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* The phone sheet's Live and Guide tabs. */
+.player-sheet-live { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; }
+.player-sheet-live .player-sheet-hud { padding: 0; }
+.player-sheet-guide { padding-top: 12px; }
 
 /* DSA cells */
 .cv-cell rect { fill: var(--color-surface-raised); stroke: var(--color-line-hairline); }
@@ -1117,6 +1195,12 @@
 [data-theme="dark"] .shiki,
 [data-theme="dark"] .shiki span {
   color: var(--shiki-dark);
+}
+
+/* `github-dark` paints comments in a grey that falls under 4.5:1 on this
+   app's dark code surfaces; comments take the muted ink token instead. */
+[data-theme="dark"] .shiki span[style*="--shiki-dark:#6A737D"] {
+  color: var(--color-ink-muted);
 }
 
 .shiki-container .shiki {
@@ -1195,3 +1279,148 @@
 .home-reveal.is-visible {
   transform: none;
 }
+
+/* ============================================================================
+ * Player — Walkthrough mode.
+ *
+ * Rail: the walkthrough options (radio-style) and the playing one's
+ * numbered step list, the current step marked with an ink bar. Dock: the
+ * narration card under the board (where you are, the step's title and
+ * narration, progress dots, Prev / Next / Exit). Board: what a step lights
+ * stays at full opacity and the rest dims (`is-dimmed`, applied by the
+ * walkthrough stage); the step's path links draw in ink; the focused
+ * element pulses softly and carries the step's number.
+ * ========================================================================= */
+.wt-rail { display: flex; flex-direction: column; gap: 4px; }
+.wt-opt {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%;
+  padding: 8px; border-radius: 8px; text-align: left;
+  font-size: 13px; line-height: 1.4; color: var(--color-ink-secondary);
+  transition: background-color var(--transition-duration-micro), color var(--transition-duration-micro);
+}
+.wt-opt:hover { background: var(--color-surface-glass); color: var(--color-ink-primary); }
+.wt-opt:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+.wt-opt[aria-current="true"] { background: var(--color-brand-subtle); color: var(--color-ink-primary); }
+.wt-opt-dot {
+  width: 14px; height: 14px; flex: none; margin-top: 2px; border-radius: 50%;
+  border: 1.5px solid var(--color-line-strong); display: grid; place-items: center;
+}
+.wt-opt[aria-current="true"] .wt-opt-dot { border-color: var(--color-brand); }
+.wt-opt[aria-current="true"] .wt-opt-dot::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--color-brand); }
+.wt-opt-title { display: block; overflow-wrap: anywhere; }
+.wt-opt small { display: block; margin-top: 1px; font: 500 12px var(--font-mono); color: var(--color-ink-muted); }
+
+.wt-steps { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.wt-steps li { position: relative; }
+.wt-steps li::before {
+  content: attr(data-n); position: absolute; left: 8px; top: 8px; pointer-events: none;
+  font: 600 12px/18px var(--font-mono); color: var(--color-ink-muted);
+}
+.wt-steps button {
+  display: block; width: 100%; text-align: left; padding: 8px 8px 8px 30px; border-radius: 8px;
+  font-size: 13px; line-height: 1.4; color: var(--color-ink-secondary); overflow-wrap: anywhere;
+  transition: background-color var(--transition-duration-micro);
+}
+.wt-steps button:hover { background: var(--color-surface-glass); }
+.wt-steps button:focus-visible { outline: 2px solid var(--color-brand); outline-offset: -2px; }
+.wt-steps li[aria-current="step"] button { color: var(--color-ink-primary); background: var(--color-surface-glass); box-shadow: inset 2px 0 0 var(--color-ink-primary); }
+.wt-steps li[aria-current="step"]::before { color: var(--color-ink-primary); }
+.wt-steps b { display: block; font-weight: 500; line-height: 18px; color: var(--color-ink-primary); }
+/* One line of narration per step in the list, never more than two. */
+.wt-step-sum { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wt-rail-hint { margin: 8px 0 0 8px; font-size: 12px; color: var(--color-ink-muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+.wt-narr {
+  display: flex; gap: 12px; align-items: flex-start; min-height: 78px;
+  padding: 10px 14px; border-radius: 12px;
+  background: var(--color-surface-raised); border: 1px solid var(--color-line-hairline);
+}
+.wt-narr-body { flex: 1; min-width: 0; animation: wt-narrin 320ms var(--ease-emphasized); }
+@keyframes wt-narrin { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.wt-narr-k { display: flex; gap: 8px; align-items: center; min-width: 0; margin: 0 0 4px; font: 500 12px var(--font-mono); color: var(--color-ink-muted); }
+.wt-narr-title { margin: 0 0 2px; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--color-ink-primary); overflow-wrap: anywhere; }
+/* The narration scrolls inside the card rather than pushing the board off screen. */
+.wt-narr-md { max-height: 7.8em; overflow: auto; font-size: 15px; line-height: 1.55; color: var(--color-ink-primary); text-wrap: pretty; overflow-wrap: anywhere; }
+.wt-narr-md p, .wt-narr-md li { margin: 0; font-size: 15px; line-height: 1.55; }
+.wt-narr-md > div, .wt-narr-md li > div { max-width: none; }
+.wt-narr-md div > :not(:last-child) { margin-bottom: 4px; }
+.wt-narr-parts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.wt-narr-parts li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.wt-narr-parts b { font: 600 12px var(--font-mono); color: var(--color-ink-muted); white-space: nowrap; }
+.wt-narr-acts { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.wt-narr-btns { display: flex; gap: 4px; align-items: center; }
+.wt-dots { display: flex; gap: 5px; align-items: center; height: 8px; padding-right: 4px; }
+.wt-dot { width: 6px; height: 6px; border-radius: 3px; background: var(--color-line-strong); transition: width var(--transition-duration-small) var(--ease-emphasized), background-color var(--transition-duration-small); }
+.wt-dot[data-state="done"] { background: var(--color-ink-muted); }
+.wt-dot[data-state="current"] { width: 18px; background: var(--color-ink-primary); }
+
+/* Board. Opacity eases both ways, so a revert fades back in rather than snapping. */
+.cv-node, .cv-linkgroup, .cv-link-label, .cv-subsystem { transition: opacity var(--transition-duration-panel); }
+.cv-subsystem.is-dimmed { opacity: .2; }
+.cv-node.is-wt-focus .cv-halo { stroke: var(--color-ink-primary); stroke-width: 10; stroke-opacity: .08; }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='off']) .cv-node.is-wt-focus .cv-halo { animation: wt-focuspulse 1.6s ease-in-out infinite; }
+}
+@keyframes wt-focuspulse { 0%, 100% { stroke-opacity: .04; } 50% { stroke-opacity: .18; } }
+.cv-subsystem.is-wt-focus .cv-body { stroke: var(--color-ink-primary); stroke-width: 1.5; }
+.cv-linkgroup[data-wt-flow="path"] .cv-link { stroke-width: 2; }
+.cv-node[data-wt-tone] .cv-ring { stroke-width: 2; }
+.cv-node[data-wt-tone="ok"] .cv-ring { stroke: var(--color-signal-ok); }
+.cv-node[data-wt-tone="warn"] .cv-ring { stroke: var(--color-signal-warn); }
+.cv-node[data-wt-tone="critical"] .cv-ring { stroke: var(--color-signal-critical); }
+.cv-node[data-wt-tone="info"] .cv-ring { stroke: var(--color-signal-flow); }
+.cv-node[data-wt-tone="accent"] .cv-ring { stroke: var(--color-brand); }
+.cv-node[data-wt-tone="muted"] .cv-ring { stroke: var(--color-ink-muted); }
+.cv-linkgroup[data-wt-tone="ok"] .cv-link { stroke: var(--color-signal-ok); }
+.cv-linkgroup[data-wt-tone="warn"] .cv-link { stroke: var(--color-signal-warn); }
+.cv-linkgroup[data-wt-tone="critical"] .cv-link { stroke: var(--color-signal-critical); }
+.cv-linkgroup[data-wt-tone="info"] .cv-link { stroke: var(--color-signal-flow); }
+.cv-linkgroup[data-wt-tone="accent"] .cv-link { stroke: var(--color-brand); }
+.cv-linkgroup[data-wt-tone="muted"] .cv-link { stroke: var(--color-ink-muted); }
+.wt-layer { pointer-events: none; }
+.wt-badge circle { fill: var(--color-ink-primary); stroke: var(--color-surface-canvas); stroke-width: 2; }
+.wt-badge text { font: 600 12px var(--font-mono); fill: var(--color-surface-page); }
+
+@media (max-width: 639px) {
+  /* Phone: the dock under the board is otherwise just the transport row,
+     but a walkthrough's narration is the point of the mode, so its card
+     stays in view there, compact; the board re-fits above it. */
+  .player-timeline-dock[data-dock="board"] .player-narration-slot:has(.wt-narr) { display: block; }
+  .wt-narr { flex-wrap: wrap; gap: 6px; min-height: 0; padding: 8px 10px; }
+  .wt-narr-title { font-size: 14px; }
+  .wt-narr-md { max-height: 4.8em; font-size: 14px; }
+  .wt-narr-md p, .wt-narr-md li { font-size: 14px; }
+  .wt-kbd { display: none; }
+  .wt-narr-acts { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+}
+
+/* ============================================================================
+ * Inspector: scale a node by hand (replica stepper, cost of the change).
+ * ========================================================================== */
+.scale-control { display: flex; flex-direction: column; gap: 8px; margin: 16px 16px 0; padding: 12px; border-radius: 12px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
+.scale-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.scale-title { font: 500 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--color-ink-muted); }
+.scale-now { font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scale-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.scale-stepper { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 8px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-sunken); }
+.scale-stepper button { width: 30px; height: 30px; }
+.scale-count { min-width: 44px; text-align: center; font: 600 15px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); }
+.scale-cost { flex: 1 1 auto; min-width: 0; font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-secondary); }
+@media (max-width: 639px) {
+  .scale-stepper button { width: 44px; height: 44px; }
+}
+
+/* ============================================================================
+ * HUD: money spent (one simulated minute = one month) and the auto-scale switch.
+ * Same box as a compact stat tile.
+ * ========================================================================== */
+.cost-meter { flex: 1.35 1 0; min-width: 0; max-width: 320px; display: grid; grid-template-rows: auto auto; row-gap: 0; padding: 5px 10px; border-radius: 10px; border: 1px solid var(--color-line-hairline); background: var(--color-surface-raised); }
+.cost-meter-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; height: 16px; }
+.cost-meter-label { font-size: 11px; font-weight: 500; color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cost-meter-auto { display: inline-flex; align-items: center; gap: 4px; height: 16px; padding: 0 4px; margin-right: -4px; border-radius: 5px; font: 500 11px var(--font-mono); color: var(--color-ink-secondary); white-space: nowrap; cursor: pointer; }
+.cost-meter-auto:hover { background: var(--color-surface-glass); color: var(--color-ink-primary); }
+.cost-meter-auto b { font-weight: 600; color: var(--color-ink-primary); }
+.cost-meter-auto b.is-on { color: var(--color-brand-ink); }
+.cost-meter-value { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.cost-meter-amount { font: 600 16px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-primary); white-space: nowrap; }
+.cost-meter-period { font: 500 11px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

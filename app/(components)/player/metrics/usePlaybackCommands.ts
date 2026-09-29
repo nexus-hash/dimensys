@@ -12,6 +12,8 @@ import { useCallback } from 'react';
 import { usePlayerStore, usePlayerStoreApi } from '../store/PlayerStoreProvider';
 import { getBridge } from '../worker/bridgeRegistry';
 import type { Speed } from '../worker/protocol';
+import { useActivePlay } from '../story/StoryContext';
+import { resetStory, seekScenario } from '../story/actions';
 
 export const SPEEDS: readonly Speed[] = [0.5, 1, 2, 4];
 
@@ -37,6 +39,7 @@ export function usePlaybackCommands(): PlaybackCommands {
   const status = usePlayerStore((s) => s.sim.status);
   const t = usePlayerStore((s) => s.sim.frame?.t ?? 0);
   const duration = usePlayerStore((s) => s.story.duration);
+  const play = useActivePlay();
 
   const togglePlay = useCallback(() => {
     const bridge = getBridge(store);
@@ -63,13 +66,21 @@ export function usePlaybackCommands(): PlaybackCommands {
       if (!bridge) return;
       const dur = store.getState().story.duration;
       const clamped = dur === null ? Math.max(0, target) : Math.max(0, Math.min(target, dur));
-      bridge.seek(clamped);
+      // A scenario's scrub stops at a question nobody has answered yet.
+      seekScenario(store, play, clamped);
     },
-    [store],
+    [store, play],
   );
 
   const reset = useCallback(() => {
-    getBridge(store)?.reset();
+    const bridge = getBridge(store);
+    if (!bridge) return;
+    const wasPlaying = store.getState().sim.playing;
+    resetStory(store);
+    bridge.reset();
+    // The worker's reset leaves the run paused; a reset from a running
+    // simulation starts the healthy baseline running again.
+    if (wasPlaying) bridge.play();
   }, [store]);
 
   return { playing, speed, status, t, duration, togglePlay, cycleSpeed, seek, reset };

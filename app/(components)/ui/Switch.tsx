@@ -14,7 +14,7 @@ export interface SwitchProps {
   'aria-labelledby'?: string;
 }
 
-/** Switch (prototype `.switch`): brand-filled track, spring-ish thumb. */
+/** Switch: brand-filled track, spring-ish thumb. */
 export function Switch({ className, ...props }: SwitchProps & { className?: string }) {
   return (
     <RadixSwitch.Root

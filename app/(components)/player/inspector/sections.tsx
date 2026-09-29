@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Markdown } from '@/app/(components)/content/Markdown';
 import { CodeBlock } from '@/app/(components)/content/CodeBlock';
 import { AnnotatedCode } from '@/app/(components)/content/AnnotatedCode';
+import { Meter } from '@/app/(components)/data';
 import { Pill } from '@/app/(components)/ui';
 import type {
   Part,
@@ -12,11 +13,20 @@ import type {
   SourcePart,
   NotedSourcePart,
   RisksPart,
+  TradePart,
+  CalcPart,
+  SparkPart,
   Scalar,
 } from '../types';
+import type { SectionContext } from './context';
+import { SectionHeading } from './SectionHeading';
+import { TradeToggle } from './TradeToggle';
+import { CalcPanel } from './CalcPanel';
+import { SparkPanel } from './SparkPanel';
+import { EmbedSection } from './EmbedSection';
 
 /**
- * Section renderers for a detail sheet's `parts` (T3.6). One function per
+ * Section renderers for a detail sheet's `parts` (T3.6, T3.7). One function per
  * `Part.shape`; `SectionRenderer` is the single registry that dispatches on
  * `part.shape`, so adding a shape later means adding one case here, not
  * hunting through the inspector.
@@ -36,15 +46,6 @@ import type {
  * plain DOM renderer, unlike Next's real RSC/flight renderer, cannot itself
  * await an async component).
  */
-
-function SectionHeading({ title, assumed }: { title: string; assumed?: true }) {
-  return (
-    <div className="mb-2 flex items-center justify-between gap-2">
-      <h3 className="min-w-0 break-words text-label font-semibold text-ink-secondary">{title}</h3>
-      {assumed ? <Pill variant="neutral" className="flex-none">assumed</Pill> : null}
-    </div>
-  );
-}
 
 function ScalarText({ value }: { value: Scalar }) {
   if (value === null) return <span className="text-ink-muted">—</span>;
@@ -194,13 +195,58 @@ function RisksSection({ part }: { part: RisksPart }) {
 }
 
 /**
- * The fallback for every shape T3.6 doesn't render yet — `trade` (tradeoff
- * axes/picks), `calc` (the sizing calculator), `spark` (live sparklines),
- * `embed` (diagram refs), and anything future — so nothing is silently
- * dropped from the sheet. A neutral, compact row: the section's own title
- * plus a "Coming soon" chip. T3.7 plugs its real renderers in by adding
- * cases to `SectionRenderer` below (and adding the shape to `SIMPLE_SHAPES`)
- * — this is the one place that needs to change.
+ * Tradeoffs. A part that follows a live switch (`flip`) becomes the
+ * interactive toggle (`TradeToggle`); any other is static: each axis score
+ * as a 0–10 meter, then every option's pros and cons.
+ */
+function TradeSection({ part, ctx }: { part: TradePart; ctx: SectionContext }) {
+  const sw = part.flip ? ctx.switches.find((x) => x.id === part.flip) : undefined;
+  if (sw && sw.opts.length > 0) return <TradeToggle part={part} sw={sw} />;
+  return (
+    <section className="min-w-0" data-inspector-trade="static">
+      <SectionHeading title={part.title} assumed={part.assumed} />
+      {part.axes.length > 0 ? (
+        <div className="grid gap-2.5">
+          {part.axes.map(([axis, score]) => (
+            <Meter key={axis} label={axis} value={score / 10} valueLabel={`${score} / 10`} severity={0} />
+          ))}
+        </div>
+      ) : null}
+      {part.picks.length > 0 ? (
+        <ul className="mt-3 flex flex-col gap-2">
+          {part.picks.map((pick, i) => (
+            <li key={i} className="min-w-0 rounded-lg border border-line-hairline p-3">
+              <p className="mb-1 break-words font-medium text-ink-primary">{pick.text}</p>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-body">
+                <dt className="font-medium text-ink-primary">Pros</dt>
+                <dd className="min-w-0 break-words text-ink-secondary">{pick.plus}</dd>
+                <dt className="font-medium text-ink-primary">Cons</dt>
+                <dd className="min-w-0 break-words text-ink-secondary">{pick.minus}</dd>
+              </dl>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function CalcSection({ part, ctx }: { part: CalcPart; ctx: SectionContext }) {
+  const calc = ctx.calcs.find((c) => c.id === part.calc);
+  if (!calc) return <AdvancedSection part={part} />;
+  // Keyed: another element's calculator in the same spot is a new panel, not this one's sliders reused.
+  return <CalcPanel key={calc.id} part={part} calc={calc} />;
+}
+
+function SparkSection({ part, ctx }: { part: SparkPart; ctx: SectionContext }) {
+  return <SparkPanel part={part} elementId={ctx.elementId} />;
+}
+
+/**
+ * The fallback for a shape this app has never seen (a newer view file than
+ * the app), or a live part whose target is missing from the view: the
+ * section's own title plus a "Coming soon" chip, so nothing is silently
+ * dropped from the sheet.
  */
 function AdvancedSection({ part }: { part: Part }) {
   return (
@@ -214,16 +260,28 @@ function AdvancedSection({ part }: { part: Part }) {
   );
 }
 
-/** Shapes with a real renderer above — anything else (`trade`/`calc`/`spark`/`embed`, or a future shape this app has never seen) falls to `AdvancedSection`. `NodeInspectorBody` uses this same set to decide whether a *pane* is advanced-only (see its doc comment) for tab ordering. */
-export const SIMPLE_SHAPES = new Set<Part['shape']>(['prose', 'pairs', 'grid', 'bullets', 'source', 'notedSource', 'risks']);
+/** Every shape with a real renderer below. Anything else falls to `AdvancedSection`. `NodeInspectorBody` uses this same set to decide whether a pane has anything to show for tab ordering. */
+export const SIMPLE_SHAPES = new Set<Part['shape']>([
+  'prose',
+  'pairs',
+  'grid',
+  'bullets',
+  'source',
+  'notedSource',
+  'risks',
+  'trade',
+  'calc',
+  'spark',
+  'embed',
+]);
 
-/** Whether `shape` has a real (non-"Coming soon") renderer above. */
+/** Whether `shape` has a real (non-"Coming soon") renderer. */
 export function isSimpleShape(shape: Part['shape']): boolean {
   return SIMPLE_SHAPES.has(shape);
 }
 
-/** Dispatches a `Part` to its section renderer by `shape`. The `default` case is what makes an unknown shape (an advanced one, or one this app has never seen) a "Coming soon" row instead of a silent gap. */
-export function SectionRenderer({ part }: { part: Part }): ReactNode {
+/** Dispatches a `Part` to its section renderer by `shape`. The `default` case is what makes an unknown shape a "Coming soon" row instead of a silent gap. */
+export function SectionRenderer({ part, ctx }: { part: Part; ctx: SectionContext }): ReactNode {
   switch (part.shape) {
     case 'prose':
       return <ProseSection part={part} />;
@@ -239,6 +297,14 @@ export function SectionRenderer({ part }: { part: Part }): ReactNode {
       return <NotedSourceSection part={part} />;
     case 'risks':
       return <RisksSection part={part} />;
+    case 'trade':
+      return <TradeSection part={part} ctx={ctx} />;
+    case 'calc':
+      return <CalcSection part={part} ctx={ctx} />;
+    case 'spark':
+      return <SparkSection part={part} ctx={ctx} />;
+    case 'embed':
+      return <EmbedSection part={part} />;
     default:
       return <AdvancedSection part={part} />;
   }
@@ -246,4 +312,16 @@ export function SectionRenderer({ part }: { part: Part }): ReactNode {
 
 // Exported individually for component tests (see `__tests__/sections.test.tsx`);
 // `SectionRenderer` above is what `NodeInspectorBody` actually calls.
-export { ProseSection, PairsSection, GridSection, BulletsSection, SourceSection, NotedSourceSection, RisksSection, AdvancedSection };
+export {
+  ProseSection,
+  PairsSection,
+  GridSection,
+  BulletsSection,
+  SourceSection,
+  NotedSourceSection,
+  RisksSection,
+  TradeSection,
+  CalcSection,
+  SparkSection,
+  AdvancedSection,
+};

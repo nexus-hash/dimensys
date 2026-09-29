@@ -56,7 +56,7 @@ function renderShell() {
       <PlayerStoreProvider bootstrap={boot}>
         <ModeProbe />
         <SelectButton id="api" label="select api" />
-        <PlayerShell title="URL shortener" labelsById={{}} elementIndex={elementIndex} modeAvailability={availability}>
+        <PlayerShell title="URL shortener" elementIndex={elementIndex} modeAvailability={availability}>
           <div data-testid="board-child">board</div>
         </PlayerShell>
       </PlayerStoreProvider>
@@ -81,6 +81,16 @@ describe('PlayerShell', () => {
     const h1s = screen.getAllByRole('heading', { level: 1 });
     expect(h1s).toHaveLength(1);
     expect(h1s[0]).toHaveTextContent('URL shortener');
+  });
+
+  it('has a two-item breadcrumb, Explore › the diagram title, and no deeper levels', () => {
+    renderShell();
+    const nav = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const items = within(nav).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(within(items[0]).getByRole('link', { name: 'Explore' })).toBeTruthy();
+    expect(items[1]).toHaveTextContent('URL shortener');
+    expect(within(items[1]).queryByRole('button')).toBeNull();
   });
 
   it('shows the mode switcher with Explore available and Break it/Walkthrough hidden (no kit, no stories)', () => {

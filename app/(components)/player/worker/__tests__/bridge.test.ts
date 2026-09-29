@@ -3,6 +3,8 @@ import { createPlayerStore, initialPlayerState } from '../../store/playerStore';
 import type { PlayerStore } from '../../store/playerStore';
 import { WorkerBridge, type WorkerLike } from '../bridge';
 import { getBridge } from '../bridgeRegistry';
+import { onCalcReply, type CalcReply } from '../calcResults';
+import { onRunnerEvents } from '../runnerEvents';
 import { PROTOCOL_VERSION, type WorkerCommand, type WorkerMessage } from '../protocol';
 
 /** A fake `Worker`: records every posted command and lets the test dispatch messages/errors back. */
@@ -302,5 +304,150 @@ describe('WorkerBridge', () => {
     expect(getBridge(store)).toBe(bridge);
     bridge.dispose();
     expect(getBridge(store)).toBeUndefined();
+  });
+
+  it('calc returns its seq, sends dry only for a preview, and routes the reply (or a rejection) to calculator listeners', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'sha256:' + '0'.repeat(64), mode: 'free', store, createWorker, visibility: makeVisibility().api });
+    const worker = workers[0];
+    const replies: CalcReply[] = [];
+    const off = onCalcReply(store, (r) => replies.push(r));
+
+    const previewSeq = bridge.calc('c1', { a: 1 }, true);
+    const applySeq = bridge.calc('c1', { a: 2 });
+    expect(applySeq).toBe(previewSeq + 1);
+    const [preview, apply] = worker.posted.slice(-2);
+    expect(preview).toEqual({ type: 'calc', seq: previewSeq, id: 'c1', values: { a: 1 }, dry: true });
+    expect(apply).toEqual({ type: 'calc', seq: applySeq, id: 'c1', values: { a: 2 } });
+
+    worker.emit({ type: 'calcResult', seq: previewSeq, id: 'c1', outputs: { out: 3 } });
+    worker.emit({ type: 'error', seq: applySeq, code: 'EXPR_UNBOUND', message: 'x', fatal: false });
+    expect(replies).toEqual([
+      { seq: previewSeq, id: 'c1', outputs: { out: 3 } },
+      { seq: applySeq, error: 'EXPR_UNBOUND' },
+    ]);
+
+    off();
+    worker.emit({ type: 'calcResult', seq: 99, id: 'c1', outputs: {} });
+    expect(replies).toHaveLength(2);
+    bridge.dispose();
+  });
+
+  it('replay() swaps in a fresh worker restored from the given log at t, keeps it playing, and makes that the log', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({
+      runtimeUrl: 'x',
+      simUrl: 'y',
+      build: 'sha256:' + '0'.repeat(64),
+      mode: 'free',
+      store,
+      createWorker,
+      visibility: makeVisibility().api,
+    });
+    workers[0].emit({ type: 'actionApplied', seq: 2, action: [1, 'kill', 'cache', null] });
+    workers[0].emit({ type: 'actionApplied', seq: 3, action: [2, 'intervention', 'fix-a', null] });
+    workers[0].emit({ type: 'status', playing: true, speed: 1, t: 5 });
+
+    bridge.replay([[1, 'kill', 'cache', null]], 5);
+    expect(workers[0].terminated).toBe(true);
+    expect(workers).toHaveLength(2);
+    const init = workers[1].posted[0];
+    expect(init.type).toBe('init');
+    if (init.type === 'init') {
+      expect(init.restore).toEqual({ actions: [[1, 'kill', 'cache', null]], t: 5 });
+      expect(init.paused).toBe(false);
+    }
+    expect(store.getState().actions).toEqual([[1, 'kill', 'cache', null]]);
+
+    // A paused run stays paused.
+    workers[1].emit({ type: 'status', playing: false, speed: 1, t: 5 });
+    bridge.replay([], 5);
+    const init2 = workers[2].posted[0];
+    if (init2.type === 'init') expect(init2.paused).toBe(true);
+    bridge.dispose();
+  });
+  it('never re-sends calculator applies after a replay: they are in the action log the worker rebuilds from', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'sha256:' + '0'.repeat(64), mode: 'free', store, createWorker, visibility: makeVisibility().api });
+    bridge.calc('c1', { a: 2 });
+    workers[0].emit({ type: 'actionApplied', seq: 2, action: [1, 'calc', 'c1', 'a=2'] });
+    expect(store.getState().actions).toEqual([[1, 'calc', 'c1', 'a=2']]);
+    bridge.replay(store.getState().actions, 3);
+    workers[1].emit({ type: 'ready', protocol: 1, engineVersion: '3', hash: 'h', tickMs: 100, metricKeys: [], healthIds: [], keysEpoch: 0 });
+    expect(workers[1].posted.filter((c) => c.type === 'calc')).toHaveLength(0);
+    const init = workers[1].posted[0];
+    if (init.type === 'init') expect(init.restore?.actions).toEqual([[1, 'calc', 'c1', 'a=2']]);
+    bridge.dispose();
+  });
+
+  it('starts from a share link: restores the log at t (paused if asked), and drops what the worker skipped', () => {
+    const store = makeStore();
+    const reports: number[] = [];
+    const log: Array<[number, string, string | null, number | string | boolean | null]> = [
+      [1, 'kill', 'cache', null],
+      [2, 'kill', 'gone', null],
+      [3, 'intervention', 'fix-a', null],
+    ];
+    const bridge = new WorkerBridge({
+      runtimeUrl: 'x',
+      simUrl: 'y',
+      build: 'sha256:' + '0'.repeat(64),
+      mode: 'free',
+      store,
+      createWorker,
+      visibility: makeVisibility().api,
+      restore: { actions: log, t: 12.5 },
+      startPaused: true,
+      onRestored: (n) => reports.push(n),
+    });
+    const init = workers[0].posted[0];
+    expect(init.type).toBe('init');
+    if (init.type === 'init') {
+      expect(init.restore).toEqual({ actions: log, t: 12.5 });
+      expect(init.paused).toBe(true);
+    }
+    expect(store.getState().actions).toEqual(log);
+    workers[0].emit({ type: 'ready', protocol: 1, engineVersion: '3', hash: 'h', tickMs: 100, metricKeys: [], healthIds: [], keysEpoch: 0, skipped: [1] });
+    expect(store.getState().actions).toEqual([log[0], log[2]]);
+    expect(reports).toEqual([1]);
+    // Reported once: a later rebuild doesn't report again.
+    bridge.replay(store.getState().actions, 12.5);
+    workers[1].emit({ type: 'ready', protocol: 1, engineVersion: '3', hash: 'h', tickMs: 100, metricKeys: [], healthIds: [], keysEpoch: 0 });
+    expect(reports).toEqual([1]);
+    bridge.dispose();
+  });
+  it('restart() starts a scenario (or free play) in a fresh worker, playing, with the scenario slice and action log reset', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'b', mode: 'free', store, createWorker, visibility: makeVisibility().api });
+    store.setState({ actions: [{ t: 1, tool: 'kill', target: 'n', value: null }] as never });
+    bridge.restart('scenario', 'outage');
+    expect(workers[0].terminated).toBe(true);
+    const init = workers[1].posted[0];
+    expect(init).toMatchObject({ type: 'init', mode: 'scenario', scenarioId: 'outage', paused: false });
+    expect(store.getState().actions).toEqual([]);
+    expect(store.getState().story).toEqual({ scenarioId: 'outage', runner: null, duration: null });
+    workers[1].emit({ type: 'status', playing: true, speed: 1, t: 0, runner: 'running', duration: 90 });
+    expect(store.getState().story).toEqual({ scenarioId: 'outage', runner: 'running', duration: 90 });
+
+    bridge.restart('free');
+    const free = workers[2].posted[0];
+    expect(free).toMatchObject({ type: 'init', mode: 'free' });
+    expect((free as { scenarioId?: string }).scenarioId).toBeUndefined();
+    expect(store.getState().story).toEqual({ scenarioId: null, runner: null, duration: null });
+    bridge.dispose();
+  });
+
+  it('publishes each frame\'s runner events, in order', () => {
+    const store = makeStore();
+    const bridge = new WorkerBridge({ runtimeUrl: 'x', simUrl: 'y', build: 'b', mode: 'scenario', scenarioId: 's', store, createWorker, visibility: makeVisibility().api });
+    const got: string[] = [];
+    const off = onRunnerEvents(store, (events) => got.push(...events.map((e) => e.kind)));
+    const frame = (events: WorkerMessage extends infer M ? (M extends { type: 'frame'; events: infer E } ? E : never) : never) =>
+      workers[0].emit({ type: 'frame', t: 1, keysEpoch: 0, metrics: new Float64Array(0), health: new Uint8Array(0), watches: [], events });
+    frame([]);
+    frame([{ kind: 'caption', at: 2, rendered: 'x' }, { kind: 'checkpoint', at: 30, checkpointId: 'cp' }]);
+    expect(got).toEqual(['caption', 'checkpoint']);
+    off();
+    bridge.dispose();
   });
 });

@@ -1,7 +1,7 @@
 import { DiagramCard } from './DiagramCard';
 
 /**
- * "01 Break -> Fix" static visual (S4.6a). The prototype's looping
+ * "01 Break -> Fix" static visual (S4.6a). The design's looping
  * no-backoff/with-backoff clip needs a Canvas2D demo this task doesn't
  * build — left as a documented slot below. What renders here is honest,
  * static and true today: this is the same shape the real simulator draws,

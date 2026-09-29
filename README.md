@@ -1,8 +1,8 @@
 # 🌌 Dimensys
 
-**Interactive, 3D Architectural Diagrams & System Design Visualizations.**
+**Step inside real systems: live, breakable system design diagrams.**
 
-Dimensys is an open-source Next.js application designed to showcase complex system architectures and algorithms. It provides a stunning, high-performance platform for visualizing systems in both crisp **2D Blueprints** and immersive **3D Interactive** modes.
+Dimensys is an open-source Next.js application for learning system design by doing. Each diagram is a real architecture running live in your browser: watch requests flow, break a component, apply a fix and watch it recover.
 
 ---
 
@@ -19,8 +19,7 @@ Dimensys is an open-source Next.js application designed to showcase complex syst
 
 - **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **3D Engine**: [Three.js](https://threejs.org/) & [@react-three/fiber](https://docs.pmnd.rs/react-three-fiber/getting-started/introduction)
-- **UI Components**: Custom glassmorphism components & Material UI
+- **UI Components**: Custom components on [Radix UI](https://www.radix-ui.com/) primitives
 
 ---
 

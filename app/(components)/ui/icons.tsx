@@ -231,3 +231,7 @@ export function UserIcon(props: SVGProps<SVGSVGElement>) {
     </Base>
   );
 }
+
+/** Plus and minus for steppers: the same glyphs as zoom in/out. */
+export const PlusIcon = ZoomInIcon;
+export const MinusIcon = ZoomOutIcon;

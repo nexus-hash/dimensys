@@ -27,8 +27,7 @@ export type HldNodeType =
   | 'queue'
   | 'messageBus'
   | 'cloud'
-  | 'external'
-  | 'subSystem';
+  | 'external';
 
 /** Replication / HA role of a node. */
 export type NodeRole = 'primary' | 'replica' | 'leader' | 'follower' | 'active' | 'standby';
@@ -67,9 +66,7 @@ export interface NodeMeter {
  * fabricated seconds figure), everything else shows utilization. `client`
  * (a traffic source with no server-side behavior to meter) gets no meter
  * row at all — `null` tells a caller to omit the `meter` prop entirely,
- * same as the design's source nodes. `subSystem` isn't a `LeafNodeType`
- * (the collapsed card computes its own aggregate meter, out of scope here)
- * and falls back to `'util'` if ever passed in by mistake.
+ * same as the design's source nodes.
  */
 export function meterKindForType(form: string): NodeMeterKind | null {
   if (form === 'client') return null;

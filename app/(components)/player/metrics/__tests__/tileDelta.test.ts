@@ -40,7 +40,26 @@ describe('tileDelta', () => {
   });
 
   it('a smaller change (under 1.5x) reads as a percentage, not a multiple', () => {
-    const d = tileDelta('f', 0.012, 0.01)!; // +20%, under the 1.5x multiple cutoff
-    expect(d.text).toMatch(/^\+\d+%$/);
+    const d = tileDelta('q', 4800, 4000)!; // +20%, under the 1.5x multiple cutoff
+    expect(d.text).toBe('+20%');
+  });
+
+  it('a share (error rate, utilization…) changes in points, never as a multiple of a tiny baseline', () => {
+    const d = tileDelta('f', 1, 1e-10)!;
+    expect(d.text).toBe('+100 pts');
+    expect(d.bad).toBe('critical');
+    expect(tileDelta('f', 0.004, 0.001)!.text).toBe('≈ baseline');
+  });
+
+  it('a drop reads as a percentage, down to -100% (not "Infinity× higher")', () => {
+    const d = tileDelta('q', 0, 4000)!;
+    expect(d.text).toBe('-100%');
+    expect(d.direction).toBe(-1);
+    expect(d.bad).toBe('critical');
+    expect(tileDelta('e', 20, 40)!.text).toBe('-50%');
+  });
+
+  it('no data (a latency with no successful requests) has no delta', () => {
+    expect(tileDelta('e', NaN, 55)).toBeUndefined();
   });
 });

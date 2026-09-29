@@ -6,7 +6,7 @@ export interface KbdProps {
   className?: string;
 }
 
-/** A single keyboard hint chip (prototype `.kbd`), mono, 12px minimum caption size. */
+/** A single keyboard hint chip, mono, 12px minimum caption size. */
 export function Kbd({ children, className }: KbdProps) {
   return (
     <kbd

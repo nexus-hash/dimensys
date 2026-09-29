@@ -8,7 +8,6 @@ import {
   SourceSection,
   NotedSourceSection,
   RisksSection,
-  AdvancedSection,
   SectionRenderer,
 } from '../sections';
 import type {
@@ -21,7 +20,11 @@ import type {
   RisksPart,
   TradePart,
   CalcPart,
+  Part,
 } from '../../types';
+import type { SectionContext } from '../context';
+
+const CTX: SectionContext = { elementId: 'n1', switches: [], calcs: [] };
 
 describe('section renderers', () => {
   it('prose: renders the title and the markdown body', async () => {
@@ -148,24 +151,41 @@ describe('section renderers', () => {
     expect(getByText('Watched bottleneck')).toBeTruthy();
   });
 
-  it('advanced fallback: a tradeoff part renders its title and a "Coming soon" chip, not its axes/picks', () => {
+  it('fallback: a shape this app has never seen renders its title and a "Coming soon" chip', () => {
+    const part = { shape: 'hologram', pane: 'operations', title: 'Future Section' } as unknown as Part;
+    const { getByText } = render(<SectionRenderer part={part} ctx={CTX} />);
+    expect(getByText('Future Section')).toBeTruthy();
+    expect(getByText('Coming soon')).toBeTruthy();
+  });
+
+  it('a calc part whose calculator is missing from the view falls back to "Coming soon" rather than a broken panel', () => {
+    const part: CalcPart = { shape: 'calc', pane: 'operations', title: 'Compute Sizing Calculator', calc: 'c9' };
+    const { getByText } = render(<SectionRenderer part={part} ctx={CTX} />);
+    expect(getByText('Compute Sizing Calculator')).toBeTruthy();
+    expect(getByText('Coming soon')).toBeTruthy();
+  });
+
+  it('static tradeoffs: every axis as a 0–10 meter and every option with its pros and cons', () => {
     const part: TradePart = {
       shape: 'trade',
       pane: 'operations',
       title: 'Protocol Architecture',
-      axes: [['Latency', 9]],
+      axes: [['Latency', 9], ['Overhead', 4]],
       picks: [{ text: 'Protobuf', plus: 'fast', minus: 'opaque' }],
     };
-    const { getByText, queryByText } = render(<AdvancedSection part={part} />);
+    const { getByText, queryByText } = render(<SectionRenderer part={part} ctx={CTX} />);
     expect(getByText('Protocol Architecture')).toBeTruthy();
-    expect(getByText('Coming soon')).toBeTruthy();
-    expect(queryByText('Protobuf')).toBeNull();
+    expect(getByText('9 / 10')).toBeTruthy();
+    expect(getByText('4 / 10')).toBeTruthy();
+    expect(getByText('Protobuf')).toBeTruthy();
+    expect(getByText('fast')).toBeTruthy();
+    expect(getByText('opaque')).toBeTruthy();
+    expect(queryByText('Coming soon')).toBeNull();
   });
 
-  it('SectionRenderer dispatches a calc part (also advanced) to the same "Coming soon" fallback', () => {
-    const part: CalcPart = { shape: 'calc', pane: 'operations', title: 'Compute Sizing Calculator', calc: 'c1' };
-    const { getByText } = render(<SectionRenderer part={part} />);
-    expect(getByText('Compute Sizing Calculator')).toBeTruthy();
-    expect(getByText('Coming soon')).toBeTruthy();
+  it('a tradeoff part naming a switch the view lacks stays static', () => {
+    const part: TradePart = { shape: 'trade', pane: 'operations', title: 'T', axes: [['A', 5]], picks: [], flip: 'nope' };
+    const { container } = render(<SectionRenderer part={part} ctx={CTX} />);
+    expect(container.querySelector('[data-inspector-trade="static"]')).not.toBeNull();
   });
 });

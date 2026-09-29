@@ -15,11 +15,9 @@
  *     and replace, without hunting through the JSX.
  *
  * Slots:
- *   - `data-slot="hero-kill-cache"`   — the "Kill the cache" action button.
- *     Wires to the same meltdown the full player's Break It mode runs
- *     (owner: a later "Break It on the hero" task).
- *   - `data-slot="hero-10x-traffic"`  — the "10× traffic" action button.
- *     Same owner as above.
+ *   - `data-slot="hero-kill-cache"` / `"hero-10x-traffic"` — now wired
+ *     (`HeroBreakActions`): they run the same worker actions as the full
+ *     player's Break it tools, and are no longer inert.
  *   - `data-slot="hero-pause"`        — the hero card's pause/play control.
  *     Needs the shared sim-playback control T3.8 is building for the full
  *     player's HUD/timeline shell.
@@ -32,8 +30,6 @@
  *     inert slots outside the hero, both waiting on an accounts system.
  */
 export const HERO_SLOTS = [
-  'hero-kill-cache',
-  'hero-10x-traffic',
   'hero-pause',
   'hero-speed',
   'hero-replay-tour',

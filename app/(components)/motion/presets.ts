@@ -124,19 +124,6 @@ export const MOTION_PRESETS: MotionPreset[] = [
     reduced: { mode: 'fade', duration: 'small', description: 'Particles and the HUD delta jump to their recovered values over one short fade instead of animating the recovery continuously.' },
   },
   {
-    id: 'drill-down',
-    moment: 'Drilling into a subsystem',
-    summary: 'The camera springs into the subsystem boundary, sibling nodes fade out, and the inner nodes stagger in.',
-    stages: [
-      { name: 'camera spring', duration: 'scene', spring: 'camera' },
-      { name: 'siblings fade out', duration: 'small', easing: 'exit' },
-      { name: 'inner node 1 stagger', duration: 'small', delay: { fractionOf: 'small', factor: 1 / 10 }, easing: 'emphasized' },
-      { name: 'inner node 2 stagger', duration: 'small', delay: { fractionOf: 'small', factor: 2 / 10 }, easing: 'emphasized' },
-      { name: 'inner node 3 stagger', duration: 'small', delay: { fractionOf: 'small', factor: 3 / 10 }, easing: 'emphasized' },
-    ],
-    reduced: { mode: 'fade', duration: 'micro', description: 'The camera cuts straight to the boundary (no spring/stagger); siblings and inner nodes crossfade together over one short fade.' },
-  },
-  {
     id: 'checkpoint-open',
     moment: 'A checkpoint decision opens',
     summary: 'The canvas dims, the decision card rises with a fade, and its choices stagger in.',

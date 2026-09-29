@@ -18,7 +18,7 @@ export interface TooltipProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-/** Tooltip (prototype `.tip`): collision-aware, and keeps clear of `avoid`. */
+/** Tooltip: collision-aware, and keeps clear of `avoid`. */
 export function Tooltip({
   content,
   children,

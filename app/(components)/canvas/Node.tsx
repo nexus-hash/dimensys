@@ -49,8 +49,7 @@ const METER_VALUE_CHARS: Record<NodeMeter['kind'], number> = {
 
 /**
  * The meter row: bar from `METER_TRACK_X`, value right-aligned to the
- * padding, the two disjoint. Shared by leaf nodes and the collapsed
- * subsystem card (its aggregate utilization). Live updates only rewrite
+ * padding, the two disjoint. Live updates only rewrite
  * `.cv-mfill`'s width and `.cv-mtext`'s text, never this geometry.
  */
 export function MeterRow({ meter, width }: { meter: NodeMeter; width: number }) {
@@ -77,7 +76,7 @@ export function MeterRow({ meter, width }: { meter: NodeMeter; width: number }) 
   );
 }
 
-export type LeafNodeType = Exclude<HldNodeType, 'subSystem'>;
+export type LeafNodeType = HldNodeType;
 
 interface NodeProps {
   /** The board this node is drawn on — namespaces the hatch pattern id. */

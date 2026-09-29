@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
 import Navbar from '@/app/(components)/navbar/Navbar';
 import Footer from '@/app/(components)/footer/Footer';
@@ -24,6 +24,9 @@ import { listDiagramIds, loadPlayerDiagram, loadRuntimeUrl } from '@/app/(server
  * 404s via `dynamicParams = false`.
  */
 export const dynamicParams = false;
+
+/** The player fills the screen edge to edge on a phone; its chrome pads itself clear of the safe areas. */
+export const viewport: Viewport = { viewportFit: 'cover' };
 
 export async function generateStaticParams(): Promise<Array<{ id: string }>> {
   const ids = await listDiagramIds();

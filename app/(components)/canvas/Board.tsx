@@ -4,7 +4,7 @@ import { CanvasDefs } from './CanvasDefs';
 /**
  * The board: one `<svg>` per instance holding this board's `<defs>` (shared
  * markers / hatch pattern, namespaced by `id`) plus whatever `Node`/`Link`/
- * `Subsystem` children later tasks (T3.2 static blueprint, T3.3 interactive
+ * `SubsystemFrame` children later tasks (T3.2 static blueprint, T3.3 interactive
  * layer) compose on top.
  *
  * This component paints no background of its own — no fill, no dot grid.
@@ -27,7 +27,7 @@ import { CanvasDefs } from './CanvasDefs';
  *
  * GEOM: neither this wrapper nor the `<svg>` itself clips. A node's own
  * decorations (replica stack cards, the selection ring, the health halo)
- * and a subsystem's frame/tab can all extend past the diagram's nominal
+ * and a group frame's tab can all extend past the diagram's nominal
  * `viewBox` size, and at a pan/zoom past the old edge they must stay
  * visible rather than being cut by a second clip stacked on top of the
  * canvas region. The *only* clip in the player is the canvas region itself

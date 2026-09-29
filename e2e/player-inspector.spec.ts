@@ -209,7 +209,7 @@ test.describe('phone sheet — Inspect tab', () => {
     await settle(page);
 
     // Selecting a node bumps the sheet to its 50% snap point (`PhoneSheet`).
-    const svg = page.locator('[data-drill-key=""] svg[aria-label]');
+    const svg = page.locator('[data-board-level] svg[aria-label]');
     const board = await svg.boundingBox();
     expect(board).toBeTruthy();
     // A collapsed board (the regression) rendered at a few px wide; a

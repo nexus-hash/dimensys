@@ -2,15 +2,13 @@ import Link from 'next/link';
 import {
   ArrowRightIcon,
   Button,
-  CheckIcon,
   ExternalLinkIcon,
   PauseIcon,
-  PowerIcon,
   Tooltip,
-  TrendingUpIcon,
 } from '@/app/(components)/ui';
 import { DiagramPlayer } from '@/app/(components)/player';
 import { HeroMetricStrip } from './HeroMetricStrip';
+import { HeroBreakActions } from './HeroBreakActions';
 import { loadPlayerDiagram, loadRuntimeUrl } from '@/app/(server)/engine/publicData';
 
 /** The diagram the hero embeds, running at its healthy baseline. */
@@ -33,10 +31,12 @@ export const HERO_DIAGRAM_ID = 'url-shortener';
  * CTAs.
  *
  * The metric strip under the board reads the live global-metrics feed
- * (`HeroMetricStrip`). "Kill the cache" / "10× traffic" and the meltdown
- * they trigger, the pause control and "Replay tour" are not wired yet. Every one of those slots is visible, `aria-disabled`, tooltipped
- * "coming soon" and documented in `home/slots.ts` rather than faked or
- * hidden.
+ * (`HeroMetricStrip`). "Kill the cache" / "10× traffic" run the same
+ * worker actions as the full player's Break it tools (`HeroBreakActions`,
+ * inside the player's client boundary so it reaches the hero's own run).
+ * The pause control and "Replay tour" are not wired yet: those slots are
+ * visible, `aria-disabled`, tooltipped "coming soon" and documented in
+ * `home/slots.ts` rather than faked or hidden.
  */
 export async function Hero() {
   const [diagram, runtimeUrl] = await Promise.all([loadPlayerDiagram(HERO_DIAGRAM_ID), loadRuntimeUrl()]);
@@ -118,44 +118,17 @@ export async function Hero() {
                 diagram={diagram}
                 runtimeUrl={diagram.live ? runtimeUrl : null}
                 variant="hero"
-                heroFooter={<HeroMetricStrip />}
+                heroFooter={
+                  <>
+                    <HeroMetricStrip />
+                    <HeroBreakActions
+                      killTarget={diagram.kit?.chips.find((c) => c.verb === 'kill')?.el ?? null}
+                      spike={diagram.kit?.chips.find((c) => c.verb === 'spike')?.amt ?? 10}
+                    />
+                  </>
+                }
               />
 
-              {/* Status line. */}
-              <div className="mx-3.5 mb-3 flex min-h-16 flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl border border-line-hairline bg-surface-sunken px-3 py-2.5">
-                <CheckIcon aria-hidden className="h-3.5 w-3.5 flex-none text-brand-ink" />
-                <p className="min-w-0 flex-[1_1_200px] text-[14px] leading-[1.45] text-ink-primary">
-                  Healthy at baseline. Your turn: kill the cache or send 10× traffic.
-                </p>
-                <Tooltip content="Replay the tour — coming soon">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    data-slot="hero-replay-tour"
-                    aria-disabled="true"
-                    className="flex-none"
-                  >
-                    Replay tour
-                  </Button>
-                </Tooltip>
-              </div>
-
-              {/* Break-it actions. */}
-              <div className="flex flex-wrap gap-2 px-3.5 pb-3.5 max-sm:[&>*]:flex-auto">
-                <Tooltip content="Kill the cache — coming soon">
-                  <Button type="button" variant="danger" data-slot="hero-kill-cache" aria-disabled="true">
-                    <PowerIcon />
-                    Kill the cache
-                  </Button>
-                </Tooltip>
-                <Tooltip content="10× traffic — coming soon">
-                  <Button type="button" variant="glass" data-slot="hero-10x-traffic" aria-disabled="true">
-                    <TrendingUpIcon />
-                    10× traffic
-                  </Button>
-                </Tooltip>
-              </div>
             </div>
           ) : (
             <div className="rounded-[18px] border border-line-strong bg-surface-raised p-6 text-ink-secondary">

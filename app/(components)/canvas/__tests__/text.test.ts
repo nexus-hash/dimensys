@@ -6,7 +6,6 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  EXPAND_GLYPH_W,
   MONO_CHAR_EM,
   measureMono,
   measureSans,
@@ -14,7 +13,6 @@ import {
   SANS_ADVANCE_PER_MILLE,
   SANS_FALLBACK_EM,
   SUB_FONT_PX,
-  subsystemSubLabel,
   TEXT_PAD_R,
   TEXT_SAFETY_PX,
   TEXT_SAFETY_SCALE,
@@ -27,11 +25,10 @@ import {
 
 describe('canvas text metrics', () => {
   it('pins the constants shared with the diagram build', () => {
-    expect({ TEXT_X, TEXT_PAD_R, TITLE_PAD_R, EXPAND_GLYPH_W, TITLE_FONT_PX, SUB_FONT_PX }).toEqual({
+    expect({ TEXT_X, TEXT_PAD_R, TITLE_PAD_R, TITLE_FONT_PX, SUB_FONT_PX }).toEqual({
       TEXT_X: 38,
       TEXT_PAD_R: 12,
       TITLE_PAD_R: 26,
-      EXPAND_GLYPH_W: 18,
       TITLE_FONT_PX: 13,
       SUB_FONT_PX: 12,
     });
@@ -69,7 +66,5 @@ describe('canvas text metrics', () => {
     expect(nodeSubLabel('client', 'web', undefined)).toBe('client · web');
     expect(nodeSubLabel('server', undefined, 3)).toBe('server · ×3');
     expect(nodeSubLabel('apiGateway', undefined, undefined)).toBe('gateway');
-    expect(subsystemSubLabel(1)).toBe('1 node');
-    expect(subsystemSubLabel(2)).toBe('2 nodes');
   });
 });

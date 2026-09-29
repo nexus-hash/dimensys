@@ -5,27 +5,47 @@ name: Deploy Dev (Vercel)
 # the prebuilt Next.js output with `vercel deploy --prebuilt`. Vercel's own
 # Git integration must stay disabled for this project (see vercel.json).
 #
-# Deploys ONLY for:
-#   - push to `main` (this repo's main, latest engine `main`)          -> --prod
-#   - repository_dispatch type `engine-updated` (engine main changed)  -> --prod
-#   - workflow_dispatch (manual)                                       -> --prod
-#   - pull_request targeting `main`, same-repo only (forks skipped,
-#     secrets aren't available to fork PRs)                            -> preview
-#
-# PRs into any other branch (e.g. task/* -> v3) and pushes to any other
-# branch do NOT trigger this workflow.
+# Manual only, owner and maintainers only:
+#   - a `/deploy` comment on a PR (pr-commands.yml): a preview of the PR's head;
+#   - Actions → Deploy Dev → Run workflow, on the branch to deploy.
+# Targets:
+#   - `preview`: built against the engine branch of the same name when one
+#     exists (else engine main); the URL is commented on the PR.
+#   - `production`: --prod, built against engine main.
+# The Test workflow runs first and must pass; nothing is built or deployed
+# otherwise.
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  repository_dispatch:
-    types: [engine-updated]
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        default: 'preview'
+      ref:
+        description: 'Commit to deploy'
+        type: string
+        default: ''
+      branch:
+        description: 'Branch the commit is on (picks the engine branch)'
+        type: string
+        default: ''
+      pr:
+        description: 'PR to comment the preview URL on'
+        type: number
+        default: 0
 
 concurrency:
-  group: deploy-dev-${{ github.ref }}
+  group: deploy-dev-${{ inputs.branch || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -35,13 +55,35 @@ env:
   VERCEL_CLI_VERSION: 60.1.3
 
 jobs:
+  # Started from the Actions tab: owner and maintainers only (plus anyone named
+  # in the PR_COMMAND_USERS repository variable). From a PR comment, the PR
+  # commands workflow checks this before calling in, so it's skipped here.
+  authorize:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Owner and maintainers only
+        uses: actions/github-script@v9
+        env:
+          EXTRA: ${{ vars.PR_COMMAND_USERS }}
+        with:
+          script: |
+            const extra = (process.env.EXTRA || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({ ...context.repo, username: context.actor });
+            if (!['admin', 'maintain'].includes(data.role_name) && !extra.includes(context.actor.toLowerCase())) {
+              core.setFailed(`${context.actor} (${data.role_name}) can't run this: owner and maintainers only.`);
+            }
+
+  tests:
+    needs: authorize
+    if: ${{ !cancelled() && needs.authorize.result != 'failure' }}
+    uses: ./.github/workflows/test.yml
+    with:
+      ref: ${{ inputs.ref }}
+
   deploy:
-    # Guard against PRs targeting a branch other than main (belt-and-suspenders
-    # alongside the `pull_request: branches: [main]` filter above), and skip
-    # fork PRs since they don't have access to the deploy secrets.
-    if: >-
-      (github.event_name != 'pull_request' || github.base_ref == 'main') &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork != true)
+    needs: tests
+    if: ${{ !cancelled() && needs.tests.result == 'success' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -54,45 +96,38 @@ jobs:
       - name: Determine deploy target
         id: target
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "prod=false" >> "$GITHUB_OUTPUT"
-            echo "environment=preview" >> "$GITHUB_OUTPUT"
-          else
+          if [ "${{ inputs.target }}" = "production" ]; then
             echo "prod=true" >> "$GITHUB_OUTPUT"
             echo "environment=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "prod=false" >> "$GITHUB_OUTPUT"
+            echo "environment=preview" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Determine engine ref
         id: engine_ref
         env:
-          # Passed via env, not interpolated inline into the script, since a
-          # PR head branch name is attacker-controlled input (script-injection
-          # safety) — never echoed or otherwise printed below.
-          HEAD_REF: ${{ github.head_ref }}
+          # Passed via env, not interpolated inline into the script: a branch
+          # name is user-controlled input (script-injection safety).
+          BRANCH: ${{ inputs.branch || github.ref_name }}
           DMS_ENGINE_REPO: ${{ secrets.DMS_ENGINE_REPO }}
           DMS_ENGINE_PAT: ${{ secrets.DMS_ENGINE_PAT }}
         run: |
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "ref=${{ github.event.client_payload.sha }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            # A PR preview builds against the engine branch of the same name
-            # as this app PR's head branch, when one exists (so an app PR
-            # depending on unmerged engine work can preview against it);
-            # otherwise it falls back to engine main.
-            if git ls-remote --exit-code --heads "https://x-access-token:${DMS_ENGINE_PAT}@github.com/${DMS_ENGINE_REPO}.git" "$HEAD_REF" > /dev/null 2>&1; then
-              echo "ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
-            else
-              echo "ref=main" >> "$GITHUB_OUTPUT"
-            fi
+          if [ "${{ steps.target.outputs.prod }}" = "true" ]; then
+            # Production always tracks engine main.
+            echo "ref=main" >> "$GITHUB_OUTPUT"
+          elif git ls-remote --exit-code --heads "https://x-access-token:${DMS_ENGINE_PAT}@github.com/${DMS_ENGINE_REPO}.git" "$BRANCH" > /dev/null 2>&1; then
+            # A preview of a branch that depends on unmerged engine work builds
+            # against the engine branch of the same name.
+            echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
           else
-            # Always the engine's main branch — this workflow intentionally
-            # ignores DMS_ENGINE_REF (that secret is used by deploy.yml for
-            # other purposes); push/dispatch always track engine main.
             echo "ref=main" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout dimensys
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Checkout dms-engine (private)
         uses: actions/checkout@v7
@@ -168,7 +203,8 @@ jobs:
           # split didn't hold: a server-data path anywhere in the deployable
           # output, or an "interview"/"secret" key inside the statically
           # served files, both indicate server-only data leaked into what
-          # ships to the browser.
+          # ships to the browser. Only the JSON key form ("interview": …)
+          # counts: the bare word is also a player mode name in the bundle.
           if find .vercel/output -path '*server-data*' | grep -q .; then
             echo "::error::Found server-data path(s) inside .vercel/output:"
             find .vercel/output -path '*server-data*'
@@ -184,12 +220,12 @@ jobs:
             exit 1
           fi
 
-          if [ -d .vercel/output/static ] && grep -rIl '"interview"' .vercel/output/static; then
+          if [ -d .vercel/output/static ] && grep -rIlE '"interview"[[:space:]]*:' .vercel/output/static; then
             echo "::error::Found an \"interview\" key inside .vercel/output/static — server-only diagram data leaked into the public build."
             exit 1
           fi
 
-          if [ -d .vercel/output/static ] && grep -rIl '"secret"' .vercel/output/static; then
+          if [ -d .vercel/output/static ] && grep -rIlE '"secret"[[:space:]]*:' .vercel/output/static; then
             echo "::error::Found a \"secret\" key inside .vercel/output/static — server-only puzzle data leaked into the public build."
             exit 1
           fi
@@ -210,12 +246,12 @@ jobs:
 
   comment-preview-url:
     needs: deploy
-    if: github.event_name == 'pull_request'
+    if: ${{ !cancelled() && needs.deploy.result == 'success' && inputs.target == 'preview' }}
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
-      - name: Comment preview URL on PR
+      - name: Comment preview URL on the PR
         uses: actions/github-script@v9
         with:
           script: |
@@ -223,10 +259,25 @@ jobs:
             const marker = '<!-- deploy-dev-preview-comment -->';
             const body = `${marker}\n**Vercel preview deployed:** ${url}`;
 
+            let issue_number = Number(${{ toJSON(inputs.pr) }}) || 0;
+            if (!issue_number) {
+              const { data: prs } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
+              });
+              if (prs.length === 0) {
+                core.info(`No open PR for this branch; preview: ${url}`);
+                return;
+              }
+              issue_number = prs[0].number;
+            }
+
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number,
             });
 
             const existing = comments.find((c) => c.body && c.body.includes(marker));
@@ -242,7 +293,7 @@ jobs:
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
+                issue_number,
                 body,
               });
             }

@@ -4,7 +4,7 @@ import { DiagramCard } from './DiagramCard';
  * "02 Outage replays" showcase visual (S4.6a). Replays aren't built yet —
  * no incident data exists to render honestly, so this stays generic and
  * unlabeled rather than inventing a postmortem with fabricated numbers the
- * way the prototype's mock (a specific dated Cloudflare outage) does. The
+ * way the design's mock (a specific dated Cloudflare outage) does. The
  * link this section would carry is left off entirely (see `ShowcaseSection`
  * `comingSoon`) until a real Replays destination exists.
  */

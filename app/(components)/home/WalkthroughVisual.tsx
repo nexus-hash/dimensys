@@ -2,15 +2,9 @@ import { loadPlayerDiagram } from '@/app/(server)/engine/publicData';
 import { DiagramCard } from './DiagramCard';
 
 /**
- * "03" showcase visual (S4.6a). The prototype's pitch for this slot is a
- * subsystem drill-down (a box zooming open into its ring/cluster) — no
- * shipped diagram declares a drillable subsystem yet, so that specific demo
- * would be fake. What's real today is the walkthrough itself: the featured
- * diagram's actual story titles, read from the synced catalog. The
- * subsystem-zoom visual is a documented slot for whenever a diagram ships
- * one (T3.4's `DrilldownBlueprint` already renders it inside the full
- * player — this card doesn't duplicate that engine, just lists what a
- * visitor will step through).
+ * "03" showcase visual (S4.6a): the walkthrough capability — the featured
+ * diagram's actual story titles, read from the synced catalog, i.e. exactly
+ * what a visitor will step through in the player.
  */
 export async function WalkthroughVisual({ diagramId }: { diagramId: string }) {
   const diagram = await loadPlayerDiagram(diagramId);

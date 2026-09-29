@@ -109,8 +109,6 @@ export const TEXT_X = 38;
 export const TEXT_PAD_R = 12;
 /** Right reservation of the title line, px: the top-right status glyph slot plus a gap. */
 export const TITLE_PAD_R = 26;
-/** Collapsed subsystem: the inline expand glyph after the sub-label (gap + glyph), px. */
-export const EXPAND_GLYPH_W = 18;
 
 /** Short kind names for the sub-label head. */
 const KIND_SHORT: Readonly<Record<string, string>> = {
@@ -135,7 +133,3 @@ export function nodeSubLabel(form: string, flavor: string | undefined, stack: nu
   return count ? `${head} · ${count}` : head;
 }
 
-/** The collapsed subsystem card's sub-label. */
-export function subsystemSubLabel(nodeCount: number): string {
-  return `${nodeCount} node${nodeCount === 1 ? '' : 's'}`;
-}

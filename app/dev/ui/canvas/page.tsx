@@ -8,7 +8,7 @@ export const metadata = {
 
 /**
  * Living gallery for the canvas visual kit: every node type × health
- * state, link styles, subsystems, DSA cells + markers, and an LLD card, in
+ * state, link styles, group frames, DSA cells + markers, and an LLD card, in
  * both themes. Development only — 404s in production, same as `/dev/ui`.
  */
 export default function DevUiCanvasPage() {

@@ -6,11 +6,11 @@ import AxeBuilder from '@axe-core/playwright';
  * real production runtime for a diagram that ships a simulation
  * (`url-shortener`). Covers: HUD values change over time, pause freezes
  * them, speed changes the sim clock's rate, badges render with accessible
- * text, and the phone sheet's Metrics tab carries the same content.
+ * text, and the phone sheet's Live and Guide tabs carry the same content.
  *
  * The HUD strip and timeline dock are each mounted *twice* by the shell
  * (T3.16) — once in the top chrome (`HudTimelineFrame`, never hidden, at
- * any breakpoint), once again inside the phone bottom sheet's "Metrics" tab
+ * any breakpoint), once again inside the phone bottom sheet's "Live" tab
  * (`PhoneSheet`, shown only below the `sm` breakpoint) — so a person on
  * phone can read live numbers from the sheet without looking past it at the
  * thin top strip. Both copies read the same shared store, so they always
@@ -19,7 +19,7 @@ import AxeBuilder from '@axe-core/playwright';
  * for the phone sheet's copy) rather than counting `.hud-tile` unscoped,
  * which would double-count. Requirement badges render once more, in the
  * left rail's "Problem" section (`.player-rail`) — the phone sheet's own
- * Metrics tab carries its own copy for phone, where the rail is hidden.
+ * Live and Guide tabs carry their own copy for phone, where the rail is hidden.
  */
 
 const READY_TIMEOUT = 20000; // generous: shared/contended hosts can be slow to hydrate under load
@@ -92,7 +92,7 @@ test.describe('/solutions/url-shortener HUD + timeline', () => {
     // The rail only renders (statically shown, not the phone/tablet overlay
     // drawer) at desktop widths — the "Mobile Chrome" project's own default
     // viewport is phone-sized, where the rail is CSS-hidden by design (its
-    // content reaches phone through the bottom sheet's Metrics tab instead,
+    // content reaches phone through the bottom sheet's Guide tab instead,
     // covered by the next test).
     await page.setViewportSize({ width: 1440, height: 900 });
     await waitForReady(page);
@@ -117,13 +117,14 @@ test.describe('/solutions/url-shortener HUD + timeline', () => {
       .toBe(true);
   });
 
-  test('phone: the bottom sheet Metrics tab shows the same HUD tiles and requirement badges', async ({ page }) => {
+  test('phone: the bottom sheet Live tab shows the same HUD tiles, and its Guide tab the requirement badges', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await waitForReady(page);
-    await page.getByRole('tab', { name: 'Metrics' }).click();
+    await page.getByRole('tab', { name: 'Live' }).click();
     const sheetTiles = page.locator('[role="dialog"] .hud-tile');
     await expect(sheetTiles.first()).toBeVisible({ timeout: READY_TIMEOUT });
     await expect(sheetTiles).toHaveCount(4);
+    await page.getByRole('tab', { name: 'Guide' }).click();
     await expect(page.locator('[role="dialog"] .hud-req-badges > *').first()).toBeVisible();
   });
 });
@@ -140,8 +141,8 @@ async function sparkPointCount(page: Page, tileIndex: number): Promise<number> {
 }
 
 /**
- * HUDFIX: the chrome strip above the board is one compact row (HUD tiles,
- * then the zoom cluster), nothing floats over the diagram, and the height
+ * HUDFIX: the chrome strip above the board is one compact row of HUD
+ * tiles; only the small zoom island floats over the board, and the height
  * the old two-row strip and the empty narration band used is the board's.
  */
 test.describe('/solutions/url-shortener chrome strip + dock layout (1440x900)', () => {
@@ -150,20 +151,31 @@ test.describe('/solutions/url-shortener chrome strip + dock layout (1440x900)', 
   /** `.player-board-wrap` height at 1440x900 before this layout (app v3 at 8d5d23a): 577.4px. */
   const BOARD_HEIGHT_BEFORE = 577.4;
 
-  test('the zoom cluster sits inside the strip and never overlaps the board', async ({ page }) => {
+  test('the zoom island floats in the board\'s bottom-left corner', async ({ page }) => {
     await waitForReady(page);
-    const strip = (await page.locator('.player-canvas-area .player-hud-strip').boundingBox())!;
-    const zoom = page.locator('.player-hud-strip .player-zoom-controls');
+    const zoom = page.locator('.player-board-wrap .player-zoom-controls');
     await expect(zoom).toBeVisible();
-    await expect(page.locator('.player-board-wrap .player-zoom-controls')).toHaveCount(0);
+    await expect(page.locator('.player-hud-strip .player-zoom-controls')).toHaveCount(0);
     const z = (await zoom.boundingBox())!;
     const board = (await page.locator('.player-board-wrap').boundingBox())!;
-    expect(z.y).toBeGreaterThanOrEqual(strip.y);
-    expect(z.y + z.height).toBeLessThanOrEqual(strip.y + strip.height);
-    expect(z.y + z.height, 'zoom cluster must end above the board').toBeLessThanOrEqual(board.y);
+    expect(Math.abs(z.x - board.x - 12)).toBeLessThanOrEqual(2);
+    expect(Math.abs(board.y + board.height - (z.y + z.height) - 12)).toBeLessThanOrEqual(2);
     for (const name of ['Zoom in', 'Zoom out', 'Fit to view']) {
       await expect(zoom.getByRole('button', { name })).toBeVisible();
     }
+  });
+
+  test('one mouse-wheel notch zooms gently (about 10%)', async ({ page }) => {
+    await waitForReady(page);
+    const board = (await page.locator('.player-board-wrap').boundingBox())!;
+    await page.mouse.move(board.x + board.width / 2, board.y + board.height / 2);
+    const pct = async () => Number((await page.locator('.player-zoom-controls').getAttribute('data-zoom-percent')) ?? 'NaN');
+    const before = await pct();
+    await page.mouse.wheel(0, -100);
+    await expect.poll(pct).not.toBe(before);
+    const after = await pct();
+    expect(after / before).toBeGreaterThan(1.02);
+    expect(after / before).toBeLessThan(1.2);
   });
 
   test('HUD tiles are compact (<= 48px tall) and the strip is one row', async ({ page }) => {

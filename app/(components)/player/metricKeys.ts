@@ -38,7 +38,7 @@ const SCOPED_RE = /^([nlf]):(.+)$/;
  * `global.<metric>` forms, which this app no longer understands).
  *
  * The code is split off at the *last* `.`, not the first: an element id may
- * itself contain dots (e.g. a nested-subsystem id), but a code never does.
+ * itself contain dots, but a code never does.
  */
 export function parseMetricKey(key: string): ParsedMetricKey | null {
   if (key.startsWith('g.')) {
@@ -156,6 +156,11 @@ const METRIC_CODE_INFO: Readonly<Record<string, MetricCodeInfo>> = {
   r: { label: 'p50 latency', unit: 'ms' },
   s: { label: 'availability', unit: 'ratio' },
   u: { label: 'lost writes', unit: 'writes' },
+  v: { label: 'misses to the store', unit: 'rps' },
+  w: { label: 'served stale', unit: 'ratio' },
+  x: { label: 'rejected by the filter', unit: 'rps' },
+  y: { label: 'busiest shard', unit: 'ratio' },
+  z: { label: 'spent so far', unit: '$' },
 };
 
 /** Human label for a metric code, e.g. `metricCodeLabel('e')` → `"p99 latency"`. Falls back to the bare code for one this app's copy of the table doesn't (yet) know. */

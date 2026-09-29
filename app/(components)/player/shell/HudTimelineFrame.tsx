@@ -1,15 +1,16 @@
 'use client';
 
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { HudTable, HudSummary, HudTileRow, useHudReadings } from '../hud/HudTiles';
+import { CostMeter } from '../hud/CostMeter';
 import { PlaybackControls } from '../hud/PlaybackControls';
-import { ZoomSlotContext } from '../blueprint/zoomSlot';
+import { WalkthroughNarration } from '../walkthrough/WalkthroughNarration';
+import { CheckpointSlot, StoryNarration } from '../story';
 import type { GaugeView } from '../types';
+import { BreakDockRow, BreakToolbox } from '../breakit';
 
 export interface HudStripProps {
   gauges: readonly GaugeView[];
-  /** Receives the element the board's zoom cluster renders into (see `ZoomSlotContext`). */
-  zoomHostRef?: (el: HTMLElement | null) => void;
 }
 
 /**
@@ -19,14 +20,14 @@ export interface HudStripProps {
  * task) sits in its own row underneath and takes no space while empty.
  *
  * Requirement badges don't render here: they're a per-requirement list
- * sized for the left rail (`LeftRail.tsx`), and the phone sheet's Metrics
+ * sized for the left rail (`LeftRail.tsx`), and the phone sheet's Guide
  * tab (`PhoneSheet.tsx`).
  *
  * Phone: the tiles collapse behind one summary button (the first two
  * values); tapping it expands them into a 2×2 grid inside the strip, and
  * the board re-fits to the space left.
  */
-export function HudStrip({ gauges, zoomHostRef }: HudStripProps) {
+export function HudStrip({ gauges }: HudStripProps) {
   const readings = useHudReadings(gauges);
   const [expanded, setExpanded] = useState(false);
   const tilesId = useId();
@@ -36,18 +37,20 @@ export function HudStrip({ gauges, zoomHostRef }: HudStripProps) {
       <div className="player-hud-strip-row">
         <div id={tilesId} className="player-hud-slot" role="group" aria-label="Live metrics, last 60 seconds" data-hud-slot>
           <HudTileRow readings={readings} />
+          <CostMeter />
           <HudTable readings={readings} />
         </div>
         <HudSummary readings={readings} expanded={expanded} onToggle={() => setExpanded((v) => !v)} controls={tilesId} />
-        <div ref={zoomHostRef} className="player-zoom-slot" data-zoom-slot />
       </div>
-      <div className="player-canvas-toolbar-slot" role="toolbar" aria-label="Break it tools" data-canvas-toolbar-slot />
+      <div className="player-canvas-toolbar-slot" data-canvas-toolbar-slot>
+        <BreakToolbox />
+      </div>
     </div>
   );
 }
 
 export interface TimelineDockProps {
-  /** `false` for the phone sheet's own copy of this dock (`PhoneSheet.tsx`) — see `PlaybackControls`' doc comment: only one mounted instance may own the Space/`[`/`]`/R shortcuts. */
+  /** `false` for any second copy of this dock — see `PlaybackControls`' doc comment: only one mounted instance may own the Space/`[`/`]`/R shortcuts. */
   registerShortcuts?: boolean;
 }
 
@@ -60,8 +63,14 @@ export interface TimelineDockProps {
  */
 export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {}) {
   return (
-    <div className="player-timeline-dock">
-      <div className="player-narration-slot" aria-live="polite" data-narration-slot />
+    <div className="player-timeline-dock" data-dock={registerShortcuts ? 'board' : 'sheet'}>
+      {/* A checkpoint question takes focus itself, so it sits outside the live region. */}
+      {registerShortcuts ? <CheckpointSlot where="dock" /> : null}
+      <div className="player-narration-slot" aria-live="polite" data-narration-slot>
+        <WalkthroughNarration />
+        {registerShortcuts ? <StoryNarration /> : null}
+      </div>
+      {registerShortcuts ? <BreakDockRow /> : null}
       <div className="player-timeline-slot" role="group" aria-label="Playback" data-timeline-slot>
         <PlaybackControls registerShortcuts={registerShortcuts} />
       </div>
@@ -70,21 +79,16 @@ export function TimelineDock({ registerShortcuts = true }: TimelineDockProps = {
 }
 
 /**
- * The canvas frame: wraps the board (`children`, i.e. `DrilldownBlueprint`
+ * The canvas frame: wraps the board (`children`, i.e. `PlayerBlueprint`
  * + its `InteractiveLayer` overlay) between the chrome strip above and the
- * narration/transport dock below — nothing floats over the diagram. The
- * board's zoom cluster is portalled up into the strip through
- * `ZoomSlotContext`.
+ * narration/transport dock below. Only the board's small zoom island floats
+ * over it, in the bottom-left corner.
  */
 export function HudTimelineFrame({ gauges, children }: { gauges: readonly GaugeView[]; children: ReactNode }) {
-  const [zoomHost, setZoomHost] = useState<HTMLElement | null>(null);
-  const zoomSlot = useMemo(() => ({ host: zoomHost }), [zoomHost]);
   return (
     <div className="player-canvas-area">
-      <HudStrip gauges={gauges} zoomHostRef={setZoomHost} />
-      <ZoomSlotContext.Provider value={zoomSlot}>
-        <div className="player-board-wrap">{children}</div>
-      </ZoomSlotContext.Provider>
+      <HudStrip gauges={gauges} />
+      <div className="player-board-wrap">{children}</div>
       <TimelineDock />
     </div>
   );

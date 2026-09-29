@@ -38,7 +38,6 @@ const STATIC_NAV_ITEMS: PaletteNavItem[] = [
   { id: "page:daily", title: "Daily", kind: "page", href: "/daily" },
   { id: "page:paths", title: "Paths", kind: "page", href: "/paths" },
   { id: "page:concepts", title: "Concepts", kind: "page", href: "/concepts" },
-  { id: "page:ai", title: "Artificial Intelligence", kind: "page", href: "/artificial-intelligence" },
   { id: "page:about", title: "About", kind: "page", href: "/about" },
 ];
 

@@ -66,7 +66,7 @@ test.describe('Home', () => {
 
   test('the walkthrough section lists real story titles from the catalog', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Write Path (URL Creation)')).toBeVisible();
+    await expect(page.getByText('Write path: creating a short link')).toBeVisible();
   });
 
   for (const viewport of [
@@ -103,7 +103,7 @@ test.describe('Home hero card (1440)', () => {
     await page.goto('/');
     const hero = page.locator('[data-player-variant="hero"]');
     // Wait for the camera fit (the board gets an explicit transform once fitted).
-    await expect.poll(() => hero.locator('[data-drill-key=""] > *').first().evaluate((el) => (el as HTMLElement).style.transform)).toContain('scale');
+    await expect.poll(() => hero.locator('[data-board-level] > *').first().evaluate((el) => (el as HTMLElement).style.transform)).toContain('scale');
     const px = await hero.locator('.cv-label').first().evaluate((el) => el.getBoundingClientRect().height);
     // A 13px title fitted into a ~690px card: at least half size.
     expect(px).toBeGreaterThanOrEqual(6.5);

@@ -30,7 +30,7 @@
  */
 
 /** Version of the view-data / manifest format this app was built against. */
-export const RUNTIME_FORMAT = 2;
+export const RUNTIME_FORMAT = 3;
 
 // ---------------------------------------------------------------------------
 // Shared small shapes
@@ -76,7 +76,7 @@ export interface ClassBody {
 /** A drawn node. */
 export interface NodeView {
   id: string;
-  /** Node shape family, e.g. `server`, `db`, `subSystem`, `cell`, `class`. Picks the base glyph. */
+  /** Node shape family, e.g. `server`, `db`, `cell`, `class`. Picks the base glyph. */
   form: string;
   /** Icon sub-style, e.g. `sql`, `mobile`. Unknown values fall back to `form`'s glyph. */
   flavor?: string;
@@ -100,20 +100,14 @@ export interface NodeView {
   uml?: ClassBody;
   /** Detail panel. */
   sheet?: Sheet;
-  /** Nested board (subsystem). */
-  inner?: Board;
-  /** Subsystem boundary style: `region` | `zone` | `vpc` | `cluster` | `group`. */
-  frame?: string;
-  /** Subsystem starts closed. */
-  folded?: boolean;
 }
 
 /** A drawn link. */
 export interface LinkView {
   id: string;
-  /** Start node id. */
+  /** Start node id (always a drawn node). */
   a: string;
-  /** End node id. */
+  /** End node id (always a drawn node). */
   b: string;
   /** Arrowheads at both ends. */
   two?: true;
@@ -152,11 +146,56 @@ export interface LinkView {
 }
 
 /** One graph level. */
+/**
+ * A labelled frame drawn round a group of nodes. No state or metrics of its
+ * own; its tab label is a button that opens the group's detail panel.
+ */
+export interface FrameView {
+  id: string;
+  /** Tab label. */
+  text: string;
+  /** Border style: `region` | `zone` | `vpc` | `cluster` | `group`. */
+  look: string;
+  /** The border's box. Every node in `holds` sits inside it with padding; the tab sits just above it. */
+  box: Box;
+  /** Ids of every node inside the frame (at any depth). */
+  holds: string[];
+  /** The group's own detail panel, same shape as a node's. */
+  sheet?: Sheet;
+}
+
+/** The drawn diagram: one flat graph, every node at the same scale. */
 export interface Board {
   /** `[w, h]`. */
   size: XY;
   blocks: NodeView[];
   wires: LinkView[];
+  /** Frames, outer before inner (draw order). Absent when there are none. */
+  frames?: FrameView[];
+  /**
+   * The same board arranged top to bottom for narrow screens: every drawn
+   * block, wire and frame placed again. Geometry only — ids, text and
+   * everything else stay on the entries above. Absent when there is none.
+   */
+  tall?: BoardShape;
+}
+
+/** An alternate placement of a board's blocks, wires and frames (`Board.tall`). */
+export interface BoardShape {
+  /** `[w, h]`. */
+  size: XY;
+  /** Block id → its box here. */
+  boxes: { [blockId: string]: Box };
+  /** Wire id → its route here (same meaning as `LinkView.route`/`curve`/`cap`). */
+  wires: { [wireId: string]: WireShape };
+  /** Frame id → its box here. Absent when there are no frames. */
+  frames?: { [frameId: string]: Box };
+}
+
+export interface WireShape {
+  route: XY[];
+  curve?: true;
+  cap?: { pt: XY; axis: 'h' | 'v'; sz: XY };
 }
 
 // ---------------------------------------------------------------------------
@@ -258,10 +297,18 @@ export interface Frame {
   /** 1-based code lines to highlight. */
   lines: number[];
   arrow?: { a: string; b: string; text?: string };
-  /** Node or subsystem to zoom to. */
+  /** Node or frame to zoom to. */
   aim?: string;
   /** Node ids to animate particles through, in order. */
   trail?: string[];
+}
+
+/** One Break it move: a "Try this" chip, or the failure a walkthrough explains. */
+export interface BreakChip {
+  text: string;
+  verb: string;
+  el?: string;
+  amt?: number;
 }
 
 export interface StoryView {
@@ -270,6 +317,8 @@ export interface StoryView {
   tip?: string;
   /** Stage id this trace belongs to. */
   phase?: string;
+  /** The failure this walkthrough explains: its last step opens Break it with it applied. */
+  brk?: BreakChip;
   frames: Frame[];
 }
 
@@ -317,6 +366,8 @@ export interface RemedyView {
   nature?: string;
   md: string;
   price?: string;
+  /** What the fix gives up in return, one sentence. */
+  trade?: string;
   /** Element ids this fix adds (see `ViewData.spares`). */
   adds?: string[];
 }
@@ -332,11 +383,44 @@ export interface KitView {
   verbs: string[];
   /** Spike slider maximum. */
   cap?: number;
-  chips: Array<{ text: string; verb: string; el?: string; amt?: number }>;
+  chips: BreakChip[];
   /** Remedy ids offered in the Fix It panel. */
   remedies: string[];
   /** Per element: the tools it accepts (absent = every fitting tool; `[]` = unbreakable). */
   locks: Array<[string, string[]]>;
+  /** Cache failures, one entry per cache or CDN that serves reads (absent when there is none). */
+  packs?: PackView[];
+  /**
+   * Verified fix plans per planned failure (`cause`: `kill:<el>`,
+   * `spike:<n>`, `partition:<el>`, `slow:<el>:<n>`, `flush:<el>`,
+   * `fault:<id>`): combinations of changes the build's simulator confirmed
+   * bring every requirement back, cheapest first. An act is a logged action
+   * `[tool, target, value]`; `cost` the monthly cost added over the healthy
+   * system; `back` seconds until the requirements hold.
+   */
+  plans?: Array<{ cause: string; ways: Array<{ acts: Array<[string, string, number | null]>; cost: number; back: number }> }>;
+}
+
+/**
+ * The cache failures offered for one cache or CDN (`el`). Each break is sent
+ * with its `verb` as the tool: `flush` targets `el`, `fault` targets the
+ * break's own `id`. `fits`: remedy ids that address it (offered in Fix it
+ * while it's the current failure). `series`: node metric codes that show it.
+ * `down`: remedy ids that fit `el` being killed.
+ */
+export interface PackView {
+  el: string;
+  breaks: PackBreakView[];
+  down: string[];
+}
+
+export interface PackBreakView {
+  id: string;
+  text: string;
+  md: string;
+  verb: 'flush' | 'fault';
+  fits: string[];
+  series: string[];
 }
 
 export interface GaugeView {
@@ -349,6 +433,21 @@ export interface GaugeView {
   probe: string;
   text: string;
   suffix: string;
+}
+
+/**
+ * A request path: the clients that send it, its hops in order and every
+ * link it crosses (all drawn ids). A hop marked `miss` only happens on a
+ * cache miss; `async` starts a fire-and-forget branch.
+ */
+export interface LaneView {
+  id: string;
+  text: string;
+  senders: string[];
+  hops: Array<[string] | [string, 'miss' | 'async']>;
+  wires: string[];
+  /** Neutral metric keys `[requests, p99 latency]`; absent without a simulation. */
+  probes?: [string, string];
 }
 
 export interface CalcView {
@@ -435,6 +534,18 @@ export interface AlgoView {
 }
 
 /** The per-diagram view data, as synced under `data/engine/diagrams/<id>.view.json`. */
+/** A node the viewer can scale by hand, with the `resize` action. `each` is the monthly cost of one replica. */
+export interface KnobView {
+  el: string;
+  /** Replicas as authored. */
+  n: number;
+  lo: number;
+  hi: number;
+  /** What one replica is called: `pods`, `instances`, `nodes`, `shards`, `brokers`. */
+  noun: string;
+  each: number;
+}
+
 export interface ViewData {
   fmt: number;
   /** Build hash (`sha256:…` of the source). Pairs this view with its sim payload. */
@@ -460,6 +571,10 @@ export interface ViewData {
   kit?: KitView;
   gauges: GaugeView[];
   calcs: CalcView[];
+  /** Request paths, for tracing on the board. Absent when there are none. */
+  lanes?: LaneView[];
+  /** Nodes the viewer may scale by hand. Absent when there are none. */
+  knobs?: KnobView[];
   drills: DrillView[];
   outage?: OutageView;
   algo?: AlgoView;
@@ -564,16 +679,6 @@ export interface RuntimeManifest {
 
 /** One logged user action: `[t, tool, target, value]`. */
 export type UserAction = [number, string, string | null, number | string | boolean | null];
-
-/** Decoded share URL. Codec is T3.12. */
-export interface ShareState {
-  docId: string;
-  r?: number;
-  v?: string;
-  st?: string;
-  t?: number;
-  a?: UserAction[];
-}
 
 /** Health tokens as published by the worker's metrics snapshot. */
 export type SimHealthToken = 'ok' | 'warn' | 'critical' | 'info' | 'accent' | 'muted';

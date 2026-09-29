@@ -4,28 +4,17 @@ import {
   Node,
   Link,
   LinkLabel,
-  SubsystemCollapsed,
   SubsystemFrame,
   meterKindForType,
   nodeSubLabel,
 } from '@/app/(components)/canvas';
 import type { LeafNodeType, LinkProtocol, NodeMeter, NodeRole } from '@/app/(components)/canvas';
-import type { Board as BoardView, LinkView, NodeView, XY } from '../types';
-import { routeToPath, routeMidpoint, translate } from './geometry';
+import type { Board as BoardView, FrameView, LinkView, NodeView } from '../types';
+import { routeToPath, routeMidpoint } from './geometry';
 import { resolveHealth } from './colorBy';
 import type { ColorByMode, HealthLookup } from './colorBy';
 
 export type { ColorByMode, HealthLookup, ElementHealth } from './colorBy';
-
-/**
- * Gutter between an expanded subsystem's frame and the content it encloses.
- * The synced layout sizes a subsystem's inner content flush against its own
- * bounding box (no border allowance), so drawing the frame at that exact
- * size puts its dashed edge right on the first/last inner node's own
- * corner. This inset keeps the frame reading as a boundary drawn around its
- * contents, not through them.
- */
-const SUBSYSTEM_FRAME_PADDING = 12;
 
 export interface StaticBlueprintProps {
   /** The graph level to draw — `ViewData.board` for the top level. */
@@ -36,11 +25,11 @@ export interface StaticBlueprintProps {
   label?: string;
   className?: string;
   style?: CSSProperties;
-  /** Which color-by scheme drives node/subsystem rings. Only `health` exists today. */
+  /** Which color-by scheme drives node rings. Only `health` exists today. */
   mode?: ColorByMode;
   /** Per-element static health; an id with no entry renders `ok`. */
   health?: HealthLookup;
-  /** False draws every node/subsystem as a non-focusable image (a preview, not a control). Default true. */
+  /** False draws every node as a non-focusable image (a preview, not a control). Default true. */
   interactive?: boolean;
 }
 
@@ -101,7 +90,6 @@ function baselineMeter(kind: NonNullable<ReturnType<typeof meterKindForType>>): 
 function renderNode(
   block: NodeView,
   boardId: string,
-  offset: XY,
   mode: ColorByMode,
   health: HealthLookup | undefined,
   interactive: boolean,
@@ -111,7 +99,7 @@ function renderNode(
   if (!type) return null; // DSA/LLD member shapes get their own renderer elsewhere.
 
   const { state, label: healthLabel } = resolveHealth(mode === 'health' ? health : undefined, block.id);
-  const [cx, cy] = translate([block.box[0], block.box[1]], offset);
+  const [cx, cy] = block.box;
   const meterKind = meterKindForType(block.form);
 
   return (
@@ -137,76 +125,32 @@ function renderNode(
   );
 }
 
-function renderSubsystem(
-  block: NodeView,
-  boardId: string,
-  offset: XY,
-  mode: ColorByMode,
-  health: HealthLookup | undefined,
-  interactive: boolean,
-) {
-  if (!block.box) return null; // spare subsystem: not laid out yet.
-  const { state, label: healthLabel } = resolveHealth(mode === 'health' ? health : undefined, block.id);
-  const [cx, cy] = translate([block.box[0], block.box[1]], offset);
-
-  const expanded = block.folded !== true && !!block.inner;
-  if (!expanded) {
-    const nodeCount = block.inner?.blocks.length ?? 0;
-    return (
-      <SubsystemCollapsed
-        key={block.id}
-        boardId={boardId}
-        id={block.id}
-        label={block.text}
-        nodeCount={nodeCount}
-        health={state}
-        healthLabel={healthLabel}
-        width={block.box[2]}
-        height={block.box[3]}
-        x={cx}
-        y={cy}
-        meter={baselineMeter('util')}
-        childIds={block.inner?.blocks.map((b) => b.id)}
-        interactive={interactive}
-      />
-    );
-  }
-
-  const inner = block.inner!;
-  const [innerWidth, innerHeight] = inner.size;
-  const width = innerWidth + SUBSYSTEM_FRAME_PADDING * 2;
-  const height = innerHeight + SUBSYSTEM_FRAME_PADDING * 2;
-  const frameX = cx - width / 2;
-  const frameY = cy - height / 2;
-  const contentOffset: XY = [frameX + SUBSYSTEM_FRAME_PADDING, frameY + SUBSYSTEM_FRAME_PADDING];
-  const nodeCount = inner.blocks.length;
-
+/** A group's frame: a dashed border round its nodes with its name as a tab — the tab is the group's one control (it selects the group). */
+function renderFrame(frame: FrameView, boardId: string, interactive: boolean) {
+  const [cx, cy, width, height] = frame.box;
   return (
-    <g key={block.id} data-subsystem-id={block.id}>
-      <SubsystemFrame
-        boardId={boardId}
-        id={block.id}
-        label={`${block.text} · ${nodeCount} node${nodeCount === 1 ? '' : 's'}`}
-        x={frameX}
-        y={frameY}
-        width={width}
-        height={height}
-        interactive={interactive}
-      />
-      {renderLevel(inner, boardId, contentOffset, mode, health, interactive)}
-    </g>
+    <SubsystemFrame
+      key={`frame-${frame.id}`}
+      boardId={boardId}
+      id={frame.id}
+      label={frame.text}
+      x={cx - width / 2}
+      y={cy - height / 2}
+      width={width}
+      height={height}
+      interactive={interactive}
+    />
   );
 }
 
-function renderLink(wire: LinkView, boardId: string, offset: XY) {
+function renderLink(wire: LinkView, boardId: string) {
   if (!wire.route || wire.route.length === 0) return null; // spare link: not routed yet.
-  const routeAbs = wire.route.map((p) => translate(p, offset));
   return (
     <Link
       key={wire.id}
       boardId={boardId}
       id={wire.id}
-      d={routeToPath(routeAbs, wire.curve === true)}
+      d={routeToPath(wire.route, wire.curve === true)}
       toNodeId={wire.b}
       protocol={asLinkProtocol(wire.line)}
       bidirectional={!!wire.two}
@@ -215,42 +159,32 @@ function renderLink(wire: LinkView, boardId: string, offset: XY) {
 }
 
 /**
- * A link's label pill, drawn in its own pass after every link of the level
- * so no other link can cross its text (its opaque fill masks its own line).
- * `cap` — the engine's collision-free anchor on the drawn curve — wins when
- * present (same coordinate space as `route`, so it takes the same
- * `offset`); a link with `text` but no `cap` (an older/unsynced document)
- * falls back to the route's own arc-length midpoint.
+ * A link's label pill, drawn in its own pass after every link so no other
+ * link can cross its text (its opaque fill masks its own line). `cap` — the
+ * engine's collision-free anchor on the drawn curve — wins when present; a
+ * link with `text` but no `cap` (an older/unsynced document) falls back to
+ * the route's own arc-length midpoint.
  */
-function renderLinkLabel(wire: LinkView, offset: XY) {
+function renderLinkLabel(wire: LinkView) {
   if (!wire.text || !wire.route || wire.route.length === 0) return null;
-  const [x, y] = wire.cap ? translate(wire.cap.pt, offset) : routeMidpoint(wire.route.map((p) => translate(p, offset)));
+  const [x, y] = wire.cap ? wire.cap.pt : routeMidpoint(wire.route);
   return <LinkLabel key={`label-${wire.id}`} id={wire.id} label={wire.text} x={x} y={y} size={wire.cap?.sz} />;
 }
 
-function renderLevel(
-  level: BoardView,
-  boardId: string,
-  offset: XY,
-  mode: ColorByMode,
-  health: HealthLookup | undefined,
-  interactive: boolean,
-) {
+/** Frames first (behind everything), then links, their label pills, then nodes on top. */
+function renderBoard(board: BoardView, boardId: string, mode: ColorByMode, health: HealthLookup | undefined, interactive: boolean) {
   return (
     <>
-      {level.wires.map((wire) => renderLink(wire, boardId, offset))}
-      {level.wires.map((wire) => renderLinkLabel(wire, offset))}
-      {level.blocks.map((block) =>
-        block.form === 'subSystem'
-          ? renderSubsystem(block, boardId, offset, mode, health, interactive)
-          : renderNode(block, boardId, offset, mode, health, interactive),
-      )}
+      {(board.frames ?? []).map((frame) => renderFrame(frame, boardId, interactive))}
+      {board.wires.map((wire) => renderLink(wire, boardId))}
+      {board.wires.map((wire) => renderLinkLabel(wire))}
+      {board.blocks.map((block) => renderNode(block, boardId, mode, health, interactive))}
     </>
   );
 }
 
 /**
- * The static blueprint (T3.2): nodes, links and subsystems, drawn server-side
+ * The static blueprint (T3.2): nodes, links and group frames, drawn server-side
  * from view data with the canvas kit, no client JS required. Health rings
  * default every element to `ok` (the healthy baseline the player always
  * opens on, see `colorBy.ts`) — a later task drives live values on the
@@ -262,12 +196,11 @@ function renderLevel(
  * when the caller sets one (an explicit height wins over `aspect-ratio`).
  *
  * The fit scale is capped at 1 and centered (T3.4), on *both* axes: `maxWidth`
- * and `maxHeight` are the board's own pixel size, so a small graph (a
- * subsystem's own board is its own coordinate space, not scaled to the
- * parent) never gets stretched up to fill a wide or tall container — it only
+ * and `maxHeight` are the board's own pixel size, so a small graph never
+ * gets stretched up to fill a wide or tall container — it only
  * ever scales *down*, when the available box is narrower or shorter than the
  * board's own size, and sits centered otherwise. Centering is the parent's
- * job now (`.player-drill-level`'s `display: flex` + centering in
+ * job now (`.player-board-level`'s `display: flex` + centering in
  * `globals.css`, for the player shell specifically), not this component's —
  * a plain `<div className="w-full">` caller with no such parent still gets
  * the width-only behavior this had before, since `marginInline: auto` only
@@ -278,11 +211,11 @@ function renderLevel(
  * box's own intrinsic size (from its only child, a replaced `<svg>` whose
  * intrinsic size comes from `viewBox`) from becoming an unshrinkable floor
  * if it's ever placed directly inside a flex/grid item with no size of its
- * own (the classic "automatic minimum size" trap) — as `.player-drill-level`
+ * own (the classic "automatic minimum size" trap) — as `.player-board-level`
  * already is; see that rule in `globals.css`. Neither one, by itself, fixes
  * an ancestor whose *own* size is resolved through flex stretch (see
  * `/dev/player`'s `main` for that distinct, page-level fix, and
- * `.player-drill-stage`/`.player-drill-level`'s explicit `width`/`height:
+ * `.player-board-stage`/`.player-board-level`'s explicit `width`/`height:
  * 100%` in `globals.css` for the same fix applied through the player
  * shell's own chain).
  */
@@ -312,7 +245,7 @@ export function StaticBlueprint({
         ...style,
       }}
     >
-      {renderLevel(board, boardId, [0, 0], mode, health, interactive)}
+      {renderBoard(board, boardId, mode, health, interactive)}
     </CanvasBoard>
   );
 }

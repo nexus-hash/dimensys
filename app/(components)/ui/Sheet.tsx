@@ -23,7 +23,7 @@ const SIDE_TRANSFORM: Record<SheetSide, { closed: string; edge: string }> = {
   right: { closed: 'right-0 translate-x-full', edge: 'right-0' },
 };
 
-/** Sheet (a side panel; prototype's left rail / right inspector as an overlay on tablet). */
+/** Sheet (a side panel; the left rail or right inspector as an overlay on tablet). */
 export function Sheet({
   trigger,
   title,
@@ -107,13 +107,13 @@ export interface BottomSheetProps {
    * tech either way (via a visually-hidden `Dialog.Title`) — pass `false`
    * when the sheet's own content already carries a heading or tabs that
    * make a second, generic title line redundant (the player's phone sheet,
-   * T3.16, whose tabs are the prototype's own sheet header).
+   * T3.16, whose tabs are the sheet's own header).
    */
   showTitleBar?: boolean;
 }
 
 /**
- * Drawer / BottomSheet (prototype `.sheet`): snap points at 12/50/92% of the
+ * Drawer / BottomSheet: snap points at 12/50/92% of the
  * viewport, draggable via the grab handle, and adjustable from the keyboard
  * (grab handle: ArrowUp/ArrowDown step snap points, Home/End jump to the
  * ends) — the same handle is both drag-affordance and a slider control.

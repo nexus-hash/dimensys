@@ -18,7 +18,7 @@ const VARIANT_CLASSES: Record<PillVariant, string> = {
   critical: 'text-ink-primary border-signal-critical/50 bg-signal-critical/10',
 };
 
-/** Pill/Badge (prototype `.pill`): mono 12px, full radius, hairline border. */
+/** Pill/Badge: mono 12px, full radius, hairline border. */
 export function Pill({ children, variant = 'neutral', icon, className }: PillProps) {
   return (
     <span
